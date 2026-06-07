@@ -3,6 +3,8 @@ import json
 from fastapi import APIRouter, Request, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from app.services.vector_service import VectorService
+from app.services.llm_service import LLMService
+from app.services.whatsapp_service import WhatsAppService  # Import dynamic sender jdid
 from app.api.endpoints.properties import search_properties
 
 router = APIRouter()
@@ -28,46 +30,51 @@ async def whatsapp_verify(
 @router.post("/webhook")
 async def whatsapp_webhook(request: Request):
     """
-    POST Webhook: Receives real WhatsApp messages, extracts text,
-    queries ChromaDB, and logs the matches.
+    POST Webhook: Complete pipeline for AqarBot SaaS.
+    Extracts text, searches vector DB, requests Gemini AI Darija reply, and sends back to client.
     """
     try:
-        # Read raw body first to check for empty content
-        body = await request.body()
-        if not body:
-            print("⚠️ Received empty request body")
-            return {"status": "error", "detail": "Empty request body"}
-
-        payload = json.loads(body)
+        payload = await request.json()
         print("📩 Incoming WhatsApp Payload:", json.dumps(payload, indent=2))
         
-        # 1. Structure Check: Extract message data from Meta's complex JSON payload
         if "entry" in payload and payload["entry"]:
             changes = payload["entry"][0].get("changes", [])
             if changes and "value" in changes[0]:
                 value = changes[0]["value"]
                 
-                # Check if it's a real incoming text message
                 if "messages" in value and value["messages"]:
                     message_obj = value["messages"][0]
-                    client_phone = message_obj.get("from") # Client WhatsApp number
+                    client_phone = message_obj.get("from")  # Dynamic client phone number
                     
                     if message_obj.get("type") == "text":
                         client_text = message_obj.get("text", {}).get("body", "").strip()
                         print(f"💬 Client ({client_phone}) sent: '{client_text}'")
                         
-                        # 2. Trigger Semantic Search automatically using the client's text
+                        # 1. Semantic Search
                         print(f"🔍 Searching ChromaDB for: '{client_text}'...")
                         search_results = await search_properties(query=client_text, limit=3)
+                        properties_list = search_results.get("properties", [])
                         
-                        # 3. Log what the system found (This will be formatted by the LLM later)
-                        print(f"🎯 Search results linked to WhatsApp flow: {search_results}")
+                        # 2. AI Vibe Generation (Darija)
+                        print("🧠 Generating AI response via Gemini Pro...")
+                        ai_reply = LLMService.generate_whatsapp_reply(
+                            client_message=client_text, 
+                            properties_data=properties_list
+                        )
+                        
+                        print("\n=================== 🤖 AQARBOT AI REPLY ===================")
+                        print(ai_reply)
+                        print("===========================================================\n")
+                        
+                        # 3. Meta API Sender (Trigger real-time response back to the client)
+                        print(f"📲 Attempting to send message back to {client_phone} via Meta API...")
+                        await WhatsAppService.send_whatsapp_message(
+                            to_phone=client_phone,
+                            message_text=ai_reply
+                        )
                         
         return {"status": "received"}
         
-    except json.JSONDecodeError:
-        print("❌ Invalid JSON received")
-        return {"status": "error", "detail": "Invalid JSON format"}
     except Exception as e:
         print(f"❌ Error processing incoming webhook data: {str(e)}")
         return {"status": "error", "detail": str(e)}
