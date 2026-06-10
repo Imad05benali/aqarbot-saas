@@ -49,5 +49,5 @@ class LLMService:
             )
             return response.text.strip()
         except Exception as e:
-            print(f"❌ Error generating content from Gemini GenAI: {str(e)}")
-            return "Mar7ba khoya, tswwabt m3aya chi mouchkil sghir f l-sistim. Aji n-9addou l-amour d l-3aqar f l-blasa!"
+            print(f"ERROR: Error generating content from Gemini GenAI: {str(e)}")
+            return "Mar7ba khoya, sma7 lia bzaf kayn chi mouchkil f l-sistim dialna 7alyan. Ghadi n7awlo n-9addo l-amour f l-blasa!"

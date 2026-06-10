@@ -1,12 +1,13 @@
 import os
 from dotenv import load_dotenv
+
+# 1. Force loading dial .env s7i7 right at the beginning
+load_dotenv(override=True)
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.endpoints import properties, whatsapp
-
-# 1. Force loading dial .env s7i7 right at the beginning
-load_dotenv(override=True)
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
