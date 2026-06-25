@@ -1,0 +1,94 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #124E96; /* AqarBot Blue */
+  --color-secondary: #0A192F; /* AqarBot Dark Navy */
+  --color-tertiary: #21A041; /* AqarBot Green */
+  
+  --color-surface: #ffffff;
+  --color-surface-dim: #f1f5f9;
+  
+  --color-status-hot: #ef4444;
+  --color-status-hot-bg: #fef2f2;
+  --color-status-cold: #124E96;
+  --color-status-cold-bg: #eff6ff;
+
+  --color-dark-bg: #030712;
+  --color-dark-surface: #0f172a;
+  --color-light-bg: #f8fafc;
+  --color-light-surface: #ffffff;
+
+  --animate-pulse-slow: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float: float 6s ease-in-out infinite;
+  --animate-glow: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .7; }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
+}
+
+@keyframes glow {
+  from { box-shadow: 0 0 5px #124E96, 0 0 10px #124E96; }
+  to { box-shadow: 0 0 10px #21A041, 0 0 20px #21A041; }
+}
+
+@layer base {
+  body {
+    @apply bg-light-bg text-slate-900 antialiased transition-colors duration-500 relative;
+  }
+  
+  .dark body {
+    @apply bg-dark-bg text-white;
+  }
+
+  /* Dot Grid Overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image: radial-gradient(rgba(18, 78, 150, 0.15) 1px, transparent 1px);
+    background-size: 24px 24px;
+    opacity: 0.5;
+  }
+
+  .dark body::before {
+    background-image: radial-gradient(rgba(33, 160, 65, 0.15) 1px, transparent 1px);
+    opacity: 0.3;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-tertiary/50 rounded-full hover:bg-tertiary transition-colors;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-xl border border-slate-200/50 shadow-lg dark:bg-[#0A192F]/60 dark:border-white/10 dark:shadow-[0_4px_30px_rgba(0,0,0,0.5)];
+  }
+  .glass-header {
+    @apply bg-white/90 backdrop-blur-md border-b border-slate-200 dark:bg-[#030712]/80 dark:border-white/10;
+  }
+  .neon-border {
+    @apply border border-transparent dark:border-tertiary/30 dark:shadow-[0_0_15px_rgba(33,160,65,0.15)];
+  }
+  .neon-text {
+    @apply text-primary dark:text-tertiary drop-shadow-[0_0_8px_rgba(33,160,65,0.4)];
+  }
+}
