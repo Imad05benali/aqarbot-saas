@@ -1,0 +1,342 @@
+{
+    "properties": {
+        "required": [
+            "id",
+            "title"
+        ],
+        "properties": {
+            "id": {
+                "description": "Note:\nThis is a Primary Key.<pk/>",
+                "format": "bigint",
+                "type": "integer"
+            },
+            "title": {
+                "format": "text",
+                "type": "string"
+            },
+            "description": {
+                "format": "text",
+                "type": "string"
+            },
+            "price": {
+                "format": "double precision",
+                "type": "number"
+            },
+            "sector": {
+                "format": "text",
+                "type": "string"
+            },
+            "city": {
+                "format": "text",
+                "type": "string"
+            },
+            "agency_id": {
+                "description": "Note:\nThis is a Foreign Key to `agencies.id`.<fk table='agencies' column='id'/>",
+                "format": "integer",
+                "type": "integer"
+            }
+        },
+        "type": "object"
+    },
+    "leads": {
+        "required": [
+            "id",
+            "city"
+        ],
+        "properties": {
+            "id": {
+                "default": "gen_random_uuid()",
+                "description": "Note:\nThis is a Primary Key.<pk/>",
+                "format": "uuid",
+                "type": "string"
+            },
+            "lead_id": {
+                "description": "Note:\nThis is a Foreign Key to `lead_profiles.id`.<fk table='lead_profiles' column='id'/>",
+                "format": "uuid",
+                "type": "string"
+            },
+            "agency_id": {
+                "format": "text",
+                "type": "string"
+            },
+            "city": {
+                "format": "text",
+                "type": "string"
+            },
+            "sector": {
+                "format": "text",
+                "type": "string"
+            },
+            "property_type": {
+                "format": "text",
+                "type": "string"
+            },
+            "budget": {
+                "format": "text",
+                "type": "string"
+            },
+            "created_at": {
+                "default": "now()",
+                "format": "timestamp with time zone",
+                "type": "string"
+            }
+        },
+        "type": "object"
+    },
+    "lead_profiles": {
+        "required": [
+            "id",
+            "phone_number"
+        ],
+        "properties": {
+            "id": {
+                "default": "gen_random_uuid()",
+                "description": "Note:\nThis is a Primary Key.<pk/>",
+                "format": "uuid",
+                "type": "string"
+            },
+            "phone_number": {
+                "format": "text",
+                "type": "string"
+            },
+            "full_name": {
+                "format": "text",
+                "type": "string"
+            },
+            "darija_intent": {
+                "format": "text",
+                "type": "string"
+            },
+            "status": {
+                "default": "NEW",
+                "format": "text",
+                "type": "string"
+            },
+            "created_at": {
+                "default": "now()",
+                "format": "timestamp with time zone",
+                "type": "string"
+            }
+        },
+        "type": "object"
+    },
+    "agencies": {
+        "required": [
+            "id",
+            "name",
+            "email",
+            "hashed_password"
+        ],
+        "properties": {
+            "id": {
+                "description": "Note:\nThis is a Primary Key.<pk/>",
+                "format": "integer",
+                "type": "integer"
+            },
+            "name": {
+                "format": "character varying",
+                "type": "string"
+            },
+            "email": {
+                "format": "character varying",
+                "type": "string"
+            },
+            "hashed_password": {
+                "format": "character varying",
+                "type": "string"
+            },
+            "ai_tone": {
+                "format": "character varying",
+                "type": "string"
+            },
+            "created_at": {
+                "default": "now()",
+                "format": "timestamp with time zone",
+                "type": "string"
+            }
+        },
+        "type": "object"
+    },
+    "dashboard_metrics": {
+        "required": [
+            "id"
+        ],
+        "properties": {
+            "id": {
+                "description": "Note:\nThis is a Primary Key.<pk/>",
+                "format": "integer",
+                "type": "integer"
+            },
+            "total_leads": {
+                "default": 0,
+                "format": "integer",
+                "type": "integer"
+            },
+            "total_queries": {
+                "default": 0,
+                "format": "integer",
+                "type": "integer"
+            },
+            "avg_ai_latency": {
+                "default": 0.0,
+                "format": "double precision",
+                "type": "number"
+            },
+            "updated_at": {
+                "default": "now()",
+                "format": "timestamp with time zone",
+                "type": "string"
+            }
+        },
+        "type": "object"
+    },
+    "telemetry_reports": {
+        "required": [
+            "id",
+            "event_type"
+        ],
+        "properties": {
+            "id": {
+                "default": "gen_random_uuid()",
+                "description": "Note:\nThis is a Primary Key.<pk/>",
+                "format": "uuid",
+                "type": "string"
+            },
+            "lead_id": {
+                "description": "Note:\nThis is a Foreign Key to `lead_profiles.id`.<fk table='lead_profiles' column='id'/>",
+                "format": "uuid",
+                "type": "string"
+            },
+            "event_type": {
+                "format": "text",
+                "type": "string"
+            },
+            "darija_raw_text": {
+                "format": "text",
+                "type": "string"
+            },
+            "processing_time": {
+                "format": "double precision",
+                "type": "number"
+            },
+            "tokens_used": {
+                "default": 0,
+                "format": "integer",
+                "type": "integer"
+            },
+            "status": {
+                "default": "SUCCESS",
+                "format": "text",
+                "type": "string"
+            },
+            "timestamp": {
+                "default": "now()",
+                "format": "timestamp with time zone",
+                "type": "string"
+            }
+        },
+        "type": "object"
+    },
+    "users": {
+        "required": [
+            "id",
+            "agency_name",
+            "full_name"
+        ],
+        "properties": {
+            "id": {
+                "description": "Note:\nThis is a Primary Key.<pk/>",
+                "format": "uuid",
+                "type": "string"
+            },
+            "agency_name": {
+                "format": "character varying",
+                "type": "string"
+            },
+            "full_name": {
+                "format": "character varying",
+                "type": "string"
+            },
+            "role": {
+                "default": "Owner",
+                "format": "character varying",
+                "type": "string"
+            },
+            "agency_logo": {
+                "format": "character varying",
+                "type": "string"
+            },
+            "created_at": {
+                "default": "now()",
+                "format": "timestamp with time zone",
+                "type": "string"
+            }
+        },
+        "type": "object"
+    },
+    "morocco_properties": {
+        "required": [
+            "id"
+        ],
+        "properties": {
+            "id": {
+                "description": "Note:\nThis is a Primary Key.<pk/>",
+                "format": "bigint",
+                "type": "integer"
+            },
+            "new_price": {
+                "format": "bigint",
+                "type": "integer"
+            },
+            "desc": {
+                "format": "text",
+                "type": "string"
+            },
+            "address": {
+                "format": "text",
+                "type": "string"
+            },
+            "chambres": {
+                "format": "bigint",
+                "type": "integer"
+            },
+            "salles de bains": {
+                "format": "bigint",
+                "type": "integer"
+            },
+            "surface": {
+                "format": "bigint",
+                "type": "integer"
+            },
+            "ascenseur": {
+                "format": "text",
+                "type": "string"
+            },
+            "floor": {
+                "format": "bigint",
+                "type": "integer"
+            },
+            "terrasse": {
+                "format": "text",
+                "type": "string"
+            },
+            "parking": {
+                "format": "text",
+                "type": "string"
+            },
+            "Type": {
+                "format": "text",
+                "type": "string"
+            },
+            "City": {
+                "format": "text",
+                "type": "string"
+            },
+            "Nighberd": {
+                "format": "text",
+                "type": "string"
+            }
+        },
+        "type": "object"
+    }
+}

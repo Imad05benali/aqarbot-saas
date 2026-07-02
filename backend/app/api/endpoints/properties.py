@@ -1,10 +1,41 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from app.services.vector_service import VectorService
-# Hna khdam b l-import dial clean instance dyalk nchane b7al sefat:
+import unicodedata
+import traceback
+import re
 from app.core.supabase import supabase  
 
 router = APIRouter()
+
+# Expanded Moroccan Conversational Stop-Words
+STOP_WORDS = [
+    "bghit", "dar", "chi", "villa", "appart", "appartement", 
+    "bghet", "9leb", "lia", "lya", "3la", "l9it", "bghat", "f", "fi",
+    "bgha", "m7taj", "n9elleb", "khssni", "khsni", "dyal", "del", 
+    "fin", "nl9it", "li", "ma", "kan", "nchouf", "glte", "gol"
+]
+
+def normalize_text(text: str) -> str:
+    """
+    Standardizes input: lowercase and accent decomposition.
+    """
+    if not text:
+        return ""
+    nks = unicodedata.normalize('NFD', text)
+    clean_text = "".join([c for c in nks if unicodedata.category(c) != 'Mn'])
+    return clean_text.lower().strip()
+
+def _fuzzify_token(token: str) -> str:
+    """
+    FUZZY VOWEL MATCHING:
+    Replaces all vowels with the SQL wildcard '%' to handle accent variations.
+    Example: 'meknes' -> 'm%kn%s' (Matches 'Meknès')
+    """
+    # Replace vowels with wildcard
+    fuzzed = re.sub(r'[aeiou]', '%', token)
+    # Ensure it doesn't end with too many wildcards
+    fuzzed = re.sub(r'%+', '%', fuzzed)
+    return fuzzed
 
 class PropertyCreate(BaseModel):
     title: str
@@ -14,107 +45,92 @@ class PropertyCreate(BaseModel):
     city: str
     agency_id: int
 
-@router.post("/ingest")
-async def ingest_property(property: PropertyCreate):
-    try:
-        # 1. Sauvegarde f Supabase relational DB
-        supabase_data = {
-            "title": property.title,
-            "price": property.price,
-            "sector": property.sector,
-            "city": property.city,
-            "agency_id": property.agency_id
-        }
-        
-        db_response = supabase.table("properties").insert(supabase_data).execute()
-        
-        if not db_response.data:
-            raise HTTPException(status_code=400, detail="Failed to insert into Supabase")
-            
-        inserted_id = db_response.data[0]["id"]
-
-        # 2. Ingestion dynamic f ChromaDB Vector Store
-        text_content = f"{property.title}. {property.description}. Sector: {property.sector}, City: {property.city}."
-        metadata = {
-            "price": str(property.price),
-            "sector": property.sector,
-            "city": property.city
-        }
-        
-        VectorService.insert_property(
-            property_id=str(inserted_id),
-            text_content=text_content,
-            metadata=metadata
-        )
-
-        return {
-            "status": "success",
-            "message": "Property synced to Supabase and ChromaDB!",
-            "property_id": inserted_id
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
 @router.get("/search")
 async def search_properties(query: str, limit: int = 5):
     """
-    Semantic search from ChromaDB + Relational Join with Supabase 
-    safeguarded against non-integer IDs.
+    FUZZY NATIONWIDE SEARCH:
+    1. Normalizes tokens and applies fuzzy vowel transformation.
+    2. Dynamically matches tokens against all location/content columns.
+    3. Multi-Pass Fallback ensures recall for complex Darija.
     """
     try:
         if not query:
-            raise HTTPException(status_code=400, detail="Query string cannot be empty")
+            return {"status": "success", "results_count": 0, "properties": []}
             
-        # 1. Fetch closest matches from ChromaDB
-        search_results = VectorService.search_properties(query_text=query, n_results=limit)
+        query_norm = normalize_text(query)
+        all_words = re.findall(r'\w+', query_norm)
         
-        properties_found = []
+        # High-intent tokens
+        tokens = [w for w in all_words if w not in STOP_WORDS and len(w) >= 3]
         
-        if search_results and 'ids' in search_results and search_results['ids']:
-            ids = search_results['ids'][0]
-            distances = search_results['distances'][0] if 'distances' in search_results else []
-            
-            for i in range(len(ids)):
-                current_id = ids[i]
-                
-                # CHK: Check if current_id is a valid integer string (like "6") 
-                # to avoid 22P02 bigint error with formats like "prop_101"
-                if not current_id.isdigit():
-                    continue  # bypass test rows that are not real integers
-                
-                # 2. SQL Join Manual: Fetch property + agency relation from Supabase
-                supabase_req = supabase.table("properties")\
-                                       .select("*, agencies(*)")\
-                                       .eq("id", int(current_id))\
-                                       .execute()
-                
-                supabase_data = supabase_req.data[0] if supabase_req.data else None
-                
-                if supabase_data:
-                    agency_info = supabase_data.get("agencies", {})
-                    
-                    properties_found.append({
-                        "property_id": current_id,
-                        "title": supabase_data.get("title"),
-                        "price": supabase_data.get("price"),
-                        "sector": supabase_data.get("sector"),
-                        "city": supabase_data.get("city"),
-                        "score_distance": distances[i] if i < len(distances) else None,
-                        "agency": {
-                            "id": agency_info.get("id"),
-                            "name": agency_info.get("name"),
-                            "email": agency_info.get("email"),
-                            "phone": agency_info.get("phone")
-                        }
-                    })
-                
+        print(f"--- NATIONWIDE FUZZY SEARCH ATTEMPT: {query} ---")
+        print(f"EXTRACTED TOKENS: {tokens}")
+        
+        # Transform tokens to fuzzy patterns: 'meknes' -> 'm%kn%s'
+        fuzzy_tokens = [_fuzzify_token(t) for t in tokens]
+        print(f"FUZZIFIED SEARCH PATTERNS: {fuzzy_tokens}")
+        
+        # PASS 1: Broad Keyword Matching
+        results = await _execute_fuzzy_search(fuzzy_tokens, limit)
+        
+        # PASS 2: Fallback to Priority Token
+        if not results and fuzzy_tokens:
+            priority_pattern = [fuzzy_tokens[-1]]
+            print(f"--- PASS 2 FALLBACK (FUZZY PRIORITY): {priority_pattern} ---")
+            results = await _execute_fuzzy_search(priority_pattern, limit)
+
         return {
             "status": "success",
             "query": query,
-            "results_count": len(properties_found),
-            "properties": properties_found
+            "results_count": len(results),
+            "properties": _format_final_results(results)
         }
 
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    except Exception:
+        print(f"SEARCH CRITICAL ERROR: {traceback.format_exc()}")
+        try:
+            fallback_req = supabase.table("morocco_properties").select("*").limit(limit).execute()
+            return {
+                "status": "fallback",
+                "properties": _format_final_results(fallback_req.data)
+            }
+        except:
+             return {"status": "error", "message": "Search unavailable"}
+
+async def _execute_fuzzy_search(fuzzy_tokens: list, limit: int) -> list:
+    """Helper to perform Supabase .or_() with fuzzy patterns."""
+    if not fuzzy_tokens:
+        return []
+        
+    db_query = supabase.table("morocco_properties").select("*")
+    or_conditions = []
+    for pattern in fuzzy_tokens:
+        or_conditions.append(f"City.ilike.{pattern}")
+        or_conditions.append(f"Nighberd.ilike.{pattern}")
+        or_conditions.append(f"title.ilike.{pattern}")
+        or_conditions.append(f"description.ilike.{pattern}")
+    
+    db_query = db_query.or_(",".join(or_conditions))
+    supabase_req = db_query.limit(limit).execute()
+    return supabase_req.data if supabase_req.data else []
+
+def _format_final_results(results: list) -> list:
+    """Ensures consistent data delivery."""
+    formatted = []
+    for row in results:
+        formatted.append({
+            "id": row.get("id"),
+            "property_id": str(row.get("id")),
+            "title": row.get("title"),
+            "new_price": row.get("new_price"),
+            "Nighberd": row.get("Nighberd"),
+            "City": row.get("City"),
+            "Type": row.get("Type"),
+            "agency": {
+                "id": 0,
+                "name": "General Listing",
+                "email": "support@aqarbot.ma",
+                "phone": "N/A"
+            }
+        })
+    return formatted
