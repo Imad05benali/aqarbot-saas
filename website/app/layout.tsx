@@ -73,12 +73,13 @@ export const metadata: Metadata = {
     images: ["/maroc-core-tech.png"],
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/shortcut-icon.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
   },
 };
 
+import SmoothScroll from "@/components/SmoothScroll";
 import GlobalBackground from "@/components/GlobalBackground";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -100,12 +101,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <GlobalBackground />
-          <Navbar />
-          <div className="relative z-10 min-h-screen">
-            {children}
-            <Footer />
-          </div>
+          <SmoothScroll>
+            <GlobalBackground />
+            <Navbar />
+            <div className="relative z-10 min-h-screen">
+              {children}
+              <Footer />
+            </div>
+          </SmoothScroll>
         </ThemeProvider>
       </body>
     </html>

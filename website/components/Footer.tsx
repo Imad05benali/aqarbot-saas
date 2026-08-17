@@ -10,58 +10,24 @@ export default function Footer() {
   if (pathname.startsWith('/auth')) return null;
 
   return (
-    <footer className="pt-24 pb-12 bg-black border-t border-neutral-900 overflow-hidden relative mt-20">
-      {/* Subtle Glow inside footer to keep tech feel */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-brand-emerald/20 to-transparent" />
-      
-      <div className="container mx-auto px-6 max-w-7xl relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-20">
-          <div className="col-span-1 md:col-span-1">
-            <a href="/">
-              <img src="/aqar-removebg-preview.png" alt="AqarBot" className="h-12 w-auto mb-8 dark:brightness-100 brightness-0" />
-            </a>
-            <p className="text-slate-500 text-sm font-medium leading-relaxed">
-              La première solution IA sur WhatsApp dédiée exclusivement au marché immobilier marocain.
-            </p>
-          </div>
-          <div>
-            <h4 className="font-black text-foreground uppercase tracking-widest text-xs mb-8">Produit</h4>
-            <ul className="space-y-4 text-sm font-bold text-slate-500">
-              <li><a href="/fonctionnalites" className="hover:text-brand-emerald transition-colors">Fonctionnalités</a></li>
-              <li><a href="/prix" className="hover:text-brand-emerald transition-colors">Tarifs</a></li>
-              <li><a href="/maroc-core" className="hover:text-brand-emerald transition-colors">Maroc Core</a></li>
-              <li><a href="/produit" className="hover:text-brand-emerald transition-colors">Produit</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-black text-foreground uppercase tracking-widest text-xs mb-8">Entreprise</h4>
-            <ul className="space-y-4 text-sm font-bold text-slate-500">
-              <li className="hover:text-brand-emerald transition-colors cursor-pointer">À propos</li>
-              <li className="hover:text-brand-emerald transition-colors cursor-pointer">Contact</li>
-              <li className="hover:text-brand-emerald transition-colors cursor-pointer">Carrières</li>
-              <li className="hover:text-brand-emerald transition-colors cursor-pointer">Partenaires</li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-black text-foreground uppercase tracking-widest text-xs mb-8">Légal</h4>
-            <ul className="space-y-4 text-sm font-bold text-slate-500">
-              <li className="hover:text-brand-emerald transition-colors cursor-pointer">Confidentialité</li>
-              <li className="hover:text-brand-emerald transition-colors cursor-pointer">CGU</li>
-              <li className="hover:text-brand-emerald transition-colors cursor-pointer">Mentions Légales</li>
-            </ul>
+    <footer className="w-full bg-[#0B1120] px-6 md:px-12 lg:px-20 pb-12 relative z-10 pt-10">
+      <div className="max-w-[1400px] mx-auto flex flex-col md:flex-row justify-between items-center py-10 border-t border-slate-900 border-dashed text-[10px] font-black tracking-[0.2em] text-slate-600 uppercase">
+        <div className="flex items-center gap-4 opacity-50 mb-6 md:mb-0">
+          <img src="/logo-icon.png" alt="Aqarbot" className="h-7 w-auto grayscale" />
+          <div className="flex flex-col text-[9px] font-medium tracking-normal normal-case leading-tight">
+            <span>L'intelligence opérationnelle des agences</span>
+            <span>immobilières marocaines.</span>
           </div>
         </div>
         
-        <div className="pt-12 border-t border-neutral-100 dark:border-neutral-900 flex flex-col md:flex-row justify-between items-center gap-6">
-          <p className="text-slate-500 text-xs font-black tracking-wide">
-            © 2026 AqarBot AI. Fièrement développé par STACKLY DIGITAL au Maroc. 🇲🇦
-          </p>
-          <div className="flex gap-8">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] cursor-pointer hover:text-white transition-colors">LinkedIn</span>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] cursor-pointer hover:text-white transition-colors">Twitter / X</span>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] cursor-pointer hover:text-white transition-colors">Instagram</span>
-          </div>
+        <div className="flex items-center gap-8 mb-6 md:mb-0">
+          <a href="/solutions" className="hover:text-white transition-colors">Solutions</a>
+          <a href="/biens" className="hover:text-white transition-colors">Biens Qualifiés</a>
+          <a href="/crm" className="hover:text-white transition-colors">CRM Agence</a>
+          <a href="/prix" className="hover:text-white transition-colors">Tarifs</a>
         </div>
+
+        <div className="opacity-50">© 2024 AQARBOT · FAIT AU MAROC</div>
       </div>
     </footer>
   );

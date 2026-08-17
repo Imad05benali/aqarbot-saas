@@ -3,7 +3,7 @@
 import React, { Suspense } from 'react';
 import { Mail, Lock, ArrowRight, ShieldCheck, Zap, ArrowLeft, Loader2 } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseReachable } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
 
 // ──────────────────────────────────────────────────────────────
@@ -59,6 +59,14 @@ function LoginForm() {
     setError(null);
 
     try {
+      // Pre-flight: verify Supabase API is reachable
+      const reachable = await isSupabaseReachable();
+      if (!reachable) {
+        throw new Error(
+          'Connexion au serveur impossible. Vérifiez votre connexion Internet ou réactivez votre projet Supabase.'
+        );
+      }
+
       const { data, error: authError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -75,8 +83,11 @@ function LoginForm() {
       // Navigate to Vite dashboard
       window.location.href = 'http://localhost:5173/dashboard';
     } catch (err: unknown) {
-      const message =
+      let message =
         err instanceof Error ? err.message : 'Erreur de connexion. Veuillez réessayer.';
+      if (message === 'Failed to fetch' || message.includes('Failed to fetch')) {
+        message = 'Connexion au serveur impossible. Vérifiez votre connexion Internet ou réactivez votre projet Supabase.';
+      }
       setError(message);
       setIsSubmitting(false);
     }

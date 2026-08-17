@@ -20,7 +20,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseReachable } from '@/lib/supabase';
 
 // ──────────────────────────────────────────────────────────────
 // TYPES
@@ -84,6 +84,15 @@ export default function RegisterPage() {
     setIsSubmitting(true);
 
     try {
+      // 0. Pre-flight: verify Supabase API is reachable
+      const reachable = await isSupabaseReachable();
+      if (!reachable) {
+        throw new Error(
+          'Impossible de joindre le serveur Supabase. '
+          + 'Vérifiez votre connexion Internet ou réactivez le projet Supabase (le plan gratuit se met en pause après 7 jours d\'inactivité).'
+        );
+      }
+
       // 1. Create Supabase Auth user
       const { data, error: authError } = await supabase.auth.signUp({
         email,
@@ -136,7 +145,11 @@ export default function RegisterPage() {
         window.location.href = `/auth/login?email=${encodeURIComponent(email)}&prefill=${encodeURIComponent(password)}`;
       }, 2000);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Erreur lors de l'inscription.";
+      let message = err instanceof Error ? err.message : "Erreur lors de l'inscription.";
+      // Detect raw network failures and replace with user-friendly message
+      if (message === 'Failed to fetch' || message.includes('Failed to fetch')) {
+        message = 'Connexion au serveur impossible. Vérifiez votre connexion Internet ou réactivez votre projet Supabase.';
+      }
       setOtpError(message);
     } finally {
       setIsSubmitting(false);

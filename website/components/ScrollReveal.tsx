@@ -6,9 +6,10 @@ interface ScrollRevealProps {
   children: React.ReactNode;
   className?: string;
   stagger?: number;
+  delay?: number;
 }
 
-export default function ScrollReveal({ children, className = '', stagger = 0 }: ScrollRevealProps) {
+export default function ScrollReveal({ children, className = '', stagger = 0, delay = 0 }: ScrollRevealProps) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 

@@ -1,291 +1,520 @@
 'use client';
 
-import React from 'react';
-import Features from '@/components/Features';
-import Pricing from '@/components/Pricing';
-import ScrollReveal from '@/components/ScrollReveal';
-import MetricCard from '@/components/MetricCard';
+import React, { useEffect, useRef, useState } from 'react';
+import { MessageSquare, ArrowUpRight, CheckCircle2, ChevronDown, Check, Server, Building2, MapPin, Search } from 'lucide-react';
 import StructuredData from '@/components/StructuredData';
-import { MessageSquare, Search, UserCheck, ArrowRight, Zap, Star, ShieldCheck, HelpCircle } from 'lucide-react';
 
-const steps = [
-  {
-    title: "Message WhatsApp",
-    description: "Le prospect envoie un message en Darija ou Français à votre numéro AqarBot.",
-    icon: <MessageSquare className="w-8 h-8 text-brand-emerald" />,
-    color: "bg-emerald-500/10"
-  },
-  {
-    title: "Analyse par l'IA",
-    description: "Notre IA analyse l'intention, extrait les besoins (budget, quartier, type) en millisecondes.",
-    icon: <Zap className="w-8 h-8 text-brand-neon" />,
-    color: "bg-teal-500/10"
-  },
-  {
-    title: "Qualification & Réponse",
-    description: "Le lead est enregistré dans votre CRM et l'IA propose instantanément des biens correspondants.",
-    icon: <UserCheck className="w-8 h-8 text-brand-teal" />,
-    color: "bg-blue-500/10"
-  }
-];
+function useOnScreen(ref: React.RefObject<Element | null>, rootMargin = '0px') {
+  const [isIntersecting, setIntersecting] = useState(false);
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) setIntersecting(true);
+      },
+      { rootMargin }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => {
+      if (ref.current) observer.unobserve(ref.current);
+    };
+  }, [ref, rootMargin]);
+  return isIntersecting;
+}
 
-const faqs = [
-  {
-    k: "Est-ce que l'IA comprend le Darija ?",
-    v: "Oui, parfaitement. Notre modèle est spécifiquement entraîné sur les expressions locales marocaines et les variations d'orthographe (Meknes, Meknès, Casa, Dar Beida, etc.)."
-  },
-  {
-    k: "Puis-je l'intégrer à mon CRM actuel ?",
-    v: "AqarBot dispose de son propre CRM léger, mais nous pouvons également nous connecter à vos outils via API (Zapier, Make, ou intégrations directes)."
-  },
-  {
-    k: "Est-ce conforme au RGPD et à la CNDP ?",
-    v: "Oui, la sécurité des données est notre priorité. Toutes les données sont chiffrées et nous respectons les réglementations locales sur la protection des données personnelles."
-  }
-];
+function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode, delay?: number, className?: string }) {
+  const ref = useRef<any>(null);
+  const isIntersecting = useOnScreen(ref, '-50px');
+  return (
+    <div 
+      ref={ref} 
+      className={`transition-all duration-1000 ease-out ${isIntersecting ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-10 scale-95'} ${className}`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export default function Home() {
+  const [scrollY, setScrollY] = useState(0);
+
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <main className="selection:bg-brand-emerald/30 overflow-x-hidden">
+    <main className="bg-[#0B1120] text-slate-100 min-h-screen selection:bg-[#6EE7B7]/30 overflow-x-hidden">
       <StructuredData />
-      <div className="pt-24 md:pt-32 lg:pt-40">
-        {/* HERO SECTION - CENTERED */}
-        <section className="container mx-auto px-6 max-w-7xl min-h-[60vh] md:min-h-[70vh] flex flex-col items-center justify-center relative">
-          <ScrollReveal>
-            <div className="flex flex-col items-center text-center animate-reveal">
-              <div className="inline-flex items-center rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-100/50 dark:bg-neutral-900/50 px-4 py-1.5 text-sm text-brand-emerald mb-10 shadow-[0_0_20px_rgba(16,185,129,0.1)] animate-float">
-                <span className="flex h-2 w-2 rounded-full bg-brand-emerald mr-2 animate-pulse" />
-                <span className="font-bold tracking-tight">Nouvelle Era de l'Immobilier au Maroc</span>
-              </div>
 
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight text-foreground mb-6 md:mb-8 leading-[1.1] animate-reveal">
-                Votre agence immobilière <br />
-                <span className="text-gradient">sous stéroïdes IA</span>
-              </h1>
+      {/* ─── 1. HERO SECTION (REFERENCE MATCH) ───────────────────────────────────── */}
+      <section className="relative min-h-[95vh] flex flex-col justify-center pt-32 pb-24 px-6 md:px-12 lg:px-20 overflow-hidden">
+        
+        {/* Subtle Background Grid Element (matching exactly) */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
 
-              <p className="max-w-[800px] text-slate-600 dark:text-slate-400 text-base md:text-xl lg:text-2xl mb-10 md:mb-12 leading-relaxed font-medium animate-reveal">
-                Dites adieu aux leads perdus. Notre IA qualifie vos prospects sur WhatsApp 24/7 en <span className="text-slate-900 dark:text-white font-bold underline decoration-brand-emerald/30">Darija et Français</span> pendant que vous dormez.
-              </p>
-
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 md:gap-6 w-full sm:w-auto animate-reveal">
-                <button className="w-full sm:w-auto group relative px-8 md:px-10 py-4 md:py-5 bg-black dark:bg-brand-emerald text-white dark:text-black font-black rounded-2xl transition-all hover:scale-105 active:scale-95 shadow-2xl hover:shadow-brand-emerald/40 overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-r from-brand-emerald to-brand-neon opacity-0 group-hover:opacity-100 transition-opacity" />
-                  <span className="relative z-10 flex items-center justify-center gap-2 text-lg md:text-xl">
-                    Démarrer Maintenant <ArrowRight className="w-5 h-5 md:w-6 md:h-6 group-hover:translate-x-1 transition-transform" />
-                  </span>
-                </button>
-                
-                <button className="w-full sm:w-auto px-8 md:px-10 py-4 md:py-5 border-2 border-neutral-200 dark:border-neutral-800 bg-transparent text-foreground font-black rounded-2xl transition-all hover:bg-neutral-100 dark:hover:bg-white/5 active:scale-95 text-lg md:text-xl">
-                  Voir la démo
-                </button>
-              </div>
-
-              {/* Status Indicator Floating */}
-              <div className="mt-16 flex items-center gap-6 animate-reveal" style={{ transitionDelay: '0.8s' }}>
-                <div className="glass-card px-6 py-3 rounded-2xl flex items-center gap-3 animate-float" style={{ animationDelay: '1s' }}>
-                  <div className="w-3 h-3 bg-brand-emerald rounded-full animate-pulse" />
-                  <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">+127 Leads qualifiés aujourd'hui</span>
-                </div>
-              </div>
-            </div>
-          </ScrollReveal>
-        </section>
-
-          {/* BRANDS / LOGOS */}
-          <section className="py-20 border-y border-neutral-100 dark:border-neutral-900 overflow-hidden">
-            <div className="container mx-auto px-6">
-              <p className="text-center text-[10px] text-slate-400 font-black uppercase tracking-[0.4em] mb-12">Ils nous font confiance</p>
-              <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale">
-                <img src="/STACKLY.png" alt="Stackly" className="h-8 w-auto dark:invert brightness-0 dark:brightness-100" />
-                <div className="text-2xl font-black text-foreground italic opacity-50">CASA IMMO</div>
-                <div className="text-2xl font-black text-foreground italic opacity-50">MARRAKECH REALTY</div>
-                <div className="text-2xl font-black text-foreground italic opacity-50">TANGER PROPS</div>
-              </div>
-            </div>
-          </section>
-
-          <Features />
-
-          {/* HOW IT WORKS */}
-          <section id="fonctionnalites" className="section-padding bg-zinc-50/50 dark:bg-zinc-950/20 relative overflow-hidden">
-            {/* Network Graphics / Geometric Background */}
-            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.07] pointer-events-none">
-              <svg width="100%" height="100%" fill="none" viewBox="0 0 1440 800">
-                <circle cx="200" cy="200" r="2" fill="currentColor" />
-                <circle cx="600" cy="150" r="2" fill="currentColor" />
-                <circle cx="1000" cy="250" r="2" fill="currentColor" />
-                <circle cx="1300" cy="100" r="2" fill="currentColor" />
-                <circle cx="400" cy="500" r="2" fill="currentColor" />
-                <circle cx="800" cy="650" r="2" fill="currentColor" />
-                <circle cx="1200" cy="550" r="2" fill="currentColor" />
-                <path d="M200 200L600 150L1000 250L1300 100" stroke="currentColor" strokeWidth="0.5" />
-                <path d="M400 500L800 650L1200 550" stroke="currentColor" strokeWidth="0.5" />
-                <path d="M600 150L800 650" stroke="currentColor" strokeWidth="0.5" />
-                <path d="M1000 250L1200 550" stroke="currentColor" strokeWidth="0.5" />
-              </svg>
-            </div>
-
-            <div className="container mx-auto px-6 max-w-7xl relative z-10">
-              <div className="text-center mb-20 text-balance animate-fade-in">
-                <h2 className="text-3xl md:text-5xl font-black text-foreground mb-6">Comment ça marche ?</h2>
-                <p className="text-slate-600 dark:text-slate-400 max-w-[700px] mx-auto text-lg font-medium">
-                  Une mise en place simple pour des résultats révolutionnaires.
-                </p>
-              </div>
-
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 relative">
-                {steps.map((step, i) => (
-                  <ScrollReveal key={step.title} stagger={0}>
-                    <div 
-                      className="relative z-10 flex flex-col items-center text-center animate-slide-in-right"
-                      style={{ transitionDelay: `${i * 0.3}s` }}
-                    >
-                      {/* Step Connection Line (Drawing effect) - Desktop only */}
-                      {i < 2 && (
-                        <div 
-                          className="hidden lg:block absolute top-[40px] left-[54%] w-full h-1 bg-brand-emerald/10 z-0 overflow-hidden"
-                          style={{ transitionDelay: `${(i * 0.3) + 0.2}s` }}
-                        >
-                           <div className="w-full h-full bg-brand-emerald shadow-[0_0_15px_rgba(16,185,129,0.5)] animate-draw origin-left" />
-                        </div>
-                      )}
-
-                      <div className={`w-24 h-24 rounded-[32px] ${step.color} border-2 border-brand-emerald/20 flex items-center justify-center mb-10 shadow-2xl hover:scale-110 hover:rotate-3 transition-all duration-500 relative bg-background z-10`}>
-                        {step.icon}
-                        <div className="absolute -top-3 -right-3 w-10 h-10 rounded-full bg-brand-emerald text-black flex items-center justify-center font-black text-sm shadow-xl border-4 border-background">
-                          {i + 1}
-                        </div>
-                      </div>
-                      
-                      <h3 className="text-2xl font-black text-foreground mb-4">{step.title}</h3>
-                      <p className="text-slate-600 dark:text-slate-400 font-medium leading-relaxed max-w-[280px]">
-                        {step.description}
-                      </p>
-                    </div>
-                  </ScrollReveal>
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* TRUST SECTION / TESTIMONIALS */}
-          <ScrollReveal>
-            <section className="section-padding overflow-hidden animate-reveal" style={{ animationDelay: '0.6s' }}>
-              <div className="container mx-auto px-6 max-w-7xl">
-                <div className="glass-card p-8 md:p-16 rounded-[48px] relative overflow-hidden group hover:shadow-[0_0_50px_rgba(16,185,129,0.15)] transition-shadow duration-700">
-                  <div className="absolute top-0 right-0 w-96 h-96 bg-brand-emerald/10 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-125 transition-transform duration-1000" />
-                  
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
-                    <div className="animate-reveal" style={{ animationDelay: '0.8s' }}>
-                      <div className="flex gap-1 mb-8">
-                        {[1, 2, 3, 4, 5].map((s) => <Star key={s} className="w-6 h-6 fill-brand-emerald text-brand-emerald animate-float" style={{ animationDelay: `${s * 0.2}s` }} />)}
-                      </div>
-                      <h2 className="text-3xl md:text-5xl font-black text-foreground mb-8 leading-tight">
-                        "AqarBot a transformé notre gestion de nuit. On ne perd plus aucun lead."
-                      </h2>
-                      <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 rounded-full bg-neutral-200 dark:bg-neutral-800 overflow-hidden border-2 border-brand-emerald hover:scale-110 transition-transform">
-                          <UserCheck className="w-full h-full p-3 text-brand-emerald" />
-                        </div>
-                        <div>
-                          <p className="font-black text-foreground text-lg">Ahmed Tazi</p>
-                          <p className="text-brand-emerald text-sm font-bold uppercase tracking-widest">Directeur, Casa Realty</p>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-6">
-                      <MetricCard value="98" suffix="%" label="Satisfaction Client" delay="1.0s" />
-                      <MetricCard value="3" suffix="x" label="Plus de Leads" delay="1.1s" />
-                      <MetricCard value="10" prefix="<" suffix="s" label="Temps de Réponse" delay="1.2s" />
-                      <MetricCard value="24" suffix="/7" label="Disponibilité" delay="1.3s" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </section>
-          </ScrollReveal>
-
-          <Pricing />
-
-          {/* FAQ SECTION */}
-          <ScrollReveal>
-            <div id="faq" className="section-padding container mx-auto px-6 max-w-7xl">
-              <div className="text-center mb-20 animate-reveal">
-                <h2 className="text-3xl md:text-5xl font-black text-foreground mb-6">Questions Fréquentes</h2>
-                <div className="w-24 h-1.5 bg-brand-emerald mx-auto rounded-full" />
-              </div>
-              
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                {/* Left Column: FAQ Items */}
-                <div className="space-y-6 order-1 lg:order-1">
-                  {faqs.map((faq, i) => (
-                    <ScrollReveal key={faq.k} stagger={i * 0.15}>
-                      <div 
-                        className="glass-card p-8 rounded-[24px] hover:border-brand-emerald/30 transition-all cursor-pointer group animate-fade-in-up"
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <h3 className="text-lg font-black text-foreground group-hover:text-brand-emerald transition-colors">{faq.k}</h3>
-                          <HelpCircle className="w-6 h-6 text-slate-400 group-hover:rotate-12 transition-transform" />
-                        </div>
-                        <p className="mt-4 text-slate-600 dark:text-slate-400 font-medium leading-relaxed opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto overflow-hidden transition-all duration-500">
-                          {faq.v}
-                        </p>
-                      </div>
-                    </ScrollReveal>
-                  ))}
-                </div>
-
-                {/* Right Column: Premium Image Integration */}
-                <ScrollReveal stagger={0.4} className="order-2 lg:order-2">
-                  <div className="relative animate-fade-in-up">
-                    <div className="relative z-10 rounded-[32px] overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-2xl -skew-y-1 hover:skew-y-0 transition-transform duration-700">
-                      <img 
-                        src="/hero section.png" 
-                        alt="AqarBot Interface Demonstration" 
-                        className="w-full h-auto object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent pointer-events-none" />
-                    </div>
-                    {/* Decorative Elements */}
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-brand-emerald/10 blur-[80px] rounded-full -z-10" />
-                    <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-brand-neon/10 blur-[80px] rounded-full -z-10" />
-                  </div>
-                </ScrollReveal>
-              </div>
-            </div>
-          </ScrollReveal>
-          
-          {/* FINAL CTA */}
-          <ScrollReveal>
-            <section className="section-padding container mx-auto px-6 text-center animate-reveal" style={{ animationDelay: '0.2s' }}>
-              <div className="max-w-5xl mx-auto p-12 md:p-20 rounded-[48px] border-2 border-brand-emerald bg-black dark:bg-brand-emerald text-white dark:text-black relative overflow-hidden group hover:shadow-[0_0_80px_rgba(16,185,129,0.3)] transition-all duration-1000">
-                <div className="absolute inset-0 bg-gradient-to-br from-brand-emerald/10 to-brand-neon/10 group-hover:opacity-100 transition-opacity" />
-                <div className="relative z-10">
-                  <ScrollReveal stagger={0.4}>
-                    <h2 className="text-4xl md:text-6xl font-black mb-8 animate-reveal">N'attendez plus que vos leads s'endorment.</h2>
-                  </ScrollReveal>
-                  <ScrollReveal stagger={0.6}>
-                    <p className="text-slate-300 dark:text-black/70 mb-12 max-w-2xl mx-auto text-xl font-bold leading-relaxed animate-reveal">
-                      Activez votre Semsar AI aujourd'hui et commencez à capturer chaque opportunité du marché marocain.
-                    </p>
-                  </ScrollReveal>
-                  <ScrollReveal stagger={0.8}>
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-6 animate-reveal">
-                      <button className="w-full sm:w-auto bg-brand-emerald dark:bg-black text-black dark:text-white px-12 py-5 rounded-[20px] font-black text-2xl hover:scale-105 hover:rotate-1 transition-all shadow-2xl active:scale-95">
-                        Essayer Maintenant
-                      </button>
-                      <div className="flex items-center gap-2 animate-float">
-                        <ShieldCheck className="w-6 h-6 text-brand-emerald dark:text-black/50" />
-                        <span className="text-sm font-bold opacity-70">Satisfait ou remboursé sous 14 jours</span>
-                      </div>
-                    </div>
-                  </ScrollReveal>
-                </div>
-              </div>
-            </section>
-          </ScrollReveal>
+        {/* Ambient Glows */}
+        <div 
+          className="absolute top-0 right-1/4 translate-x-1/4 pointer-events-none transition-transform duration-75 ease-out"
+          style={{ transform: `translateX(25%) translateY(${scrollY * 0.4}px)`, opacity: Math.max(0, 1 - scrollY / 700) }}
+        >
+          <div className="w-[800px] h-[800px] bg-gradient-to-br from-[#6EE7B7]/10 to-transparent blur-[120px] rounded-full opacity-60" />
         </div>
+
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          
+          {/* ================ LEFT COLUMN ================ */}
+          <div className="flex flex-col text-left max-w-2xl">
+            <Reveal delay={300}>
+              <h1 className="text-[clamp(3.3rem,6vw,5.5rem)] font-medium leading-[1.05] tracking-tight mb-8 text-white">
+                La Première<br />
+                Plateforme SaaS<br />
+                Immobilière<br />
+                <span className="text-[#6EE7B7] relative inline-block">
+                  Pilotée par l'IA
+                  <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-yellow-500/70" />
+                </span> au<br />
+                Maroc
+              </h1>
+            </Reveal>
+
+            <Reveal delay={500}>
+              <p className="text-lg md:text-[1.3rem] text-slate-400 max-w-xl font-normal leading-relaxed mb-14">
+                AqarBot transforme chaque message en opportunité. Qualifiez, assignez et faites avancer vos prospects — avant même que votre café ne refroidisse.
+              </p>
+            </Reveal>
+
+            {/* Exact Reference Form Bar */}
+            <Reveal delay={700}>
+              <div className="w-full bg-[#0d1624] border border-slate-800 rounded p-5 shadow-2xl flex flex-col">
+                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-800 mb-5">
+                  <div className="flex-1 px-4 py-2 md:py-0 relative">
+                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Type de bien</label>
+                    <div className="relative">
+                      <select className="w-full bg-transparent text-slate-200 text-sm font-medium appearance-none focus:outline-none cursor-pointer">
+                        <option>Appartement</option>
+                        <option>Villa</option>
+                        <option>Plateau Bureau</option>
+                        <option>Terrain</option>
+                      </select>
+                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 px-4 py-2 md:py-0 relative">
+                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Ville</label>
+                    <div className="relative">
+                      <select className="w-full bg-transparent text-slate-200 text-sm font-medium appearance-none focus:outline-none cursor-pointer">
+                        <option>Meknès</option>
+                        <option>Casablanca</option>
+                        <option>Tanger</option>
+                        <option>Marrakech</option>
+                      </select>
+                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                    </div>
+                  </div>
+
+                  <div className="flex-1 px-4 py-2 md:py-0">
+                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Budget Max - MAD</label>
+                    <input type="text" defaultValue="1 500 000" className="w-full bg-transparent text-slate-200 text-sm font-medium focus:outline-none" />
+                  </div>
+                </div>
+
+                <button className="w-full bg-[#6EE7B7] text-[#0B1121] text-[11px] font-black tracking-[0.15em] uppercase py-5 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.2)]">
+                  TESTER LA QUALIFICATION IA <ArrowUpRight className="w-4 h-4" />
+                </button>
+              </div>
+            </Reveal>
+          </div>
+
+          {/* ================ RIGHT COLUMN : RADAR UI ================ */}
+          <div className="hidden lg:flex items-center justify-center relative min-h-[600px] scale-90 xl:scale-100">
+            <Reveal delay={900} className="relative w-full h-full flex items-center justify-center">
+              
+              {/* Radar Rings */}
+              <div className="absolute w-[800px] h-[800px] border border-slate-800/40 rounded-full" />
+              <div className="absolute w-[600px] h-[600px] border border-slate-700/50 rounded-full" />
+              <div className="absolute w-[400px] h-[400px] border border-slate-600/50 rounded-full" />
+              <div className="absolute w-[250px] h-[250px] border border-emerald-900/40 rounded-full" />
+              
+              {/* Radar dots */}
+              <div className="absolute w-2 h-2 rounded-full bg-[#6EE7B7] shadow-[0_0_10px_#6EE7B7] top-[30%] right-[15%]" />
+              <div className="absolute w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_10px_#EAB308] bottom-[15%] left-[25%]" />
+
+              {/* Center Brain Core */}
+              <div className="absolute w-44 h-44 bg-gradient-to-b from-[#0d1c25] to-[#070b13] border border-[#6EE7B7]/20 rounded-full flex flex-col items-center justify-center z-20 shadow-[0_0_40px_rgba(110,231,183,0.1)]">
+                <span className="relative flex h-14 w-14 mb-4">
+                  <span className="animate-[ping_2s_ease-out_infinite] absolute inline-flex h-full w-full rounded-full bg-[#6EE7B7] opacity-20"></span>
+                  <img src="/logo-icon.png" alt="Aqarbot Core" className="relative inline-flex h-full w-full object-contain drop-shadow-[0_0_15px_rgba(110,231,183,0.5)]" />
+                </span>
+                <p className="text-white text-xs font-bold mb-1">Aqar Intelligence</p>
+                <p className="text-[#6EE7B7]/70 text-[8px] uppercase tracking-widest font-black">En écoute · 24/7</p>
+              </div>
+
+              {/* Floating Widget 1: Signal Entrant */}
+              <div className="absolute top-[20%] left-[5%] z-30 bg-[#0d1624] border border-slate-700/50 p-4 rounded-sm shadow-xl backdrop-blur-md animate-[float_6s_ease-in-out_infinite]">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] animate-pulse" />
+                  <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">Signal Entrant</span>
+                </div>
+                <p className="text-slate-100 text-sm font-medium">WhatsApp · Casablanca</p>
+              </div>
+
+              {/* Floating Widget 2: Score IA */}
+              <div className="absolute bottom-[20%] right-[-5%] z-30 bg-[#0d1624] border border-yellow-500/30 p-4 rounded-sm shadow-xl backdrop-blur-md animate-[float_7s_ease-in-out_infinite]" style={{ animationDelay: '2s' }}>
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
+                  <span className="text-[9px] text-yellow-500 font-bold tracking-widest uppercase">Score IA</span>
+                </div>
+                <p className="text-slate-100 text-3xl font-medium tracking-tight">94<span className="text-sm text-slate-500">/100</span></p>
+              </div>
+
+            </Reveal>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ─── SECTION 01: LE PROBLÈME ─────────────────────────────── */}
+      <section className="py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
+        <div className="max-w-[1400px] mx-auto">
+          <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-20 items-end">
+            <div>
+              <Reveal delay={100} className="flex items-end gap-6 mb-8 group">
+                <span className="text-yellow-500 font-black text-5xl tracking-tighter opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out origin-bottom">01</span>
+                <div className="flex flex-col pb-1">
+                  <div className="h-px w-12 bg-slate-800 mb-2 transition-all duration-700 group-hover:w-20 group-hover:bg-yellow-500/50" />
+                  <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">Le Problème N'est Pas Le Volume</span>
+                </div>
+              </Reveal>
+              <h2 className="text-4xl md:text-[3.5rem] font-medium leading-[1.1] tracking-tight">
+                <span className="text-white">Les agences ne<br />manquent pas de leads.</span><br />
+                <span className="text-slate-500">Elles manquent de<br />temps pour les<br />comprendre.</span>
+              </h2>
+            </div>
+            <div className="pb-4">
+              <p className="text-slate-400 text-sm md:text-base max-w-sm leading-relaxed">
+                Un message ignoré à 22h devient le mandat d'une autre agence demain matin. AqarBot installe une intelligence calme entre votre marché et votre équipe.
+              </p>
+            </div>
+          </Reveal>
+
+          <Reveal delay={200}>
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-800 border border-slate-800 rounded-sm bg-[#0d1624]">
+              {[
+                { n: "01", t: "Chaque lead est lu", d: "AqarBot comprend le besoin derrière chaque message WhatsApp, Instagram ou formulaire.", i: <MessageSquare className="w-5 h-5 text-[#6EE7B7]" /> },
+                { n: "02", t: "Chaque intention est scorée", d: "Un score vivant, contextualisé par le budget, la ville, le timing et la motivation réelle.", i: <Search className="w-5 h-5 text-[#6EE7B7]" /> },
+                { n: "03", t: "Chaque agent sait quoi faire", d: "La bonne opportunité arrive à la bonne personne, avec le contexte qui fait gagner la signature.", i: <CheckCircle2 className="w-5 h-5 text-[#6EE7B7]" /> }
+              ].map((c, i) => (
+                <div key={i} className="p-10 flex flex-col hover:bg-slate-800/30 transition-colors">
+                  <div className="mb-12 flex justify-between items-start">
+                    <div>{c.i}</div>
+                    <span 
+                      className="text-transparent text-5xl font-black tracking-tighter opacity-80"
+                      style={{ WebkitTextStroke: '1.5px #eab308' }}
+                    >
+                      {c.n}
+                    </span>
+                  </div>
+                  <div className="mb-3">
+                    <h3 className="text-white text-sm tracking-wide font-bold">{c.t}</h3>
+                  </div>
+                  <p className="text-slate-500 text-xs font-medium leading-relaxed max-w-[250px]">{c.d}</p>
+                </div>
+              ))}
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─── SECTION 02: LES BIENS NE SONT PAS DES LIGNES ─────────────────────────────── */}
+      <section className="py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
+        <div className="max-w-[1400px] mx-auto">
+          <Reveal className="flex flex-col lg:flex-row justify-between items-end mb-16 gap-8">
+            <div>
+              <Reveal delay={100} className="flex items-end gap-6 mb-6 group">
+                <span className="text-yellow-500 font-black text-5xl tracking-tighter opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out origin-bottom">02</span>
+                <div className="flex flex-col pb-1">
+                  <div className="h-px w-12 bg-slate-800 mb-2 transition-all duration-700 group-hover:w-20 group-hover:bg-yellow-500/50" />
+                  <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">Les Biens Ne Sont Pas Des Lignes</span>
+                </div>
+              </Reveal>
+              <h2 className="text-4xl md:text-[3.5rem] font-medium leading-[1.1] tracking-tight text-white mb-2">
+                Ils deviennent des<br />opportunités<br />
+                <span className="text-[#6EE7B7]">au moment où elles comptent.</span>
+              </h2>
+            </div>
+            <a href="/biens" className="text-yellow-500 text-[10px] uppercase font-black tracking-[0.2em] flex items-center gap-2 hover:text-white transition-colors">
+              VOIR LE FLUX AGENCE <ArrowUpRight className="w-4 h-4" />
+            </a>
+          </Reveal>
+
+          <Reveal delay={200} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {[
+              { image: "/appartement.jpg", badge: "MATCH QUALIFIÉ", gradient: "from-[#FBBF24]/40 via-[#FBBF24]/10", ia: "94%", type: "Appartement · 3 pièces", loc: "HAMRIA · MEKNÈS", price: "1 240 000 MAD", details: "118 m² · 2e étage · Terrasse" },
+              { image: "/villa.jpg", badge: "INTÉRÊT CONFIRMÉ", gradient: "from-[#6EE7B7]/40 via-[#6EE7B7]/10", ia: "89%", type: "Villa · 6 pièces", loc: "ANFA · CASABLANCA", price: "5 800 000 MAD", details: "340 m² · Jardin · Piscine" },
+              { image: "/bereau ,plateau .jpeg", badge: "BESOIN DÉTECTÉ", gradient: "from-slate-300/40 via-slate-300/10", ia: "86%", type: "Bureau · Plateau", loc: "MALABATA · TANGER", price: "18 500 MAD / mois", details: "156 m² · Vue mer · Parking" }
+            ].map((p, i) => (
+              <div key={i} className="bg-[#0d1624] border border-slate-800 rounded-sm overflow-hidden flex flex-col group cursor-pointer hover:border-slate-600 transition-colors">
+                <div className="h-48 w-full relative flex flex-col justify-between p-4 overflow-hidden">
+                  <img src={p.image} alt={p.type} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-700" />
+                  <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient} to-transparent mix-blend-overlay`} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0d1624] via-transparent to-transparent opacity-100" />
+                  
+                  <div className="relative z-10 self-start px-2 py-1 bg-[#0B1120]/80 border border-slate-700 text-[8px] text-white font-black uppercase tracking-widest backdrop-blur-sm">{p.badge}</div>
+                  <div className="relative z-10 self-end px-3 py-1 bg-[#0B1120] border border-yellow-500/30 text-[9px] text-yellow-500 font-black uppercase tracking-widest flex items-center gap-2 shadow-xl backdrop-blur-sm">
+                    IA MATCH <span className="text-white text-xs">{p.ia}</span>
+                  </div>
+                </div>
+                <div className="p-6 pb-5 flex flex-col flex-1 border-t border-slate-800 relative z-10 bg-[#0d1624]">
+                  <p className="text-[#6EE7B7] text-[9px] font-black uppercase tracking-widest mb-2 flex justify-between items-center w-full">
+                    <span>{p.loc}</span>
+                    <ArrowUpRight className="w-3 h-3 text-slate-500 group-hover:text-white transition-colors" />
+                  </p>
+                  <h3 className="text-white text-lg font-bold mb-8 tracking-wide">{p.type}</h3>
+                  <div className="mt-auto flex justify-between items-end">
+                    <div>
+                      <p className="text-white font-black text-xl mb-1">{p.price}</p>
+                      <p className="text-slate-500 text-[10px] font-medium">{p.details}</p>
+                    </div>
+                    <span className="text-slate-600 text-[8px] font-black uppercase tracking-widest">ACTIF</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </Reveal>
+
+          <Reveal delay={400} className="w-full border border-slate-800 rounded-sm bg-[#0d1624] p-4 flex flex-col md:flex-row justify-between items-center gap-4 text-xs font-bold uppercase tracking-widest">
+             <div className="flex items-center gap-3 text-slate-400 text-[9px]">
+               <Search className="w-4 h-4 text-[#6EE7B7]" /> 2 418 BIENS ACTUELLEMENT INDEXÉS PAR AQARBOT
+             </div>
+             <div className="text-slate-600 text-[9px] flex items-center gap-2">
+               MISE À JOUR LIVE · 00:42:15
+             </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─── SECTION 03: LA SALLE DES MACHINES ─────────────────────────────── */}
+      <section className="py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
+          
+          <Reveal className="flex flex-col">
+            <Reveal delay={100} className="flex items-end gap-6 mb-8 group">
+              <span className="text-yellow-500 font-black text-5xl tracking-tighter opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out origin-bottom">03</span>
+              <div className="flex flex-col pb-1">
+                <div className="h-px w-12 bg-slate-800 mb-2 transition-all duration-700 group-hover:w-20 group-hover:bg-yellow-500/50" />
+                <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">La Salle Des Machines</span>
+              </div>
+            </Reveal>
+            <h2 className="text-4xl md:text-[3.5rem] font-medium leading-[1.1] tracking-tight mb-8">
+              <span className="text-white">Votre équipe.</span><br />
+              <span className="text-slate-500">Augmentée, jamais<br />remplacée.</span>
+            </h2>
+            <p className="text-slate-400 text-sm md:text-base max-w-sm leading-relaxed mb-10">
+              Le CRM AqarBot ne vous donne pas plus de dashboards. Il vous donne de l'avance sur la prochaine conversation.
+            </p>
+            
+            <div className="flex flex-wrap gap-2 mb-10">
+              <button className="bg-[#6EE7B7] text-[#0B1120] text-[10px] font-black uppercase tracking-[0.15em] px-8 py-4 rounded-sm hover:bg-white transition-colors">
+                QUALIFICATION IA
+              </button>
+              <button className="bg-transparent border border-slate-800 text-slate-300 text-[10px] font-black uppercase tracking-[0.15em] px-8 py-4 rounded-sm hover:bg-slate-800 transition-colors">
+                HUB LIVE TAKEOVER
+              </button>
+            </div>
+
+            <div className="flex flex-col gap-4 text-xs font-medium text-slate-300">
+              <div className="flex items-center gap-3">
+                 <div className="w-5 h-5 rounded-full bg-[#6EE7B7]/10 flex items-center justify-center shrink-0"><Check className="w-3 h-3 text-[#6EE7B7]" /></div>
+                 Détection automatique du besoin et du budget.
+              </div>
+              <div className="flex items-center gap-3">
+                 <div className="w-5 h-5 rounded-full bg-[#6EE7B7]/10 flex items-center justify-center shrink-0"><Check className="w-3 h-3 text-[#6EE7B7]" /></div>
+                 Score d'intention actualisé à chaque réponse.
+              </div>
+              <div className="flex items-center gap-3">
+                 <div className="w-5 h-5 rounded-full bg-[#6EE7B7]/10 flex items-center justify-center shrink-0"><Check className="w-3 h-3 text-[#6EE7B7]" /></div>
+                 Distribution intelligente à votre meilleur agent.
+              </div>
+            </div>
+          </Reveal>
+
+          <Reveal delay={200} className="relative w-full aspect-[4/3] lg:aspect-auto lg:h-[600px] flex items-center justify-center">
+             <div className="absolute inset-0 bg-gradient-to-br from-[#6EE7B7]/5 to-transparent rounded-xl" />
+             <div className="relative w-full max-w-md lg:max-w-xl aspect-[1.1] bg-[#0d1624] border border-slate-800 rounded-xl shadow-2xl overflow-hidden flex flex-col">
+               <div className="h-10 border-b border-slate-800 flex items-center px-4 justify-between bg-[#131b2c]">
+                 <div className="flex items-center gap-2">
+                   <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+                   <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+                   <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
+                 </div>
+                 <div className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-600">APP.AQARBOT.MA / AGENCE</div>
+                 <div className="w-4 h-4 rounded-full bg-slate-800" />
+               </div>
+               
+               <div className="flex flex-1">
+                 <div className="w-32 border-r border-slate-800 p-4 flex flex-col gap-6 bg-[#0B1120]">
+                    <div className="flex items-center gap-2 mb-4">
+                      <img src="/logo-icon.png" className="w-5 h-5 opacity-80" />
+                      <span className="text-[9px] font-bold text-white">aqarbot</span>
+                    </div>
+                    <div className="flex flex-col gap-4 text-[9px] font-bold text-slate-500">
+                      <div className="px-2 py-2 bg-[#6EE7B7]/10 text-[#6EE7B7] rounded-sm flex items-center gap-2"><CheckCircle2 className="w-3 h-3"/> Vue d'ensemble</div>
+                      <div className="px-2 py-1.5 flex items-center gap-2"><MessageSquare className="w-3 h-3"/> Leads entrants</div>
+                      <div className="px-2 py-1.5 flex items-center gap-2"><Search className="w-3 h-3"/> Biens qualifiés</div>
+                      <div className="px-2 py-1.5 flex items-center gap-2"><Search className="w-3 h-3"/> Équipe</div>
+                    </div>
+                 </div>
+                 
+                 <div className="flex-1 p-6 flex flex-col">
+                   <div className="flex justify-between items-start mb-6">
+                     <div>
+                       <p className="text-[8px] font-black uppercase tracking-widest text-[#6EE7B7] mb-1">VUE D'ENSEMBLE</p>
+                       <h3 className="text-2xl font-medium text-white">Bonjour, Yasmine</h3>
+                     </div>
+                     <button className="px-3 py-1 border border-slate-700 text-slate-300 text-[8px] font-bold uppercase rounded-sm">○ Aide</button>
+                   </div>
+                   
+                   <div className="grid grid-cols-3 gap-4 mb-8">
+                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-4">
+                       <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wide mb-3">Leads aujourd'hui</p>
+                       <p className="text-2xl font-black text-white mb-2">42</p>
+                     </div>
+                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-4 relative">
+                       <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wide mb-3">Score moyen</p>
+                       <p className="text-2xl font-black text-[#6EE7B7] mb-2">76.2</p>
+                       <div className="absolute bottom-4 left-4 right-4 h-0.5 bg-slate-800"><div className="h-full bg-[#6EE7B7] w-[76%]" /></div>
+                     </div>
+                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-4 relative">
+                       <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wide mb-3">Réponse médiane</p>
+                       <p className="text-2xl font-black text-white mb-2">00:28</p>
+                       <div className="absolute bottom-4 left-4 right-4 h-0.5 bg-slate-800"><div className="h-full bg-yellow-500 w-[20%]" /></div>
+                     </div>
+                   </div>
+
+                   <div className="flex justify-between items-center mb-4">
+                     <h4 className="text-[9px] font-bold uppercase tracking-widest text-white">Derniers leads qualifiés</h4>
+                     <span className="text-[8px] font-bold text-[#6EE7B7] uppercase tracking-widest">VOIR TOUT</span>
+                   </div>
+                   
+                   <div className="flex flex-col gap-3">
+                     {[ { l: "SB", n: "Salma Benjelloun", b: "Appartement · Anfa", s: "94/100", c: "bg-[#FBBF24] text-[#0B1120]" },
+                        { l: "KA", n: "Karim Azzouzi", b: "Villa · Aïn Diab", s: "88/100", c: "bg-slate-700 text-slate-300" },
+                        { l: "NC", n: "Nora Chraibi", b: "Bureau · Agdal", s: "81/100", c: "bg-slate-700 text-slate-300" } 
+                      ].map((u, i) => (
+                       <div key={i} className="flex items-center justify-between p-3 bg-[#0B1120] border border-slate-800 rounded-sm">
+                         <div className="flex items-center gap-4">
+                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-black uppercase shadow-lg ${u.c}`}>{u.l}</div>
+                           <div>
+                             <p className="text-white text-xs font-bold mb-0.5">{u.n}</p>
+                             <p className="text-slate-500 text-[9px] font-medium tracking-wide">{u.b}</p>
+                           </div>
+                         </div>
+                         <div className="flex items-center gap-3">
+                           <span className="text-[#6EE7B7] text-xs font-black">{u.s}</span>
+                           <ArrowUpRight className="w-3 h-3 text-slate-600" />
+                         </div>
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+               </div>
+             </div>
+          </Reveal>
+
+        </div>
+      </section>
+
+      {/* ─── SECTION 04: LA MESURE DU CALME (METRICS) ─────────────────────────────── */}
+      <section className="py-24 px-6 md:px-12 lg:px-20 bg-gradient-to-br from-[#0B1120] to-[#05080f] relative border-t border-slate-900/50">
+         <div className="absolute right-0 top-0 w-[600px] h-[600px] bg-[#6EE7B7]/10 blur-[150px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3" />
+         <div className="max-w-[1400px] mx-auto">
+            <Reveal className="mb-20 pt-10">
+              <Reveal delay={100} className="flex items-end gap-6 mb-8 group">
+                <span className="text-yellow-500 font-black text-5xl tracking-tighter opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out origin-bottom">04</span>
+                <div className="flex flex-col pb-1">
+                  <div className="h-px w-12 bg-slate-800 mb-2 transition-all duration-700 group-hover:w-20 group-hover:bg-yellow-500/50" />
+                  <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">La Mesure Du Calme</span>
+                </div>
+              </Reveal>
+              <h2 className="text-3xl md:text-[3rem] font-medium leading-[1.1] tracking-tight text-white mb-2 max-w-2xl">
+                Des chiffres qui changent <br/>la façon de travailler.
+              </h2>
+            </Reveal>
+
+            <div className="w-full h-px bg-slate-800/80 mb-16" />
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-8 pb-16">
+              {[
+                { value: "+40%", label: "Taux de Conversion", desc: "Plus de conversations deviennent des rendez-vous." },
+                { value: "< 30s", label: "Prise en Charge", desc: "Le délai médian entre le message et la première action." },
+                { value: "100%", label: "Isolation des Données", desc: "Chaque agence garde son marché, ses leads, son avantage." }
+              ].map((metric, i) => (
+                <Reveal key={i} delay={i * 150} className="flex flex-col">
+                  <div className="text-[5rem] lg:text-[7rem] font-medium text-[#6EE7B7] tracking-tighter leading-none mb-8">{metric.value}</div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-500 mb-4">{metric.label}</div>
+                  <div className="text-sm font-medium text-slate-400 leading-relaxed max-w-[250px]">{metric.desc}</div>
+                </Reveal>
+              ))}
+            </div>
+            
+            <div className="w-full h-px bg-slate-800/80 mt-2" />
+         </div>
+      </section>
+
+      {/* ─── SECTION 05: PAS DE SURPRISE AU CONTRAT (CTA) ─────────────────────────────── */}
+      <section className="pt-24 pb-12 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative">
+        <div className="max-w-[1400px] mx-auto">
+          <Reveal className="flex flex-col md:flex-row justify-between items-end gap-10 mb-16">
+             <div>
+                <Reveal delay={100} className="flex items-end gap-6 mb-8 group">
+                  <span className="text-yellow-500 font-black text-5xl tracking-tighter opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out origin-bottom">05</span>
+                  <div className="flex flex-col pb-1">
+                    <div className="h-px w-12 bg-slate-800 mb-2 transition-all duration-700 group-hover:w-20 group-hover:bg-yellow-500/50" />
+                    <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">Pas De Surprise Au Contrat</span>
+                  </div>
+                </Reveal>
+                <h2 className="text-4xl md:text-[3.5rem] font-medium leading-[1.1] tracking-tight">
+                  <span className="text-white">Commencez par</span><br />
+                  <span className="text-yellow-500">une vraie conversation.</span>
+                </h2>
+             </div>
+             <div className="flex flex-col pb-2 pl-0 md:pl-12 md:border-l border-slate-800 max-w-md">
+               <p className="text-slate-400 text-sm mb-6 leading-relaxed">Chaque agence a son rythme, ses villes, son volume. On commence par comprendre le vôtre.</p>
+               <a href="mailto:contact@aqarbot.ma" className="text-[#6EE7B7] text-[10px] uppercase font-black tracking-[0.2em] flex items-center gap-2 hover:text-white transition-colors">
+                 PARLER À L'ÉQUIPE AQARBOT <ArrowUpRight className="w-4 h-4" />
+               </a>
+             </div>
+          </Reveal>
+
+          <Reveal delay={200} className="w-full rounded-sm border border-slate-800 bg-[#0d1624] overflow-hidden flex flex-col md:flex-row mb-32">
+             <div className="p-10 lg:p-16 flex-1">
+               <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#6EE7B7] mb-12 flex items-center gap-3">
+                 <span className="w-2 h-2 rounded-full bg-[#6EE7B7] shadow-[0_0_10px_#6EE7B7]" /> POUR LES AGENCES QUI VEULENT GARDER UNE LONGUEUR D'AVANCE
+               </p>
+               
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-12 text-sm text-slate-300 font-medium">
+                 <div className="flex items-center gap-3"><Check className="w-4 h-4 text-[#6EE7B7]" /> Qualification multicanale</div>
+                 <div className="flex items-center gap-3"><Check className="w-4 h-4 text-[#6EE7B7]" /> CRM agence en temps réel</div>
+                 <div className="flex items-center gap-3"><Check className="w-4 h-4 text-[#6EE7B7]" /> Données cloisonnées</div>
+                 <div className="flex items-center gap-3"><Check className="w-4 h-4 text-[#6EE7B7]" /> Déploiement accompagné</div>
+               </div>
+             </div>
+             
+             <div className="p-10 lg:p-16 bg-[#131d2c] flex flex-col justify-center min-w-[400px]">
+               <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6">VOTRE PROCHAIN AVANTAGE</p>
+               <h3 className="text-white text-3xl md:text-3xl font-medium tracking-tight mb-10">L'intelligence<br/>dans votre équipe.</h3>
+               <a href="/auth/register" className="w-full bg-[#6EE7B7] text-[#0B1120] text-[10px] font-black uppercase tracking-[0.15em] py-5 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.15)]">
+                  ENTRER DANS L'ESPACE AGENCE <ArrowUpRight className="w-4 h-4" />
+               </a>
+             </div>
+          </Reveal>
+
+        </div>
+      </section>
+
     </main>
   );
 }

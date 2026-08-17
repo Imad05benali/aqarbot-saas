@@ -15,9 +15,9 @@ export default function AuthNavbar({ type }: AuthNavbarProps) {
         <div className="flex items-center gap-6">
           <a href="/" className="flex items-center group">
             <img 
-              src="/aqar-removebg-preview.png" 
+              src="/logo-icon.png" 
               alt="AqarBot Logo" 
-              className="h-8 md:h-10 w-auto object-contain transition-transform group-hover:scale-105 dark:brightness-100 brightness-0"
+              className="h-8 md:h-10 w-auto object-contain transition-transform group-hover:scale-105"
             />
           </a>
           <div className="h-4 w-px bg-neutral-200 dark:bg-neutral-800 hidden sm:block" />

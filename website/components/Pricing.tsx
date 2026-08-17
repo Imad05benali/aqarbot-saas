@@ -1,125 +1,113 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Check } from 'lucide-react';
+import React from 'react';
+import { Star } from 'lucide-react';
 import ScrollReveal from './ScrollReveal';
 
-const plans = [
-  {
-    name: "Starter",
-    price: "499",
-    description: "Parfait pour les agents indépendants (Semsars).",
-    features: [
-      "1 Numéro WhatsApp",
-      "Génération illimitée de leads",
-      "Qualification basique",
-      "Support par Email",
-      "Recherche SQL instantanée"
-    ]
-  },
-  {
-    name: "Business",
-    price: "1290",
-    popular: true,
-    description: "Le choix des agences immobilières en croissance.",
-    features: [
-      "2 Numéros WhatsApp",
-      "Qualification IA avancée (Darija)",
-      "CRM Intégré",
-      "Support Prioritaire 24/7",
-      "Exportation de données illimitée",
-      "Formation personnalisée"
-    ]
-  },
-  {
-    name: "Enterprise",
-    price: "Sur Devis",
-    description: "Solutions sur mesure pour les grands réseaux.",
-    features: [
-      "Numéros WhatsApp illimités",
-      "Multi-utilisateurs / Agences",
-      "Intégration API personnalisée",
-      "Account Manager Dédié",
-      "SLA Garanti",
-      "Développement de features sur mesure"
-    ]
-  }
-];
-
 export default function Pricing() {
-  const [isAnnual, setIsAnnual] = useState(true);
-
   return (
-    <section id="prix" className="py-24 w-full flex flex-col items-center">
-      <div className="container px-4 md:px-6">
+    <section id="prix" className="w-full relative pt-20 pb-32 text-slate-100 bg-[#0B1120] border-t border-slate-800">
+      <div className="container mx-auto px-6 max-w-7xl pt-10">
         <ScrollReveal>
-          <div className="text-center mb-16 animate-reveal">
-            <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-6">Des tarifs adaptés à votre croissance</h2>
-            <p className="text-slate-600 dark:text-slate-400 max-w-[600px] mx-auto text-lg mb-10">
-              Augmentez vos revenus sans augmenter votre charge de travail. Choisissez le plan qui vous ressemble.
-            </p>
-            
-            <div className="flex items-center justify-center gap-4">
-              <span className={`text-sm font-bold ${!isAnnual ? 'text-foreground' : 'text-slate-500'}`}>Mensuel</span>
-              <button 
-                onClick={() => setIsAnnual(!isAnnual)}
-                className="relative w-14 h-8 bg-neutral-200 dark:bg-neutral-800 rounded-full p-1 transition-colors"
-                title="Toggle billing period"
-              >
-                <div className={`w-6 h-6 bg-brand-emerald rounded-full transition-transform ${isAnnual ? 'translate-x-6' : 'translate-x-0'}`} />
-              </button>
-              <span className={`text-sm font-bold ${isAnnual ? 'text-foreground' : 'text-slate-500'}`}>
-                Annuel <span className="text-brand-emerald ml-1 text-xs px-2 py-0.5 bg-brand-emerald/10 rounded-full">-20%</span>
-              </span>
+          {/* Top mini header */}
+          <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-[0.2em] mb-10 border-b border-slate-800 pb-4 text-[#6EE7B7]">
+            <span>Tarifs · Trois niveaux</span>
+            <span>Essai 14 Jours · Sans CB</span>
+          </div>
+
+          {/* Massive Title Block */}
+          <div className="flex flex-col lg:flex-row justify-between items-end gap-10 mb-16">
+            <h2 className="text-[clamp(3.5rem,8vw,7rem)] font-black leading-[0.85] tracking-tighter uppercase text-white">
+              Choisissez<br />
+              votre <span className="text-[#6EE7B7] relative inline-block">niveau.<span className="absolute -bottom-1 left-0 w-full h-[2px] bg-yellow-500/70" /></span>
+            </h2>
+            <div className="max-w-xs text-sm font-medium text-slate-400 leading-relaxed mb-4">
+              Avec Agence, votre site web immobilier est offert : créé, connecté au CRM, hébergé et maintenu. Essai 14 jours sans carte bancaire.
             </div>
           </div>
+
+          <p className="text-[10px] text-slate-500 font-bold mb-4">Prix facturés en MAD · montants indicatifs.</p>
         </ScrollReveal>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {plans.map((plan, i) => (
-            <ScrollReveal key={plan.name} stagger={i * 0.2} className="h-full">
-              <div 
-                className={`glass-card p-10 rounded-[32px] relative flex flex-col h-full animate-reveal ${plan.popular ? 'border-brand-emerald shadow-[0_0_40px_rgba(16,185,129,0.15)] scale-105 z-10' : ''}`}
-              >
-                {plan.popular && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-brand-emerald text-black text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest shadow-lg animate-float">
-                    Le plus populaire
-                  </div>
-                )}
-                
-                <div className="mb-8">
-                  <h3 className="text-2xl font-black text-foreground mb-4">{plan.name}</h3>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm font-medium leading-relaxed">{plan.description}</p>
-                </div>
+        <ScrollReveal stagger={0.2} delay={0.2}>
+          {/* Pricing Cards Container */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 border border-slate-800 rounded-lg overflow-hidden bg-[#0d1624] shadow-2xl">
 
-                <div className="mb-8 flex items-baseline gap-1">
-                  <span className="text-4xl font-black text-foreground">
-                    {plan.price === "Sur Devis" ? plan.price : isAnnual ? Math.floor(parseInt(plan.price) * 0.8) : plan.price}
-                  </span>
-                  {plan.price !== "Sur Devis" && (
-                    <span className="text-slate-500 text-sm font-bold uppercase tracking-widest">{isAnnual ? 'DH / AN' : 'DH / MOIS'}</span>
-                  )}
-                </div>
+            {/* CARD 1 : SOLO */}
+            <div className="p-10 lg:p-12 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col hover:bg-slate-800/30 transition-colors">
+              <span className="text-xs font-black text-slate-500 mb-12">01</span>
+              <p className="text-[9px] uppercase tracking-[0.1em] font-bold text-slate-500 mb-2">Agent solo - indépendant</p>
+              <h3 className="text-[2.5rem] font-medium tracking-tight mb-8 leading-none text-white">Solo</h3>
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className="text-6xl font-black tracking-tighter text-white">499</span>
+                <span className="text-sm font-bold text-slate-500">DH /mois</span>
+              </div>
+              <p className="text-[10px] font-bold text-slate-500 mb-8">≈ 49 €</p>
+              <p className="text-[13px] font-medium text-slate-400 leading-relaxed max-w-[250px] mb-12">
+                Le CRM complet pour l'agent indépendant : contacts WhatsApp, biens, matching, pipeline et agenda.
+              </p>
 
-                <ul className="space-y-4 mb-10 flex-grow">
-                  {plan.features.map((feature) => (
-                    <li key={feature} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-brand-emerald mt-0.5 flex-shrink-0" />
-                      <span className="text-slate-700 dark:text-slate-300 text-sm font-medium">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <a 
-                  href={plan.name === "Enterprise" ? "mailto:contact@aqarbot.ma" : "/auth/register"}
-                  className={`w-full py-4 rounded-2xl font-black text-lg transition-all active:scale-95 text-center block ${plan.popular ? 'bg-brand-emerald text-black shadow-xl hover:shadow-brand-emerald/30 hover:scale-[1.02]' : 'bg-neutral-100 dark:bg-white/5 text-foreground hover:bg-neutral-200 dark:hover:bg-white/10'}`}
-                >
-                  {plan.name === "Enterprise" ? "Contactez-nous" : "S'abonner"}
+              <div className="mt-auto">
+                <a href="/auth/register" className="w-full flex items-center justify-center py-4 rounded-sm border border-slate-700 font-bold text-sm text-slate-300 hover:bg-[#6EE7B7] hover:text-[#0B1120] hover:border-[#6EE7B7] transition-colors cursor-pointer">
+                  Démarrer gratuitement
                 </a>
               </div>
-            </ScrollReveal>
-          ))}
-        </div>
+            </div>
+
+            {/* CARD 2 : AGENCE */}
+            <div className="p-10 lg:p-12 bg-[#6EE7B7]/10 text-white flex flex-col relative shadow-[0_0_50px_rgba(110,231,183,0.1)] z-10 lg:scale-[1.02] border border-[#6EE7B7]/50 rounded-lg" style={{ margin: '-1px 0' }}>
+              <div className="flex justify-between items-start mb-12">
+                <span className="text-xs font-black text-[#6EE7B7]">02</span>
+                <div className="bg-[#6EE7B7] text-[#0B1120] text-[9px] font-black uppercase tracking-[0.2em] px-3 py-1.5 rounded-sm flex items-center gap-1.5 shadow-md">
+                  <Star className="w-3 h-3 fill-[#0B1120]" /> Recommandé
+                </div>
+              </div>
+              <p className="text-[9px] uppercase tracking-[0.1em] font-bold text-[#6EE7B7] mb-2">Agence - 3 agents inclus</p>
+              <h3 className="text-[2.5rem] font-medium tracking-tight mb-8 leading-none text-white">Agence</h3>
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className="text-6xl font-black tracking-tighter text-[#6EE7B7]">1290</span>
+                <span className="text-sm font-bold text-[#6EE7B7]/50">DH /mois</span>
+              </div>
+              <p className="text-[10px] font-bold text-[#6EE7B7]/40 mb-8">≈ 129 €</p>
+              <p className="text-[13px] font-medium text-slate-300 leading-relaxed max-w-[250px] mb-8">
+                Le CRM d'équipe pour suivre, collaborer et qualifier à plusieurs sur un dashboard unifié.
+              </p>
+
+              <div className="bg-[#0B1120]/50 border border-[#6EE7B7]/20 rounded-md p-5 mb-8">
+                <p className="text-[9px] font-black text-[#6EE7B7] uppercase tracking-wider mb-2">Inclus avec agence</p>
+                <p className="text-lg font-medium mb-1 text-white">Site web offert</p>
+                <p className="text-xs text-slate-400 font-medium">Créé, connecté au CRM, hébergé et maintenu.</p>
+              </div>
+
+              <div className="mt-auto">
+                <a href="/auth/register" className="w-full flex items-center justify-center py-4 rounded-sm bg-[#6EE7B7] text-[#0B1120] font-black uppercase tracking-[0.15em] text-[11px] hover:bg-white transition-colors cursor-pointer shadow-[0_0_20px_rgba(110,231,183,0.3)] active:scale-95">
+                  Démarrer l'essai
+                </a>
+              </div>
+            </div>
+
+            {/* CARD 3 : SUR-MESURE */}
+            <div className="p-10 lg:p-12 flex flex-col hover:bg-slate-800/30 transition-colors border-l border-slate-800">
+              <span className="text-xs font-black text-slate-500 mb-12">03</span>
+              <p className="text-[9px] uppercase tracking-[0.1em] font-bold text-slate-500 mb-2">Tout métier immobilier</p>
+              <h3 className="text-[2.5rem] font-medium tracking-tight mb-8 leading-none text-white">Sur-mesure</h3>
+              <div className="flex items-baseline gap-2 mb-2 mt-4">
+                <span className="text-6xl font-black tracking-tighter text-white">Devis</span>
+              </div>
+              <p className="text-[10px] font-bold text-slate-500 mb-8 mt-2">Mise en place dès 20 000 MAD</p>
+              <p className="text-[13px] font-medium text-slate-400 leading-relaxed max-w-[250px] mb-12 mt-2">
+                Votre logiciel façonné par notre équipe sur notre socle CRM. Votre métier définit le produit, maintenu à vos côtés.
+              </p>
+
+              <div className="mt-auto">
+                <a href="mailto:contact@aqarbot.ma" className="w-full flex items-center justify-center py-4 rounded-sm border border-slate-700 font-bold text-sm text-slate-300 hover:bg-[#6EE7B7] hover:text-[#0B1120] hover:border-[#6EE7B7] transition-colors cursor-pointer">
+                  Planifier un appel
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </ScrollReveal>
       </div>
     </section>
   );

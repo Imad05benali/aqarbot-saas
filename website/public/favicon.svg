@@ -1,0 +1,41 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Soft Backdrop glow for dark mode compatibility -->
+  <rect width="256" height="256" rx="64" fill="url(#bg_gradient)" />
+  
+  <!-- Outer Tech Structure (Bot Box / CPU) -->
+  <path d="M128 32 L208 78 V178 L128 224 L48 178 V78 Z" fill="url(#core_dark)" stroke="url(#electric_blue)" stroke-width="12" stroke-linejoin="round"/>
+  
+  <!-- Inner House Silhouette (Aqar) -->
+  <path d="M128 70 L70 120 V185 H186 V120 Z" fill="url(#emerald_glow)" />
+  <path d="M128 70 L70 120 V185 H186 V120 Z" stroke="#ffffff" stroke-width="8" stroke-linejoin="round" />
+  
+  <!-- Internal Tech Circuit (AI Element) -->
+  <circle cx="128" cy="145" r="20" fill="#ffffff" />
+  <path d="M128 145 V185" stroke="#ffffff" stroke-width="8" stroke-linecap="round" />
+  
+  <defs>
+    <!-- Dark Tech Core Gradient -->
+    <linearGradient id="bg_gradient" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#020c1b"/>
+      <stop offset="1" stop-color="#082f49"/>
+    </linearGradient>
+
+    <!-- Metal Tech Shading -->
+    <linearGradient id="core_dark" x1="128" y1="32" x2="128" y2="224" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1e293b" stop-opacity="0.8"/>
+      <stop offset="1" stop-color="#0f172a" stop-opacity="0.9"/>
+    </linearGradient>
+    
+    <!-- Electric Blue Border (Brand Blue) -->
+    <linearGradient id="electric_blue" x1="48" y1="32" x2="208" y2="224" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#0ea5e9"/>
+    </linearGradient>
+    
+    <!-- Emerald Glow House (Brand Green) -->
+    <linearGradient id="emerald_glow" x1="128" y1="70" x2="128" y2="185" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#10B981"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+</svg>

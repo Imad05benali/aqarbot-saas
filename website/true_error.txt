@@ -1,0 +1,5 @@
+app/page.tsx(26,38): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<Element>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'Element'.
+    Type 'null' is not assignable to type 'Element'.
+components/Pricing.tsx(32,37): error TS2322: Type '{ children: Element; stagger: number; delay: number; }' is not assignable to type 'IntrinsicAttributes & ScrollRevealProps'.
+  Property 'delay' does not exist on type 'IntrinsicAttributes & ScrollRevealProps'.
