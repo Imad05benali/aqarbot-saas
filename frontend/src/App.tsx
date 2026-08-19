@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import CRM from './pages/CRM';
 import Chat from './pages/Chat';
 import Settings from './pages/Settings';
+import Pricing from './pages/Pricing';
 import Layout from './components/Layout';
 
 // Component to protect routes that require authentication
@@ -58,6 +59,7 @@ function AppRoutes() {
         <Route path="crm" element={<CRM />} />
         <Route path="chat" element={<Chat />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="pricing" element={<Pricing />} />
       </Route>
 
       {/* Fallback */}

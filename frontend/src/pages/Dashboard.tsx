@@ -1,9 +1,19 @@
 import { useState, useEffect } from 'react';
-import { Users, MessageCircle, Flame, BarChart3, TrendingUp, Activity } from 'lucide-react';
+import { Users, MessageCircle, Flame, BarChart3, TrendingUp, Activity, Crosshair } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getForecastData } from '../services/api';
 import EmptyStateComponent from '../components/EmptyStateComponent';
 import { supabase } from '../lib/supabase';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+const chartData = [
+  { month: 'Jan', requetes: 40, qualification: 24 },
+  { month: 'Fév', requetes: 30, qualification: 13 },
+  { month: 'Mar', requetes: 60, qualification: 48 },
+  { month: 'Avr', requetes: 50, qualification: 39 },
+  { month: 'Mai', requetes: 95, qualification: 68 },
+  { month: 'Jun', requetes: 110, qualification: 90 },
+];
 
 export default function Dashboard() {
   const [stats, setStats] = useState({ total_leads: 0, hot_leads: 0, ai_conversations: 0 });
@@ -124,6 +134,45 @@ export default function Dashboard() {
           </motion.div>
         ))}
       </div>
+
+      {/* Massive Performance Graph Area */}
+      <motion.div 
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="glacier-card p-10 rounded-[3rem] w-full"
+      >
+          <div className="flex flex-col mb-8">
+            <h3 className="text-2xl font-black tracking-tighter uppercase italic text-slate-800 dark:text-white">Croissance & Acquisition</h3>
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Conversions vs Requêtes (6 derniers mois)</span>
+          </div>
+          
+          <div className="h-[300px] w-full mt-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRequetes" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorQualif" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.1)" />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderRadius: '16px', border: 'none', color: '#fff' }} 
+                  itemStyle={{ color: '#fff' }}
+                />
+                <Area type="monotone" dataKey="requetes" stroke="#3B82F6" strokeWidth={3} fillOpacity={1} fill="url(#colorRequetes)" />
+                <Area type="monotone" dataKey="qualification" stroke="#10B981" strokeWidth={3} fillOpacity={1} fill="url(#colorQualif)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+      </motion.div>
 
       {/* Analytics Visualization Space */}
       <div className="grid grid-cols-1 lg:grid-cols-7 gap-8">

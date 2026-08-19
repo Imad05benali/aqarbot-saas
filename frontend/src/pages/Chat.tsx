@@ -16,10 +16,14 @@ export default function Chat() {
   useEffect(() => {
     if (!selectedPhone) return;
     const loadMessages = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
       const { data } = await supabase
         .from('conversations')
         .select('*')
         .eq('phone', selectedPhone)
+        .eq('agency_id', user.id)
         .order('created_at', { ascending: true });
       if (data) setMessages(data);
     };
@@ -35,51 +39,67 @@ export default function Chat() {
     if (!messageText.trim() || !activeSession || isSending) return;
 
     setIsSending(true);
+    const currentMessage = messageText;
     try {
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.error("Chat submission failed: No active agency session found.");
+        console.error("Authentication missing for lead dispatch.");
         return;
       }
 
-      // dynamically bind to the newly logged-in agency account
-      const payload = {
-        agency_id: user.id,
+      // 1. Persist to backend via /api/chatbot/simulate (ensures lead + conversation + agency_id binding)
+      try {
+        await fetch('http://localhost:8000/api/chatbot/simulate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Agency-Id': user.id
+          },
+          body: JSON.stringify({
+            agency_id: user.id,
+            phone: activeSession.phone,
+            message: currentMessage,
+            sender: 'agency',
+            name: activeSession.name || 'Prospect'
+          })
+        });
+      } catch (syncErr) {
+        console.error("Backend sync error (falling back to direct insert):", syncErr);
+        // Fallback: direct Supabase insert if backend is unreachable
+        await supabase.from('conversations').insert([{
+          agency_id: user.id,
+          phone: activeSession.phone,
+          message: currentMessage,
+          sender: 'agency',
+          created_at: new Date().toISOString()
+        }]);
+      }
+
+      setMessageText('');
+
+      // 2. Dispatch the message out to the actual Meta Graph API
+      try {
+        await fetch('http://localhost:8000/api/chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            phone: activeSession.phone,
+            message: currentMessage
+          })
+        });
+      } catch (err) {
+        console.error("Meta API transmission error:", err);
+      }
+
+      // 3. Instantly append to UI for responsive feel
+      setMessages(prev => [...prev, {
+        id: Math.random(),
         phone: activeSession.phone,
-        message: messageText,
+        message: currentMessage,
         sender: 'agency',
         created_at: new Date().toISOString()
-      };
+      }]);
 
-      const { error: insertError } = await supabase.from('conversations').insert([payload]);
-
-      if (insertError) {
-        console.error("Failed to insert message:", insertError);
-      } else {
-        setMessageText('');
-        
-        // Disptach the message out to the actual Meta Graph API
-        try {
-            await fetch('http://localhost:8000/api/chat/send', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    phone: activeSession.phone, 
-                    message: messageText 
-                })
-            });
-            // instantly append to UI
-            setMessages(prev => [...prev, {
-                id: Math.random(),
-                phone: activeSession.phone,
-                message: messageText,
-                sender: 'agency',
-                created_at: new Date().toISOString()
-            }]);
-        } catch (err) {
-            console.error("Transmission error:", err);
-        }
-      }
     } catch (err) {
       console.error(err);
     } finally {

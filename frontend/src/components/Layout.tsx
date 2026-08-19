@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Settings, LogOut, Sun, Moon, Users, MessageCircle, Building2 } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, Sun, Moon, Users, MessageCircle, Building2, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { useTheme } from '../context/ThemeContext';
@@ -12,6 +13,9 @@ export default function Layout() {
   const { logout } = useAuth();
   const { profile, isLoadingProfile } = useProfile();
   const { theme, toggleTheme } = useTheme();
+  
+  // Collapse State
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const handleLogout = () => {
     logout();
@@ -23,6 +27,7 @@ export default function Layout() {
     { name: 'CRM & Catalogue', path: '/crm', icon: Users },
     { name: 'Hub en Direct', path: '/chat', icon: MessageCircle },
     { name: 'Configuration IA', path: '/settings', icon: Settings },
+    { name: 'Abonnement', path: '/pricing', icon: Star },
   ];
 
   const handleSimulateLead = async () => {
@@ -43,7 +48,6 @@ export default function Layout() {
         agency_id: userData.user.id
       });
       
-      // Enforce complete data refreshing
       window.location.reload();
     } catch (e) {
       console.error('Simulation Failed:', e);
@@ -51,41 +55,49 @@ export default function Layout() {
   };
 
   return (
-    <div className="h-screen w-full flex font-sans overflow-hidden transition-colors duration-700">
+    <div className="h-screen w-full flex font-sans overflow-hidden transition-colors duration-700 bg-transparent">
       {/* ── Sidebar ──────────────────────────────────────────── */}
-      <aside className="w-72 glacier-card m-4 rounded-[2.5rem] flex flex-col z-20 shadow-2xl border-white/20 dark:border-white/5">
+      <aside 
+        className={`${isSidebarOpen ? 'w-[260px]' : 'w-[90px]'} bg-[#0d1624] m-5 rounded-[2.5rem] flex flex-col z-20 shadow-2xl border-slate-800 border transition-all duration-300 relative`}
+      >
+        {/* Toggle Button */}
+        <button 
+          onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+          className="absolute -right-4 top-10 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-500 hover:text-emerald-500 rounded-full p-1.5 shadow-lg z-30 transition-all hover:scale-110 active:scale-95"
+        >
+          {isSidebarOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+        </button>
+
         {/* Logo / Agency Branding */}
-        <div className="p-8 pb-6 flex flex-col items-center gap-3 relative">
-          <Link to="/dashboard" className="transition-all hover:scale-110 active:scale-95 group">
-            {profile?.agency_logo ? (
-              <img
-                src={profile.agency_logo}
-                alt={`${profile?.agency_name ?? 'Agency'} Logo`}
-                className="h-12 w-auto object-contain rounded-xl drop-shadow-lg group-hover:drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all logo-adaptive"
-              />
-            ) : (
-              <img
-                src="/logo.png"
-                alt="AqarBot Logo"
-                className="h-12 w-auto drop-shadow-[0_0_15px_rgba(59,130,246,0.3)] group-hover:drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all logo-adaptive"
-              />
-            )}
+        <div className={`p-8 pb-6 flex flex-col items-center gap-3 relative transition-all duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-100 px-2'}`}>
+          <Link to="/dashboard" className="transition-all hover:scale-110 active:scale-95 group flex justify-center">
+            <img
+              src="/logo-icon.png"
+              alt="AqarBot Logo"
+              className={`drop-shadow-[0_0_15px_rgba(59,130,246,0.3)] group-hover:drop-shadow-[0_0_20px_rgba(16,185,129,0.5)] transition-all logo-adaptive ${
+                isSidebarOpen ? 'h-14 w-auto object-contain' : 'h-10 w-10 object-contain rounded-lg'
+              }`}
+            />
           </Link>
 
-          {/* Agency Name Badge — skeleton while loading */}
-          {isLoadingProfile ? (
-            <div className="h-6 w-32 rounded-xl bg-white/5 animate-pulse" />
-          ) : profile?.agency_name ? (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
-              <Building2 className="w-3 h-3 text-emerald-500 shrink-0" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 truncate max-w-[140px]">
-                {profile.agency_name}
-              </span>
+          {/* Agency Name Badge */}
+          {isSidebarOpen && (
+            <div className="overflow-hidden w-full flex justify-center transition-all duration-300">
+              {isLoadingProfile ? (
+                <div className="h-6 w-32 rounded-xl bg-white/5 animate-pulse" />
+              ) : profile?.agency_name ? (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 whitespace-nowrap">
+                  <Building2 className="w-3 h-3 text-emerald-500 shrink-0" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 truncate max-w-[140px]">
+                    {profile.agency_name}
+                  </span>
+                </div>
+              ) : null}
             </div>
-          ) : null}
+          )}
         </div>
 
-        <nav className="flex-1 px-4 space-y-2">
+        <nav className="flex-1 px-4 space-y-2 mt-4">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
@@ -93,14 +105,21 @@ export default function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-4 px-5 py-4 rounded-3xl transition-all duration-500 group relative overflow-hidden ${
+                className={`flex items-center gap-4 py-4 rounded-3xl transition-all duration-500 group relative overflow-hidden ${isSidebarOpen ? 'px-5' : 'justify-center px-0'} ${
                   isActive
-                    ? 'bg-gradient-to-br from-accent/80 to-primary/80 text-white shadow-xl shadow-accent/20'
-                    : 'text-slate-500 dark:text-slate-400 hover:bg-white/10 dark:hover:bg-white/5'
+                    ? 'bg-primary text-[#0B1120] shadow-[0_0_20px_rgba(110,231,183,0.3)]'
+                    : 'text-slate-500 hover:bg-slate-800/30'
                 }`}
+                title={!isSidebarOpen ? item.name : undefined}
               >
-                <Icon className={`w-5 h-5 transition-transform duration-500 group-hover:scale-110 ${isActive ? 'text-white' : 'text-slate-400 group-hover:text-primary'}`} />
-                <span className={`text-sm font-bold tracking-tight ${isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`}>{item.name}</span>
+                <Icon className={`w-5 h-5 shrink-0 transition-transform duration-500 group-hover:scale-110 ${isActive ? 'text-[#0B1120]' : 'text-slate-400 group-hover:text-primary'}`} />
+                
+                {isSidebarOpen && (
+                  <span className={`text-sm font-bold tracking-tight whitespace-nowrap transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`}>
+                    {item.name}
+                  </span>
+                )}
+                
                 {isActive && (
                   <motion.div
                     layoutId="active-glacier"
@@ -112,19 +131,20 @@ export default function Layout() {
           })}
         </nav>
 
-        <div className="p-6 border-t border-white/10 dark:border-white/5">
+        <div className={`p-6 border-t border-white/10 dark:border-slate-800 transition-all ${isSidebarOpen ? '' : 'px-2'}`}>
           <button
             onClick={handleLogout}
-            className="flex items-center gap-3 px-6 py-4 w-full rounded-2xl text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 transition-all font-black text-[10px] uppercase tracking-[0.2em]"
+            title={!isSidebarOpen ? "Déconnexion" : undefined}
+            className={`flex items-center gap-3 py-4 w-full rounded-2xl text-slate-400 hover:bg-rose-500/10 hover:text-rose-500 transition-all font-black text-[10px] uppercase tracking-[0.2em] ${isSidebarOpen ? 'px-6' : 'justify-center px-0'}`}
           >
-            <LogOut className="w-4 h-4" />
-            Déconnexion
+            <LogOut className="w-4 h-4 shrink-0" />
+            {isSidebarOpen && <span className="whitespace-nowrap">Déconnexion</span>}
           </button>
         </div>
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col min-w-0 relative">
+      <main className="flex-1 flex flex-col min-w-0 relative transition-all duration-300">
         <header className="h-24 flex items-center justify-between px-12 z-10 sticky top-0">
           <div className="flex flex-col">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-1">
