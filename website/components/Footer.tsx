@@ -18,7 +18,7 @@ export default function Footer() {
       <div className="max-w-[1400px] mx-auto px-6 md:px-12 lg:px-20 relative z-10">
         
         {/* Main Footer Links & Info */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 lg:gap-8 mb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-8 mb-16">
           
           {/* Brand & Intro */}
           <div className="col-span-1 lg:col-span-1">
@@ -88,15 +88,15 @@ export default function Footer() {
         </div>
 
         {/* BOTTOM GIANT LOGO DESIGN (Based on Dakimmo Reference) */}
-        <div className="w-full flex items-center justify-between border-t border-slate-800/80 pt-6 pb-6 lg:pt-8 lg:pb-8">
+        <div className="w-full flex items-center justify-between border-t border-slate-800/80 pt-6 pb-4 lg:pt-8 lg:pb-8 overflow-hidden gap-4">
           <div 
-            className="text-[#f1f5f9] font-medium tracking-tighter leading-none select-none" 
-            style={{ fontSize: 'clamp(4rem, 15vw, 13rem)' }}
+            className="text-[#f1f5f9] font-medium tracking-tighter leading-none select-none shrink min-w-0 truncate" 
+            style={{ fontSize: 'clamp(2.5rem, 10vw, 10rem)' }}
           >
             aqarbot.
           </div>
           
-          <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-32 md:h-32 lg:w-48 lg:h-48 rounded-full bg-[#6EE7B7] flex items-center justify-center shrink-0 shadow-[0_0_50px_rgba(110,231,183,0.3)] transition-transform hover:scale-[1.02] cursor-pointer ml-4">
+          <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-28 md:h-28 lg:w-40 lg:h-40 rounded-full bg-[#6EE7B7] flex items-center justify-center shrink-0 shadow-[0_0_50px_rgba(110,231,183,0.3)] transition-transform hover:scale-[1.02] cursor-pointer ml-4">
             {/* Using brightness-0 to turn the logo pure black to match the reference style */}
             <img 
               src="/logo-icon.png" 

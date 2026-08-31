@@ -37,7 +37,7 @@ export default function MarocCorePage() {
                 <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">Maroc Core Edition</span>
               </div>
             </div>
-            <h1 className="text-[clamp(3.5rem,8vw,7rem)] font-medium leading-[0.85] tracking-tight mb-8">
+            <h1 className="text-[clamp(2.2rem,8vw,7rem)] font-medium leading-[0.85] tracking-tight mb-8">
               <span className="text-white">L'immobilier marocain</span> <br />
               <span className="text-[#6EE7B7]">réinventé localement.</span>
             </h1>

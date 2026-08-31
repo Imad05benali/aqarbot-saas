@@ -66,8 +66,8 @@ const features = [
             { name: 'Sara Tazi', city: 'Tanger', budget: '500K', status: 'Fermé', color: 'text-slate-500' },
           ].map((lead) => (
             <div key={lead.name} className="flex items-center justify-between py-2.5 px-3 rounded-lg bg-zinc-900/60 border border-white/5 text-xs">
-              <span className="text-white font-bold w-36 truncate">{lead.name}</span>
-              <span className="text-slate-500">{lead.city}</span>
+              <span className="text-white font-bold w-28 truncate">{lead.name}</span>
+              <span className="text-slate-500 hidden sm:block">{lead.city}</span>
               <span className="text-slate-400">{lead.budget} DH</span>
               <span className={`font-black ${lead.color}`}>{lead.status}</span>
             </div>
@@ -105,7 +105,7 @@ const features = [
                 <p className="text-white text-xs font-bold">{conv.phone}</p>
                 <p className="text-slate-500 text-xs truncate">{conv.msg}</p>
               </div>
-              <span className="text-[10px] text-slate-600 shrink-0">{conv.time}</span>
+              <span className="text-[10px] text-slate-600 shrink-0 hidden sm:block">{conv.time}</span>
             </div>
           ))}
         </div>
@@ -181,31 +181,24 @@ const features = [
   },
 ];
 
-export default function Features() {
+// ─── DESKTOP: sticky-scroll version ──────────────────────────────────────────
+function FeaturesDesktop() {
   const [active, setActive] = React.useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Track the scroll progress of the extremely tall container
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"]
   });
 
-  // Whenever the user scrolls the overall viewport, Framer Motion outputs 0->1
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    // 5 features -> each takes 1/5th of the scroll area (0.2)
-    // Avoid dropping exactly on 1.0 (out of bounds)
     const index = Math.min(features.length - 1, Math.floor(latest * features.length));
     setActive(index);
   });
 
-  // Calculate the smooth progress bar fill
   const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
-
-  // We can also animate content dynamically (e.g. crossfading)
   const f = features[active];
 
-  // Helper for manual scroll jumps if user clicks the sidebar
   const scrollToFeature = (idx: number) => {
     if (!containerRef.current) return;
     const { top, height } = containerRef.current.getBoundingClientRect();
@@ -214,133 +207,132 @@ export default function Features() {
   };
 
   return (
+    <div ref={containerRef} className="relative w-full border-t border-slate-800" style={{ height: `${features.length * 100}vh` }}>
+      <div className="sticky top-0 h-screen w-full flex overflow-hidden">
+        {/* LEFT SIDEBAR */}
+        <aside className="w-[240px] xl:w-[280px] shrink-0 border-r border-slate-800 bg-[#0B1120] flex flex-col justify-center px-6 xl:px-8 py-10 z-20 shadow-2xl">
+          <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em] mb-6">
+            Explorer&nbsp;
+            <span className="text-[#6EE7B7]">
+              {String(active + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}
+            </span>
+          </p>
+          <div className="h-px w-full bg-slate-800 mb-8 rounded-full overflow-hidden relative">
+            <motion.div
+              className="absolute left-0 top-0 h-full bg-[#6EE7B7] rounded-full"
+              style={{ width: progressWidth }}
+            />
+          </div>
+          <nav className="space-y-2">
+            {features.map((feat, i) => {
+              const isActive = i === active;
+              return (
+                <button
+                  key={feat.number}
+                  onClick={() => scrollToFeature(i)}
+                  className={`w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-sm transition-all duration-300 ${
+                    isActive ? 'bg-[#6EE7B7]' : 'text-slate-500 hover:text-white hover:bg-slate-800'
+                  }`}
+                >
+                  <span className={`text-xs font-black tabular-nums ${isActive ? 'text-[#0B1120]' : 'text-slate-600'}`}>{feat.number}</span>
+                  <span className={`flex-1 font-black text-sm leading-tight ${isActive ? 'text-[#0B1120]' : ''}`}>{feat.title}</span>
+                  {isActive && <ArrowRight className="w-4 h-4 text-[#0B1120] shrink-0" />}
+                </button>
+              );
+            })}
+          </nav>
+        </aside>
+
+        {/* RIGHT PANEL */}
+        <div className="flex-1 overflow-hidden bg-[#0d1624] flex items-center relative z-10">
+          <div className="absolute inset-0 opacity-[0.04]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '80px 80px' }} />
+          <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-12 px-8 md:px-16 lg:px-24 max-w-6xl mx-auto relative z-10">
+            <motion.div key={`text-${active}`} initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }} className="flex flex-col justify-center">
+              <p className="text-[10px] text-[#6EE7B7] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] inline-block shadow-[0_0_10px_#6EE7B7]" />
+                {f.tagline}
+              </p>
+              <h3 className="text-[clamp(2rem,3.5vw,4rem)] font-black text-white leading-[0.9] uppercase tracking-tight mb-8">{f.title}</h3>
+              <p className="text-slate-400 text-base font-medium leading-relaxed mb-10 max-w-md">{f.description}</p>
+              <div className="space-y-6">
+                {f.details.map((d, di) => (
+                  <motion.div key={d.label} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: di * 0.1 + 0.2 }} className="flex gap-4">
+                    <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0 mt-2" />
+                    <div>
+                      <p className="text-white font-black text-sm tracking-wide mb-1">{d.label}</p>
+                      <p className="text-slate-500 text-sm font-medium">{d.desc}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+            <motion.div key={`mock-${active}`} initial={{ opacity: 0, scale: 0.95, y: 40 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }} className="flex flex-col justify-center relative">
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[15rem] font-black text-white/[0.02] leading-none select-none z-0 tracking-tighter">{f.number}</div>
+              <div className="relative z-10 w-full max-w-sm mx-auto xl:max-w-md">{f.mockup}</div>
+            </motion.div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MOBILE: stacked accordion-style version ─────────────────────────────────
+function FeaturesMobile() {
+  return (
+    <div className="w-full border-t border-slate-800 divide-y divide-slate-800/60">
+      {features.map((f) => (
+        <div key={f.number} className="px-6 py-10">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-[#6EE7B7] text-xs font-black">{f.number}</span>
+            <span className="w-px h-4 bg-slate-700" />
+            <span className="text-[10px] text-[#6EE7B7] font-black uppercase tracking-[0.2em]">{f.tagline}</span>
+          </div>
+          <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-4 leading-tight">{f.title}</h3>
+          <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8">{f.description}</p>
+
+          {/* Mockup */}
+          <div className="mb-8">{f.mockup}</div>
+
+          {/* Detail bullets */}
+          <div className="space-y-4">
+            {f.details.map((d) => (
+              <div key={d.label} className="flex gap-3">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0 mt-1.5" />
+                <div>
+                  <p className="text-white font-black text-sm mb-0.5">{d.label}</p>
+                  <p className="text-slate-500 text-xs font-medium">{d.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── MAIN EXPORT ──────────────────────────────────────────────────────────────
+export default function Features() {
+  return (
     <section className="w-full bg-[#0B1120]">
-      {/* ─── HEADER ─── */}
+      {/* Header */}
       <div className="container mx-auto px-6 md:px-12 lg:px-20 max-w-[1400px] pt-16 pb-12">
         <p className="text-xs text-[#6EE7B7] font-black uppercase tracking-[0.3em] mb-4">Explorer le système</p>
-        <h2 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tight leading-[0.9]">
+        <h2 className="text-3xl sm:text-4xl md:text-6xl font-black text-white uppercase tracking-tight leading-[0.9]">
           Choisissez une tâche.<br />
           <span className="text-slate-600">Voyez tout le flux.</span>
         </h2>
       </div>
 
-      {/* ─── SCROLL TRACKER AREA ─── */}
-      {/* 500vh ensures the user has to scroll 5 full viewports to exit this section */}
-      <div ref={containerRef} className="relative w-full border-t border-slate-800" style={{ height: `${features.length * 100}vh` }}>
-        
-        {/* ─── PINNED STICKY CONTAINER ─── */}
-        {/* Locks into the viewport while the parent keeps scrolling down */}
-        <div className="sticky top-0 h-screen w-full flex overflow-hidden">
-          
-          {/* LEFT: STATIC SIDEBAR NAVIGATION */}
-          <aside className="hidden md:flex w-[280px] shrink-0 border-r border-slate-800 bg-[#0B1120] flex-col justify-center px-8 py-10 z-20 shadow-2xl">
-            <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em] mb-6">
-              Explorer&nbsp;
-              <span className="text-[#6EE7B7]">
-                {String(active + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}
-              </span>
-            </p>
+      {/* Desktop sticky-scroll (md+) */}
+      <div className="hidden md:block">
+        <FeaturesDesktop />
+      </div>
 
-            {/* Smooth Scroll Progress Bar */}
-            <div className="h-px w-full bg-slate-800 mb-8 rounded-full overflow-hidden relative">
-              <motion.div
-                className="absolute left-0 top-0 h-full bg-[#6EE7B7] rounded-full"
-                style={{ width: progressWidth }}
-              />
-            </div>
-
-            <nav className="space-y-2">
-              {features.map((feat, i) => {
-                const isActive = i === active;
-                return (
-                  <button
-                    key={feat.number}
-                    onClick={() => scrollToFeature(i)}
-                    className={`w-full text-left flex items-center gap-4 px-4 py-3.5 rounded-sm transition-all duration-300 ${
-                      isActive ? 'bg-[#6EE7B7]' : 'text-slate-500 hover:text-white hover:bg-slate-800'
-                    }`}
-                  >
-                    <span className={`text-xs font-black tabular-nums ${isActive ? 'text-[#0B1120]' : 'text-slate-600'}`}>{feat.number}</span>
-                    <span className={`flex-1 font-black text-sm leading-tight ${isActive ? 'text-[#0B1120]' : ''}`}>{feat.title}</span>
-                    {isActive && <ArrowRight className="w-4 h-4 text-[#0B1120] shrink-0" />}
-                  </button>
-                );
-              })}
-            </nav>
-          </aside>
-
-          {/* RIGHT: DYNAMIC CONTENT PANEL */}
-          <div className="flex-1 overflow-hidden bg-[#0d1624] flex items-center relative z-10">
-            {/* Neo-brutalist Grid Background */}
-            <div
-              className="absolute inset-0 opacity-[0.04]"
-              style={{
-                backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)',
-                backgroundSize: '80px 80px',
-              }}
-            />
-
-            <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-12 px-8 md:px-16 lg:px-24 max-w-6xl mx-auto relative z-10">
-              
-              {/* ANIMATED TEXT BLOCK */}
-              <motion.div
-                key={`text-${active}`}
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col justify-center"
-              >
-                <p className="text-[10px] text-[#6EE7B7] font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] inline-block shadow-[0_0_10px_#6EE7B7]" />
-                  {f.tagline}
-                </p>
-                <h3 className="text-[clamp(2.5rem,4vw,4rem)] font-black text-white leading-[0.9] uppercase tracking-tight mb-8 drop-shadow-sm">
-                  {f.title}
-                </h3>
-                <p className="text-slate-400 text-lg font-medium leading-relaxed mb-10 max-w-md">
-                  {f.description}
-                </p>
-                <div className="space-y-6">
-                  {f.details.map((d, di) => (
-                    <motion.div
-                      key={d.label}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ duration: 0.5, delay: di * 0.1 + 0.2, ease: "easeOut" }}
-                      className="flex gap-4"
-                    >
-                      <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0 mt-2" />
-                      <div>
-                        <p className="text-white font-black text-sm tracking-wide mb-1">{d.label}</p>
-                        <p className="text-slate-500 text-sm font-medium">{d.desc}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* ANIMATED MOCKUP BLOCK */}
-              <motion.div
-                key={`mock-${active}`}
-                initial={{ opacity: 0, scale: 0.95, y: 40 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="flex flex-col justify-center relative"
-              >
-                {/* Massive faint background number */}
-                <div className="absolute right-0 top-1/2 -translate-y-1/2 text-[15rem] font-black text-white/[0.02] leading-none select-none z-0 tracking-tighter">
-                  {f.number}
-                </div>
-                
-                <div className="relative z-10 w-full max-w-sm mx-auto xl:max-w-md">
-                   {f.mockup}
-                </div>
-              </motion.div>
-
-            </div>
-          </div>
-        </div>
-
+      {/* Mobile stacked (below md) */}
+      <div className="md:hidden">
+        <FeaturesMobile />
       </div>
     </section>
   );

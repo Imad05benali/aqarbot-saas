@@ -49,8 +49,8 @@ export default function Home() {
     <main className="bg-[#0B1120] text-slate-100 min-h-screen selection:bg-[#6EE7B7]/30">
       <StructuredData />
 
-      {/* ─── 1. HERO SECTION (REFERENCE MATCH) ───────────────────────────────────── */}
-      <section className="relative min-h-[95vh] flex flex-col justify-center pt-32 pb-24 px-6 md:px-12 lg:px-20 overflow-hidden">
+      {/* ─── 1. HERO SECTION ───────────────────────────────────────────────────── */}
+      <section className="relative min-h-screen flex flex-col justify-center pt-28 pb-16 px-6 md:px-12 lg:px-20 overflow-hidden">
         
         {/* Subtle Background Grid Element (matching exactly) */}
         <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
@@ -63,34 +63,33 @@ export default function Home() {
           <div className="w-[800px] h-[800px] bg-gradient-to-br from-[#6EE7B7]/10 to-transparent blur-[120px] rounded-full opacity-60" />
         </div>
 
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+        <div className="relative z-10 w-full max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           
           {/* ================ LEFT COLUMN ================ */}
-          <div className="flex flex-col text-left max-w-2xl">
+          <div className="flex flex-col text-left">
             <Reveal delay={300}>
-              <h1 className="text-[clamp(2rem,4vw,3.8rem)] font-medium leading-[1.05] tracking-tight mb-5 text-white">
+              <h1 className="text-[clamp(2.2rem,6vw,3.8rem)] font-medium leading-[1.05] tracking-tight mb-5 text-white">
                 La Première<br />
                 Plateforme SaaS<br />
                 Immobilière<br />
                 <span className="text-[#6EE7B7] relative inline-block">
                   Pilotée par l'IA
                   <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-yellow-500/70" />
-                </span> au<br />
-                Maroc
+                </span> au Maroc
               </h1>
             </Reveal>
 
             <Reveal delay={500}>
-              <p className="text-base text-slate-400 max-w-lg font-normal leading-relaxed mb-8">
+              <p className="text-sm md:text-base text-slate-400 max-w-lg font-normal leading-relaxed mb-8">
                 AqarBot transforme chaque message en opportunité. Qualifiez, assignez et faites avancer vos prospects — avant même que votre café ne refroidisse.
               </p>
             </Reveal>
 
-            {/* Exact Reference Form Bar */}
+            {/* Filter Bar */}
             <Reveal delay={700}>
-              <div className="w-full bg-[#0d1624] border border-slate-800 rounded p-5 shadow-2xl flex flex-col">
-                <div className="flex flex-col md:flex-row divide-y md:divide-y-0 md:divide-x divide-slate-800 mb-5">
-                  <div className="flex-1 px-4 py-2 md:py-0 relative">
+              <div className="w-full bg-[#0d1624] border border-slate-800 rounded p-4 md:p-5 shadow-2xl flex flex-col">
+                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-800 mb-4">
+                  <div className="flex-1 px-3 py-2 sm:py-0">
                     <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Type de bien</label>
                     <div className="relative">
                       <select className="w-full bg-transparent text-slate-200 text-sm font-medium appearance-none focus:outline-none cursor-pointer">
@@ -102,8 +101,7 @@ export default function Home() {
                       <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                     </div>
                   </div>
-
-                  <div className="flex-1 px-4 py-2 md:py-0 relative">
+                  <div className="flex-1 px-3 py-2 sm:py-0">
                     <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Ville</label>
                     <div className="relative">
                       <select className="w-full bg-transparent text-slate-200 text-sm font-medium appearance-none focus:outline-none cursor-pointer">
@@ -115,22 +113,20 @@ export default function Home() {
                       <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
                     </div>
                   </div>
-
-                  <div className="flex-1 px-4 py-2 md:py-0">
+                  <div className="flex-1 px-3 py-2 sm:py-0">
                     <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Budget Max - MAD</label>
                     <input type="text" defaultValue="1 500 000" className="w-full bg-transparent text-slate-200 text-sm font-medium focus:outline-none" />
                   </div>
                 </div>
-
-                <button className="w-full bg-[#6EE7B7] text-[#0B1121] text-[11px] font-black tracking-[0.15em] uppercase py-5 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.2)]">
+                <button className="w-full bg-[#6EE7B7] text-[#0B1121] text-[11px] font-black tracking-[0.15em] uppercase py-4 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.2)]">
                   TESTER LA QUALIFICATION IA <ArrowUpRight className="w-4 h-4" />
                 </button>
               </div>
             </Reveal>
           </div>
 
-          {/* ================ RIGHT COLUMN : RADAR UI ================ */}
-          <div className="hidden lg:flex items-center justify-center relative min-h-[600px] scale-90 xl:scale-100">
+          {/* ================ RIGHT COLUMN : RADAR UI (desktop only) ================ */}
+          <div className="hidden lg:flex items-center justify-center relative min-h-[500px] xl:min-h-[600px] scale-90 xl:scale-100">
             <Reveal delay={900} className="relative w-full h-full flex items-center justify-center">
               
               {/* Radar Rings */}
@@ -251,7 +247,7 @@ export default function Home() {
             </a>
           </Reveal>
 
-          <Reveal delay={200} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <Reveal delay={200} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {[
               { image: "/appartement.jpg", badge: "MATCH QUALIFIÉ", gradient: "from-[#FBBF24]/40 via-[#FBBF24]/10", ia: "94%", type: "Appartement · 3 pièces", loc: "HAMRIA · MEKNÈS", price: "1 240 000 MAD", details: "118 m² · 2e étage · Terrasse" },
               { image: "/villa.jpg", badge: "INTÉRÊT CONFIRMÉ", gradient: "from-[#6EE7B7]/40 via-[#6EE7B7]/10", ia: "89%", type: "Villa · 6 pièces", loc: "ANFA · CASABLANCA", price: "5 800 000 MAD", details: "340 m² · Jardin · Piscine" },
@@ -345,7 +341,7 @@ export default function Home() {
             </div>
           </Reveal>
 
-          <Reveal delay={200} className="relative w-full aspect-[4/3] lg:aspect-auto lg:h-[600px] flex items-center justify-center">
+          <Reveal delay={200} className="relative w-full aspect-[4/3] lg:aspect-auto lg:h-[550px] flex items-center justify-center">
              <div className="absolute inset-0 bg-gradient-to-br from-[#6EE7B7]/5 to-transparent rounded-xl" />
              <div className="relative w-full max-w-md lg:max-w-xl aspect-[1.1] bg-[#0d1624] border border-slate-800 rounded-xl shadow-2xl overflow-hidden flex flex-col">
                <div className="h-10 border-b border-slate-800 flex items-center px-4 justify-between bg-[#131b2c]">
@@ -450,14 +446,14 @@ export default function Home() {
 
             <div className="w-full h-px bg-slate-800/80 mb-16" />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-8 pb-16">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-10 sm:gap-8 pb-16">
               {[
                 { value: "+40%", label: "Taux de Conversion", desc: "Plus de conversations deviennent des rendez-vous." },
                 { value: "< 30s", label: "Prise en Charge", desc: "Le délai médian entre le message et la première action." },
                 { value: "100%", label: "Isolation des Données", desc: "Chaque agence garde son marché, ses leads, son avantage." }
               ].map((metric, i) => (
                 <Reveal key={i} delay={i * 150} className="flex flex-col">
-                  <div className="text-[5rem] lg:text-[7rem] font-medium text-[#6EE7B7] tracking-tighter leading-none mb-8">{metric.value}</div>
+                  <div className="text-[3.5rem] sm:text-[4rem] lg:text-[6rem] font-medium text-[#6EE7B7] tracking-tighter leading-none mb-6">{metric.value}</div>
                   <div className="text-[10px] font-black uppercase tracking-[0.2em] text-yellow-500 mb-4">{metric.label}</div>
                   <div className="text-sm font-medium text-slate-400 leading-relaxed max-w-[250px]">{metric.desc}</div>
                 </Reveal>
@@ -481,7 +477,7 @@ export default function Home() {
 
             {/* Main Headline & Subtitle */}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 mb-12">
-              <h2 className="text-[4rem] md:text-[6rem] font-bold leading-[0.9] tracking-tighter text-white">
+              <h2 className="text-[2.8rem] sm:text-[4rem] md:text-[5rem] font-bold leading-[0.9] tracking-tighter text-white">
                 CHOISISSEZ<br />
                 VOTRE <span className="text-[#6EE7B7] relative inline-block">NIVEAU.<span className="absolute bottom-1 left-0 w-full h-[4px] bg-[#6EE7B7] opacity-80"></span></span>
               </h2>
@@ -497,7 +493,7 @@ export default function Home() {
           </Reveal>
 
           {/* Pricing Linked Cards */}
-          <Reveal delay={200} className="w-full border border-slate-800 rounded-lg overflow-hidden flex flex-col md:flex-row bg-[#0B1120]">
+          <Reveal delay={200} className="w-full border border-slate-800 rounded-lg overflow-hidden flex flex-col lg:flex-row bg-[#0B1120]">
             
             {/* Column 1 - SOLO */}
             <div className="flex-1 p-10 md:p-14 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col items-start bg-[#0B1522]">

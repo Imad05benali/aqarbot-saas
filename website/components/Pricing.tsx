@@ -16,8 +16,8 @@ export default function Pricing() {
           </div>
 
           {/* Massive Title Block */}
-          <div className="flex flex-col lg:flex-row justify-between items-end gap-10 mb-16">
-            <h2 className="text-[clamp(3.5rem,8vw,7rem)] font-black leading-[0.85] tracking-tighter uppercase text-white">
+          <div className="flex flex-col lg:flex-row justify-between items-end gap-8 mb-16">
+            <h2 className="text-[clamp(2.5rem,8vw,7rem)] font-black leading-[0.85] tracking-tighter uppercase text-white">
               Choisissez<br />
               votre <span className="text-[#6EE7B7] relative inline-block">niveau.<span className="absolute -bottom-1 left-0 w-full h-[2px] bg-yellow-500/70" /></span>
             </h2>

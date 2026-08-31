@@ -38,7 +38,7 @@ export default function ProduitPage() {
               </div>
             </div>
             
-            <h1 className="text-[clamp(3.5rem,8vw,7rem)] font-medium leading-[0.85] tracking-tight mb-8">
+            <h1 className="text-[clamp(2.2rem,8vw,7rem)] font-medium leading-[0.85] tracking-tight mb-8">
               <span className="text-white">Plus qu'un bot.</span><br />
               <span className="text-[#6EE7B7]">Une Agence IA.</span>
             </h1>
