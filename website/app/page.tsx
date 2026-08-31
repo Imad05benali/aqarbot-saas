@@ -173,8 +173,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─── SECTION 01: LE PROBLÈME ─────────────────────────────── */}
-      <section className="py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
+      <section className="py-14 md:py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
         <div className="max-w-[1400px] mx-auto">
           <Reveal className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-20 items-end">
             <div>
@@ -185,9 +184,9 @@ export default function Home() {
                   <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">Le Problème N'est Pas Le Volume</span>
                 </div>
               </Reveal>
-              <h2 className="text-4xl md:text-[3.5rem] font-medium leading-[1.1] tracking-tight">
-                <span className="text-white">Les agences ne<br />manquent pas de leads.</span><br />
-                <span className="text-slate-500">Elles manquent de<br />temps pour les<br />comprendre.</span>
+              <h2 className="text-2xl md:text-4xl lg:text-[3.5rem] font-medium leading-[1.15] tracking-tight">
+                <span className="text-white">Les agences ne manquent pas de leads.</span>{' '}
+                <span className="text-slate-500">Elles manquent de temps pour les comprendre.</span>
               </h2>
             </div>
             <div className="pb-4">
@@ -226,7 +225,7 @@ export default function Home() {
       </section>
 
       {/* ─── SECTION 02: LES BIENS NE SONT PAS DES LIGNES ─────────────────────────────── */}
-      <section className="py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
+      <section className="py-14 md:py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
         <div className="max-w-[1400px] mx-auto">
           <Reveal className="flex flex-col lg:flex-row justify-between items-end mb-16 gap-8">
             <div>
@@ -237,8 +236,8 @@ export default function Home() {
                   <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">Les Biens Ne Sont Pas Des Lignes</span>
                 </div>
               </Reveal>
-              <h2 className="text-4xl md:text-[3.5rem] font-medium leading-[1.1] tracking-tight text-white mb-2">
-                Ils deviennent des<br />opportunités<br />
+              <h2 className="text-2xl md:text-4xl lg:text-[3.5rem] font-medium leading-[1.15] tracking-tight text-white mb-2">
+                Ils deviennent des opportunités{' '}
                 <span className="text-[#6EE7B7]">au moment où elles comptent.</span>
               </h2>
             </div>
@@ -297,7 +296,7 @@ export default function Home() {
       <Features />
 
       {/* ─── SECTION 03: LA SALLE DES MACHINES ─────────────────────────────── */}
-      <section className="py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
+      <section className="py-14 md:py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
           
           <Reveal className="flex flex-col">
@@ -308,9 +307,9 @@ export default function Home() {
                 <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">La Salle Des Machines</span>
               </div>
             </Reveal>
-            <h2 className="text-4xl md:text-[3.5rem] font-medium leading-[1.1] tracking-tight mb-8">
-              <span className="text-white">Votre équipe.</span><br />
-              <span className="text-slate-500">Augmentée, jamais<br />remplacée.</span>
+            <h2 className="text-2xl md:text-4xl lg:text-[3.5rem] font-medium leading-[1.15] tracking-tight mb-8">
+              <span className="text-white">Votre équipe.</span>{' '}
+              <span className="text-slate-500">Augmentée, jamais remplacée.</span>
             </h2>
             <p className="text-slate-400 text-sm md:text-base max-w-sm leading-relaxed mb-10">
               Le CRM AqarBot ne vous donne pas plus de dashboards. Il vous donne de l'avance sur la prochaine conversation.
