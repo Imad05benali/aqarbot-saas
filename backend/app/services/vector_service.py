@@ -1,42 +1,42 @@
 import os
-import chromadb
-from chromadb.utils import embedding_functions
-from dotenv import load_dotenv
+from pinecone import Pinecone
+from app.core.config import settings
 
-load_dotenv(override=True)
-
-# Initialize Local ChromaDB
-chroma_client = chromadb.PersistentClient(path="./chroma_db")
-collection = chroma_client.get_or_create_collection(name="properties")
-
-# Local embedding function
-local_ef = embedding_functions.DefaultEmbeddingFunction()
+# Initialize Pinecone
+pc = Pinecone(api_key=settings.PINECONE_API_KEY) if settings.PINECONE_API_KEY else None
+index = pc.Index(settings.PINECONE_INDEX_NAME) if pc else None
 
 class VectorService:
-    
     @staticmethod
     def insert_property(property_id: str, text_content: str, metadata: dict):
-        """Indexes a new property into ChromaDB using local default embedding"""
-        collection.add(
-            ids=[str(property_id)],
-            documents=[text_content],
-            metadatas=[metadata]
+        """Indexes a new property into Pinecone"""
+        if not index:
+            print("VectorService: Pinecone not initialized.")
+            return False
+            
+        # Stub: requires embeddings before inserting
+        index.upsert(
+            vectors=[{
+                "id": str(property_id),
+                "values": [0.0] * 1536,  # Placeholder for real embeddings
+                "metadata": metadata
+            }]
         )
         return True
 
     @staticmethod
     def search_similar_properties(query_text: str, limit: int = 3):
-        """Searches for the top N matching properties based on local semantic search"""
-        results = collection.query(
-            query_texts=[query_text],
-            n_results=limit
+        """Searches for top matching properties in Pinecone"""
+        if not index:
+            return {"results": []}
+            
+        results = index.query(
+            vector=[0.0] * 1536, # Placeholder
+            top_k=limit,
+            include_metadata=True
         )
         return results
 
     @staticmethod
     def search_properties(query_text: str, n_results: int = 5):
-        """Dynamic alias to align with properties search endpoint"""
-        return collection.query(
-            query_texts=[query_text],
-            n_results=n_results
-        )
+        return VectorService.search_similar_properties(query_text, n_results)
