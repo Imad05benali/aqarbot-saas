@@ -1,0 +1,1095 @@
+From ce225299d7e4ce51b0a6ff1f3711f18206bf43b6 Mon Sep 17 00:00:00 2001
+From: Imad05benali <benaliimad711@gmail.com>
+Date: Wed, 10 Jun 2026 20:38:49 +0100
+Subject: [PATCH] feat: fix whatsapp outbound flow and implement permanent meta
+ access token
+
+---
+ backend/.env                                  |   5 +
+ backend/app/__pycache__/main.cpython-312.pyc  | Bin 1804 -> 1804 bytes
+ .../__pycache__/whatsapp.cpython-312.pyc      | Bin 4369 -> 6080 bytes
+ backend/app/api/endpoints/whatsapp.py         | 120 +++++++++++-------
+ .../core/__pycache__/config.cpython-312.pyc   | Bin 2435 -> 2517 bytes
+ backend/app/core/config.py                    |   3 +
+ backend/app/main.py                           |   7 +-
+ .../__pycache__/llm_service.cpython-312.pyc   | Bin 3431 -> 3445 bytes
+ .../whatsapp_service.cpython-312.pyc          | Bin 2560 -> 4053 bytes
+ backend/app/services/llm_service.py           |   4 +-
+ backend/app/services/whatsapp_service.py      |  42 +++++-
+ .../data_level0.bin                           | Bin 167600 -> 167600 bytes
+ .../length.bin                                | Bin 400 -> 400 bytes
+ backend/chroma_db/chroma.sqlite3              | Bin 196608 -> 196608 bytes
+ backend/list_models.py                        |  22 ++++
+ backend/send_error.txt                        | Bin 0 -> 4592 bytes
+ backend/send_error_2.txt                      | Bin 0 -> 3580 bytes
+ backend/test_imports.py                       |  15 +++
+ backend/test_llm.py                           |  23 ++++
+ backend/test_search.py                        |  21 +++
+ backend/test_send.py                          |  25 ++++
+ backend/test_wh.py                            |  72 ++++++-----
+ 22 files changed, 269 insertions(+), 90 deletions(-)
+ create mode 100644 backend/list_models.py
+ create mode 100644 backend/send_error.txt
+ create mode 100644 backend/send_error_2.txt
+ create mode 100644 backend/test_imports.py
+ create mode 100644 backend/test_llm.py
+ create mode 100644 backend/test_search.py
+ create mode 100644 backend/test_send.py
+
+diff --git a/backend/.env b/backend/.env
+index 7a5c21c..4e704c9 100644
+--- a/backend/.env
++++ b/backend/.env
+@@ -12,6 +12,11 @@ SUPABASE_SERVICE_ROLE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
+ # Google Gemini
+ GOOGLE_API_KEY="AQ.Ab8RN6KYsxazZbbKAIs3a5B3G4mbTFZz4DusiV1XvA48Nl4vcg"
+ 
++WHATSAPP_ACCESS_TOKEN="EAAdLFPRw6uUBRkvZBXVgOgq51TXQOjXeYwEJHQVqrdTb6YUQnAkccZCRRBGi9PZA7Ms6ee3OIBtSfvqY2DxdSjvCyLsZCALo5ZAPQrzZCw92sMKysL0Po8Sh4AVkLxtDDZC1DsVIT6CzZBx53nKtE9oAPAW7CsNdmnYZCgfSQaTTRaK2lAExi92jyfKe8tNyZAPotPmwZDZD"
++WHATSAPP_PHONE_NUMBER_ID="1093229547216157"
++WHATSAPP_BUSINESS_ACCOUNT_ID="970345162509696"
++WHATSAPP_VERIFY_TOKEN="aqarbot_secret_token_2026"
++
+ # Vector Store
+ PINECONE_API_KEY=your_pinecone_api_key_here
+ PINECONE_ENVIRONMENT=your_pinecone_env_here
+diff --git a/backend/app/__pycache__/main.cpython-312.pyc b/backend/app/__pycache__/main.cpython-312.pyc
+index 02beb8ea261b7bff96058a142094e742435775d8..38d19ba7e3df36ec399a3604295eecb6fb711ce8 100644
+GIT binary patch
+delta 236
+zcmeC->*3=)&CAQh00jHOG_nFG@*2A^F{Co3Ft1@*%?J`^U|?iOVMt-kVa{cVVga++
+za#(ZOqS(M}_8j(HjwlW=n<Ixamn(`Zmph7kVoM?;^TubgjEu~aS(wy$Lo^w0apae!
+z78PZtq)ygma@<_Wq{Ya{K6wdq6r<ea|ICXRl_oD@sb*xIEXOKq!UnYV7Jp(vfnIWc
+zQ7VwgOUq0zVh4!|f<zMwGWAmPQVQ}j^Gb?~IDq0soRjleXNi4eV_@W&5OS44>M4Wt
+ST?V7O3@Y~-j3&#oy#)Z(6g-mv
+
+delta 236
+zcmeC->*3=)&CAQh00b@)%31ysd5v9C7*d#Xm~&a8SQr_AY?d6>T(&4SFq<`pJ(nYj
+z1I%X2;mqZV;>zWY;$~!EVn}65VPC_snh|6a1H;6YL`L?F&tw@H*(b9wsZX|Ga^wxs
+zWW2?ZUzS=_l$nycxspkXk&$ik66PpI*~$Nz7cnYMUc^$($TC@uRn~+RXv8i4#DW67
+z<ou#kAd#1rnO?*O5)}lACKhDsrRJp+<Y(rU6c@1r#fvy5=d;cdyUQSbm%->RgUWpd
+UqmOJ1j64%Ut};kXmS=kl0BmYI*#H0l
+
+diff --git a/backend/app/api/endpoints/__pycache__/whatsapp.cpython-312.pyc b/backend/app/api/endpoints/__pycache__/whatsapp.cpython-312.pyc
+index 8617344dfc5ccde78bfb7798c24b3af9a350305c..780af7ddc46df31d6dca02df3635976ac79bb5cf 100644
+GIT binary patch
+literal 6080
+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
+S;t7F!j8^eGWs1KHBK#l6uQ2}r
+
+literal 4369
+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
+
+diff --git a/backend/app/api/endpoints/whatsapp.py b/backend/app/api/endpoints/whatsapp.py
+index 6ae344a..ffaec78 100644
+--- a/backend/app/api/endpoints/whatsapp.py
++++ b/backend/app/api/endpoints/whatsapp.py
+@@ -1,10 +1,11 @@
+ import os
+ import json
++import traceback
+ from fastapi import APIRouter, Request, HTTPException, Query
+ from fastapi.responses import PlainTextResponse
+ from app.services.vector_service import VectorService
+ from app.services.llm_service import LLMService
+-from app.services.whatsapp_service import WhatsAppService  # Import dynamic sender jdid
++from app.services.whatsapp_service import WhatsAppService
+ from app.api.endpoints.properties import search_properties
+ 
+ router = APIRouter()
+@@ -17,64 +18,93 @@ async def whatsapp_verify(
+     hub_challenge: int = Query(None, alias="hub.challenge"),
+     hub_verify_token: str = Query(None, alias="hub.verify_token")
+ ):
+-    """
+-    GET Webhook endpoint for Meta API verification process.
+-    """
+     if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
+-        print("✅ WhatsApp Webhook Verified Successfully!")
++        print("INFO: WhatsApp Webhook Verified Successfully!")
+         return PlainTextResponse(str(hub_challenge))
+-    
+-    raise HTTPException(status_code=403, detail="Verification token mismatch or invalid hub.mode")
+-
++    raise HTTPException(status_code=403, detail="Verification token mismatch")
+ 
+ @router.post("/webhook")
+ async def whatsapp_webhook(request: Request):
+     """
+-    POST Webhook: Complete pipeline for AqarBot SaaS.
+-    Extracts text, searches vector DB, requests Gemini AI Darija reply, and sends back to client.
++    DYNAMIC POST WEBHOOK: 
++    1. Extracts client_phone from Meta payload (no hardcoding).
++    2. Searches ChromaDB/Supabase.
++    3. Generates AI response in Darija.
++    4. Sends it back to the REAL sender.
+     """
++    print(f"\n--- INCOMING WHATSAPP WEBHOOK START ---")
+     try:
+         payload = await request.json()
+-        print("📩 Incoming WhatsApp Payload:", json.dumps(payload, indent=2))
++        print(f"DEBUG: Full Incoming Payload:\n{json.dumps(payload, indent=2)}")
+         
++        # Meta payload parsing starts here
+         if "entry" in payload and payload["entry"]:
+-            changes = payload["entry"][0].get("changes", [])
+-            if changes and "value" in changes[0]:
+-                value = changes[0]["value"]
+-                
+-                if "messages" in value and value["messages"]:
+-                    message_obj = value["messages"][0]
+-                    client_phone = message_obj.get("from")  # Dynamic client phone number
++            for entry in payload["entry"]:
++                for change in entry.get("changes", []):
++                    value = change.get("value", {})
+                     
+-                    if message_obj.get("type") == "text":
+-                        client_text = message_obj.get("text", {}).get("body", "").strip()
+-                        print(f"💬 Client ({client_phone}) sent: '{client_text}'")
+-                        
+-                        # 1. Semantic Search
+-                        print(f"🔍 Searching ChromaDB for: '{client_text}'...")
+-                        search_results = await search_properties(query=client_text, limit=3)
+-                        properties_list = search_results.get("properties", [])
+-                        
+-                        # 2. AI Vibe Generation (Darija)
+-                        print("🧠 Generating AI response via Gemini Pro...")
+-                        ai_reply = LLMService.generate_whatsapp_reply(
+-                            client_message=client_text, 
+-                            properties_data=properties_list
+-                        )
+-                        
+-                        print("\n=================== 🤖 AQARBOT AI REPLY ===================")
+-                        print(ai_reply)
+-                        print("===========================================================\n")
++                    # LOG: See what kind of value we got
++                    if "statuses" in value:
++                        status_obj = value['statuses'][0]
++                        print(f"INFO: Received Status Update: {status_obj.get('status')} for {status_obj.get('recipient_id')}")
++                        if "errors" in status_obj:
++                            print(f"ERROR: Meta Status Error: {json.dumps(status_obj.get('errors'), indent=2)}")
++                        continue
++
++                    if "messages" in value and value["messages"]:
++                        message_obj = value["messages"][0]
+                         
+-                        # 3. Meta API Sender (Trigger real-time response back to the client)
+-                        print(f"📲 Attempting to send message back to {client_phone} via Meta API...")
+-                        await WhatsAppService.send_whatsapp_message(
+-                            to_phone=client_phone,
+-                            message_text=ai_reply
+-                        )
++                        # --- CRITICAL DYNAMIC EXTRACTION ---
++                        # We prioritize wa_id from contacts, then fall back to 'from'
++                        client_phone = message_obj.get("from")
++                        if "contacts" in value and value["contacts"]:
++                            client_phone = value["contacts"][0].get("wa_id", client_phone)
+                         
++                        if not client_phone:
++                            print("WARN: Could not extract sender phone number. Skipping...")
++                            continue
++
++                        if message_obj.get("type") == "text":
++                            client_text = message_obj.get("text", {}).get("body", "").strip()
++                            print(f"MESSAGE: Real Client ({client_phone}) sent: '{client_text}'")
++                            
++                            # 1. Semantic Search (RAG)
++                            print(f"SEARCH: Searching ChromaDB for: '{client_text}'...")
++                            try:
++                                search_results = await search_properties(query=client_text, limit=3)
++                                properties_list = search_results.get("properties", [])
++                                print(f"DEBUG: Found {len(properties_list)} properties.")
++                            except Exception as e:
++                                print(f"ERROR: Search failed: {str(e)}")
++                                properties_list = []
++                            
++                            # 2. Gemini AI Response Generation
++                            print("AI: Generating Darija response via Gemini Pro...")
++                            try:
++                                ai_reply = LLMService.generate_whatsapp_reply(
++                                    client_message=client_text, 
++                                    properties_data=properties_list
++                                )
++                                print(f"DEBUG: AI Reply generated (length: {len(ai_reply)})")
++                            except Exception as e:
++                                print(f"ERROR: AI Generation failed: {str(e)}")
++                                ai_reply = "Sma7 lina, wa9e3 mouchkil sghir f-nxam. Ghadi njawbouk f-a9rab wa9t."
++                            
++                            # 3. Send AI Reply back to the REAL SENDER
++                            print(f"SEND: DYNAMIC SEND: Sending back to {client_phone}...")
++                            success = await WhatsAppService.send_whatsapp_message(
++                                to_phone=client_phone,
++                                message_text=ai_reply
++                            )
++                            print(f"DEBUG: Send Message Status: {'SUCCESS' if success else 'FAILED'}")
++                        else:
++                            print(f"INFO: Ignoring non-text message of type: {message_obj.get('type')}")
++                            
++        print(f"--- INCOMING WHATSAPP WEBHOOK END ---\n")
+         return {"status": "received"}
+         
+     except Exception as e:
+-        print(f"❌ Error processing incoming webhook data: {str(e)}")
+-        return {"status": "error", "detail": str(e)}
+\ No newline at end of file
++        print(f"❌ CRITICAL ERROR in Webhook Pipeline:")
++        print(traceback.format_exc())
++        print(f"--- INCOMING WHATSAPP WEBHOOK END ---\n")
++        return {"status": "error", "detail": str(e)}
+diff --git a/backend/app/core/__pycache__/config.cpython-312.pyc b/backend/app/core/__pycache__/config.cpython-312.pyc
+index ca770f2ef02d7dc2b3a5f16490efe7bf3ae68a16..d76f81ed10571c0db71b26704c3705cc59208196 100644
+GIT binary patch
+delta 537
+zcmYk2u}d6L5XNWR+qZkUJ5MnhH7aU~xOb>Am_iZLnJ$%BT;X#1p0aYcd(5r}f*>I&
+zgft#o<}Z-5k${bjeMo7uAi+OCFkq!1zS+Z&Eq?FKH{X2wn6G`8eT83z!VA#f#oE-)
+zk5*v_H(GBeRwPKHX4XYTAasEeGIL_Kk$nKHd;%%HfwUC1jgDHew9jgH3aHq7wv%l&
+zK8!k;<Z3}xx-y8A-(1zT9W)h@C)H-FxBv9~-oT0YEVG4g;!*Qtu%siXN8=c2N*^Kr
+zcAT8}+MLIkctA{IIbIMnIjwcapw!>1@97ZD{6F$ryu<hLqbTc<l2tm$>1JYt5hX>}
+zt@?ftRU<F(L)WD|Cv-E4smb#rN>feN`WXX^SByc%Fk^&~(Ma<3K&qO%8Teb?cKWKs
+zZcxxr6z$P0+va%U7^uvJ!^l3v`gvn@VLt7!_}R(E4|b`Uh|bzbJUbIRR8i#l+aWEo
+z_Al(-UeYhvt*K@Ds2jYske6|5AmSfbzJk|RFm?^Oqt#0ozROJG3Lfs?0iS=@5%Mp;
+JFMhGpyeCC+cO3u#
+
+delta 415
+zcmcaA+$_v{nwOW00SLHODQ3k^<dtM}nW(O)!NlOskiy);kiwG6xSAOx&%hAH%EXY$
+zx*Eb^h+?Z`)nuF4XUdp7QBZW_*I&$x@{>QXq%kT?4rg5>p#fA@#0Ml+G8U-;sbWST
+zp-`kgS(?p+QG0R#n-Zhu<YKlWC2gR%CUX&3JwK2Q)>Nc}tc9K3fKh+41-mv-OA5Od
+zBj@CPb}0*xtBZI*1TT=d#hjT}QUo@D6(lAMB1AxhD2NaP5fUImYVt#Naea_=w>S!l
+z@(WUnN-B$VK{EP4VkJY7CWx&LBG_RB%Vu>BCPp5x3`o#VlYO!&r&b(T#VwBF)RL0S
+zy!7HC3y=o5{$Ct6x%nxjIjMF<Hb4nb02C_&i4V+-jEwgg?Cvs1e__#ObYtwO`N9CA
+RKgKaK@Q8F<HFAIr0RYpEPagmP
+
+diff --git a/backend/app/core/config.py b/backend/app/core/config.py
+index 1f9d91d..b1cd7e6 100644
+--- a/backend/app/core/config.py
++++ b/backend/app/core/config.py
+@@ -1,5 +1,8 @@
+ from pydantic_settings import BaseSettings, SettingsConfigDict
+ from typing import Optional
++from dotenv import load_dotenv
++
++load_dotenv(override=True)
+ 
+ class Settings(BaseSettings):
+     PROJECT_NAME: str = "AqarBot"
+diff --git a/backend/app/main.py b/backend/app/main.py
+index 855996b..2766aab 100644
+--- a/backend/app/main.py
++++ b/backend/app/main.py
+@@ -1,13 +1,14 @@
+ import os
+ from dotenv import load_dotenv
++
++# 1. Force loading dial .env s7i7 right at the beginning
++load_dotenv(override=True)
++
+ from fastapi import FastAPI
+ from fastapi.middleware.cors import CORSMiddleware
+ from app.core.config import settings
+ from app.api.endpoints import properties, whatsapp
+ 
+-# 1. Force loading dial .env s7i7 right at the beginning
+-load_dotenv(override=True)
+-
+ app = FastAPI(
+     title=settings.PROJECT_NAME,
+     openapi_url=f"{settings.API_V1_STR}/openapi.json"
+diff --git a/backend/app/services/__pycache__/llm_service.cpython-312.pyc b/backend/app/services/__pycache__/llm_service.cpython-312.pyc
+index 3284cf69c349662282be943394e8f5bf641270e8..bd7f2b34c4fa207d74af885b5e96d2ae26c1df40 100644
+GIT binary patch
+delta 251
+zcmaDZ^;L@ZG%qg~0}yzIYGk=@<o(0JQDy8J6yzUdHCd2TKPBHcvB*3rQ6W1czcNur
+zp*T0uTp=ejQ6Z@+F-;*mu`*8~IU`dcH@`GFBRexkAx$Aiw>Y!7Br{hbB{MN6FHylf
+zF{d&yPfx);BQYgYA<sOqJSSfvPuDUrB_$uII1#9I^Gr^AM#iemH@T!4nOvDBf8(}M
+zc4fN5BX~i?{S5O7$J1;FDlP~GT;U1)!o(or%JlmKD-$PBT@X*Vsw>k5<_`?|tgcK4
+nQXuq+;!j}yXJ!UAp^r=;smV;d5xlNUpBM}oU73n>fW8F)=3`C!
+
+delta 237
+zcmew=^<0YgG%qg~0}w1sQ^~U2$oq$bqtpP%eKfacvLL5^WQuQMk$F<0LUu-eWulHk
+zNpX33Vp54hu5n^zqC#>;rb2FhX>vw(W{yH}dPZiELYhL3ZgFODNoKB|f@4;uLY}T=
+zVoFMWDNr~OsI*8S1;{c^EKJ<Igwvjpv3&CrE@?)lD#po-JT?kdjCXhhFNnAt2|gis
+zIP8GO1tH%nJbrhCD}R4rW#R-XO5o{Mtzz83{DDEAwTkgT3WPpU{0Yqe%*?<h^pOc9
+WHCcc+g13tC6N4dR6=RVO&_e)J{!A?Z
+
+diff --git a/backend/app/services/__pycache__/whatsapp_service.cpython-312.pyc b/backend/app/services/__pycache__/whatsapp_service.cpython-312.pyc
+index 04babbb7b7ba80ac88b0060a8999a5a2c4133b1d..05fe73ae70dce6a0ecd534196dfab478e8161c61 100644
+GIT binary patch
+literal 4053
+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
+
+delta 1500
+zcmZuxUrbw782`@w)7#sYQfQ%t61i++w2Ol_WKbK%B&AbhoL$_aRE^Z$>j1l!+*{Hy
+zZ|x#viOHgpn{0`L=$=I9l0Ex0pbyoVSR90=<ALqP_|}ajp!30VZmA=2=jMFp_nqJO
+z|Mqsh{gT6ax310vcqMLiPBd|IR@V^^)~<mFB1%BCdZH+z;1v+5SrF-)6tM@0QgfqU
+zm^qAQ@ZO%K=KgwbRHbA}r4>t>B_?EH2UJA}rWuh{>FXdG7U(P^aw>Hl7AVmu^7B-d
+z6-}a91<@ihDiZ7FDbYI5W(_=~Ne+EY7_~pB_FVlZG{9B*8hx2%A<L=Ugt=z%>{J=m
+zpt3*OZem-qW<ad^F?)VS)i`0Pa{Hy&@G+i%EbQx`Q3X<Gt&bc69tR^&Z5A`sUhuu5
+zaI5xx0UXayg$L1u8SDP^RgBXywRHc>mV@V{WBTFBWxNx3zl^u}Ao#0x44#$Vb3d@4
+zpbUjz1Q33v>o3qFkU<9_ZL5`V2;`0|zpwP>w7tfue6=KPowf-hcmi4eQy#xk{mh^Y
+zRKwk(Gsx@I9<ZOIu=ax?M2&ZAKCYee2ei}Nt6GCGc8GL*%1f1*2_=;*b7N9Wlw{@4
+z0=}N=#iH`f*O#;)-}C;NDF;>`E?g1bkkT<>DDs*RmgSTzcrMc3pfJ_H$A&M&rOEVo
+zDk-Gm@hMrBL?JUao{$7ZN{ZvjbHdwWv9vNYIVqf%6eV^}3JPA6w#7R%gXyqSCiRs0
+z|ALfhB`stAtf{A~nNZwhY&wyOiDg4PF)k(3Wuq)9lc}U4m64>7???N^^d(1r^U4QE
+z8#Q-19@M*UoY=H96dOm@EYXtPwPo{b56uUtid8#hc_CM6uH#!aooyRV&#KdN&v|4A
+zjCCCqA{IX?b##5_zTsYc>vpEVee1s05!rA@zA|pv-5d6<ReRTB@9*~RO-D<y?agB3
+zox;UpYjn-=Zpq!gW5)i^B0aG}Q){u!ciXk$53l;eMc>Ig@q*{Kqd(`47TSxgBWsRm
+z$t~<O)Vv;%{JSN0WVb>Sq}Q{n2h@emKYii=Tgzjha09qO$Lqg_ijmWIPZk2j#xrY{
+zvzvC;(+Z2(f0Uo_L_QmGgaIu%UBh-*>OrAC!;+8A5vA7^8l;!aC=@U(TMiK1ZN~S@
+zFQHJ7Sq?G;4<hWmeBv->S2_v1;zOYUX2nm~m1Bfm=|cnu5U~mBctDqfhG83*XV5Tb
+z$+H~678+aT>ruE9P~N61c7FIcoo{mv2k3k+i^JsuEV(&Ohe2Dn_T^*&H&JFjOr;XC
+z7sKyi8%vPM|D=pRuBsqFA@nSi*oF%ABHOYUuK+&o*!82}cucfy8Vrq(2rc_+zFt~(
+z5$vvA$UOw<yyqB(e;WtRr^Km*G${MAO8!rkCM+s6Lg+s5_rbEmbR+yuu+aVf1q(J{
+A1poj5
+
+diff --git a/backend/app/services/llm_service.py b/backend/app/services/llm_service.py
+index 6dbacc0..acb01aa 100644
+--- a/backend/app/services/llm_service.py
++++ b/backend/app/services/llm_service.py
+@@ -49,5 +49,5 @@ class LLMService:
+             )
+             return response.text.strip()
+         except Exception as e:
+-            print(f"❌ Error generating content from Gemini GenAI: {str(e)}")
+-            return "Mar7ba khoya, tswwabt m3aya chi mouchkil sghir f l-sistim. Aji n-9addou l-amour d l-3aqar f l-blasa!"
+\ No newline at end of file
++            print(f"ERROR: Error generating content from Gemini GenAI: {str(e)}")
++            return "Mar7ba khoya, sma7 lia bzaf kayn chi mouchkil f l-sistim dialna 7alyan. Ghadi n7awlo n-9addo l-amour f l-blasa!"
+\ No newline at end of file
+diff --git a/backend/app/services/whatsapp_service.py b/backend/app/services/whatsapp_service.py
+index d5ca7fe..0b54ec3 100644
+--- a/backend/app/services/whatsapp_service.py
++++ b/backend/app/services/whatsapp_service.py
+@@ -1,5 +1,7 @@
+ import os
+ import httpx
++import json
++import traceback
+ 
+ class WhatsAppService:
+     @staticmethod
+@@ -11,17 +13,29 @@ class WhatsAppService:
+         access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+         phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+         
++        print(f"\n--- WHATSAPP OUTBOUND START ---")
++        print(f"DEBUG: Target Phone: {to_phone}")
++        
+         if not access_token or not phone_number_id:
+-            print(" Meta WhatsApp credentials missing in .env. Skipping real-time envoi.")
++            print("ERROR: Meta WhatsApp credentials missing in .env. Skipping real-time envoy.")
++            print(f"DEBUG: access_token present: {bool(access_token)}")
++            print(f"DEBUG: phone_number_id present: {bool(phone_number_id)}")
+             return False
+ 
+-        url = f"https://graph.facebook.com/v18.0/{phone_number_id}/messages"
++        # Correct Outbound Endpoint URL (v25.0)
++        # We ensure it uses WHATSAPP_PHONE_NUMBER_ID and NOT Business Account ID
++        url = f"https://graph.facebook.com/v25.0/{phone_number_id}/messages"
+         
+         headers = {
+             "Authorization": f"Bearer {access_token}",
+             "Content-Type": "application/json"
+         }
+         
++        # Masking token for logs
++        masked_token = access_token[:10] + "..." + access_token[-10:] if access_token else "NONE"
++        print(f"DEBUG: URL: {url}")
++        print(f"DEBUG: Headers: {{'Authorization': 'Bearer {masked_token}', 'Content-Type': 'application/json'}}")
++        
+         # Payload format required by Meta Cloud API
+         payload = {
+             "messaging_product": "whatsapp",
+@@ -34,17 +48,31 @@ class WhatsAppService:
+             }
+         }
+ 
++        print(f"DEBUG: Structured Payload to Meta:\n{json.dumps(payload, indent=2)}")
++
+         try:
+             async with httpx.AsyncClient() as client:
+                 response = await client.post(url, json=payload, headers=headers)
+                 
+-                if response.status_code == 200:
+-                    print(f"🚀 WhatsApp message successfully sent to client: {to_phone}")
++                print(f"DEBUG: Meta API Response Status: {response.status_code}")
++                
++                try:
++                    response_json = response.json()
++                    print(f"DEBUG: Meta API Response Body:\n{json.dumps(response_json, indent=2)}")
++                except Exception:
++                    print(f"DEBUG: Meta API Response Raw Body: {response.text}")
++                
++                if response.status_code in [200, 201]:
++                    print(f"SUCCESS: WhatsApp message successfully sent to client: {to_phone}")
++                    print(f"--- WHATSAPP OUTBOUND END ---\n")
+                     return True
+                 else:
+-                    print(f"❌ Meta API Error ({response.status_code}): {response.text}")
++                    print(f"ERROR: Meta API Failed with status {response.status_code}")
++                    print(f"--- WHATSAPP OUTBOUND END ---\n")
+                     return False
+                     
+         except Exception as e:
+-            print(f"❌ Exception occurred while sending WhatsApp message: {str(e)}")
+-            return False
+\ No newline at end of file
++            print(f"❌ CRITICAL EXCEPTION in WhatsAppService:")
++            print(traceback.format_exc())
++            print(f"--- WHATSAPP OUTBOUND END ---\n")
++            return False
+diff --git a/backend/chroma_db/287b06d4-802d-4b24-83c7-ec3303760d4f/data_level0.bin b/backend/chroma_db/287b06d4-802d-4b24-83c7-ec3303760d4f/data_level0.bin
+index 60b13be3016dc1a1897176d74f4af580625aa098..17ab23f4b2be67a6327c3b6aebc177ea172c48b6 100644
+GIT binary patch
+literal 167600
+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
+DMSwQj
+
+literal 167600
+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
+z_53Y*t=K>d=yg{8LHhA19|RCU009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{
+z1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009IL
+zKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~
+z0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**
+z5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0
+z009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{
+z1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009IL
+zKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~
+z0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**
+z5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0
+z009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{
+z1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009IL
+zKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~
+z0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**
+z5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0009ILKmY**5I_I{1Q0*~0R#|0
+j009ILKmY**5I_I{1Q0*~0R#|0009ILKmdWi9)Z6A(9=7i
+
+diff --git a/backend/chroma_db/287b06d4-802d-4b24-83c7-ec3303760d4f/length.bin b/backend/chroma_db/287b06d4-802d-4b24-83c7-ec3303760d4f/length.bin
+index cb3e1628bcb246bfc7b4a4b378b1586758115f3d..4054e03bcc4ba4c85473963fe57454c950e3735c 100644
+GIT binary patch
+literal 400
+zcmbV`F$=;#42AnsGFmu8yE?e2gM&JBEK;u5C<kZmyh}yFA8!=|(Lpi8BYa8T%P5iC
+zO~5msW6xp_ghmI8FQ5sR)^b;tO%g4H6{Tc7Z-NY(6zI4wCSbgCWF820YjCEW)2*Yr
+zexFoy?1>H4FBxA$H&GU0PA6+<t3JY3It0u6I!RP8$ZsohxgTNGhv1{6B@0~P19o&C
+i?3_*V_ru#9##2~(rmSlU1zl4rK*XWp93jgwd)5sdypV4I
+
+literal 400
+NcmZQz7zKkV1ONe$00961
+
+diff --git a/backend/chroma_db/chroma.sqlite3 b/backend/chroma_db/chroma.sqlite3
+index f2f670e4665bfb0535c585c072b3c4a6d4488aaa..ce995050627361da552135d79c2708bddc4862e6 100644
+GIT binary patch
+delta 516
+zcmW;8J21il90%~~f39=a?|WylWN5Ki;?81ekjNvFM;=jm<dKMk^7z-qIR<eV7#MKJ
+zzz}yDvb0z%7K_DVu~;k?clx$`?vqFu5(&ehQJX%hvTD;=-<4TONhqVQO{sW97Pq*@
+z1<r7S3=Xh|ZK#MNiZFr*zz+}HaKQmPtgxT~^)RCb)iA+`N>soAJ#_LXzw#sB@+F`0
+zA@A}guks?#QjjOf$-Ugkja<sPoXWAJWnXqgm9m&bB=k^c@)}ensVJIqC8;Z^Evca@
+z*&>@{gRGM{iIFw3N>)geERzUXB8wzU7RWpakvS4n)S|QO44EcVBtRy~1Q{n|#7}(0
+zOGe2E@sMFML<Y$Kag%=1M|w#QaTReY-K>*zkxt?u9i*MKkyc_SEu@*)NE5M=#v-Y_
+OWjAlp=JFPut?&=zKUBT|
+
+delta 45
+zcmZo@;Av>!nIO&RJ5k1&(RX9Q5`AVzzTK1A4VpI_Dj4!L@3w2-ZO6EMw;hw~K>$)Z
+B4~75$
+
+diff --git a/backend/list_models.py b/backend/list_models.py
+new file mode 100644
+index 0000000..85f0c83
+--- /dev/null
++++ b/backend/list_models.py
+@@ -0,0 +1,22 @@
++import os
++from google import genai
++from dotenv import load_dotenv
++
++load_dotenv()
++
++def list_models():
++    try:
++        api_key = os.getenv("GOOGLE_API_KEY")
++        if not api_key:
++            print("❌ GOOGLE_API_KEY not found in .env")
++            return
++            
++        client = genai.Client(api_key=api_key)
++        print("Available models:")
++        for model in client.models.list():
++            print(f"- {model.name}")
++    except Exception as e:
++        print(f"❌ Error listing models: {e}")
++
++if __name__ == "__main__":
++    list_models()
+diff --git a/backend/send_error.txt b/backend/send_error.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..91bc7512d86c8a5abc24c245646c3e40df1cf5fe
+GIT binary patch
+literal 4592
+zcmeH~Z)+1l5XR@V;CDFk!ltO9sr_R`g;FaBDrzmhuo}`NZA056UgDo1`g#2n>hGD&
+z=I)ZVks69GWVzgCcXoDWo@ZwFe*N6E0j*`H*5lo_jvZP;ugh<r@s2g=ozm;m>ddyr
+z^UGGXWm}`I+J@b+6<g>3hTXM_x9fHdtwXdOp|8Wbdpxf#MNb1g`~E&=tjrEw^bhE#
+z%xJdb{~E}g&=Q`yODv*Anm6quqnZ!;2KK|(CiWCR4q4wqvWkp$t@@gq^okbAckNr_
+zH+WldiNqcv8^>zQrL-<j1?ewt+cGjYa+<%}yqo+?MoqSF;jJt_bW4Wz1TPQhN16Ov
+zUO#7UU^{rEn6{B^(`$M}%5y*>@u-Gf@1b>v-O>?@7TN!;y|Y`qU$LtYmhIa_PxuDD
+zi5HVzJ_cD~KD3wggnwrF_85mJ&dlJYqSCfcXx(C$Q(7IpP4<eYg+1a<kC8q>I@n*b
+zN7%l{nh!iFyp*N4LBCGxUpNyv9JnJLJ=&f#C&i++`zjru$pYCat&$0h%VYxYN**tH
+zEdB=jR>&|#QDb>dPHQaYY4le3^hUT0$h8A2Vb4c$b)B4TF#C+X2H2I5RWD#wl8c<O
+z^DC>BCp{w5ao;NZYQ+FOeSB#!(?sT*DL)fdWEoRqMv`@AOUy^RG89VSCIog}cgpV`
+zEUEIVT;Auc_=Y_~jgmwIdsKl|dCrbrm1>klF4NH(+o0IUH~Eoze4{4~tf;VuP)nUr
+z!Yr?&?1=POIbavniW6d6;T>7mXFOXGEU$Sa_MLx=WXKXZ5+jn&-_U<=SJ`C8E>RF`
+z1D@OCxGQs`UqX0cA~p+*#Z?XOD+d?wHp#_6oQ^ToDWHmwGPVGo86%}Duw533b$$LT
+z$HO_Y<QzLok21f9bUefEqg9ol<+V>a)ud`mtDZ-WdcY-dq$L}&Pv>BlRnm0Cx&+Ot
+z45~8nXtIilXYyFJL-O)!T1q+_G_g&*Q!S3x%<E(nbMm=0zv_10X*pT7l#^NB$-nzv
+z|C{)&x*HIPY*&pPI?se}g}4Z_vU8(&HkYX$m#ZJeJ@!U>h!3hZ=U0!FoFBn1c@r%!
+zR*o<qbY@<Nkz!b8cU+ylXXSX@Gmq-5ig`JYtK8l)<YsxC)w~+Gc4@sael<r?IeRiX
+zA9TkQ`eKpLm4(ND6_;6Y3-j}cp3ZrBs}n#KK)2KLc(X<f*K<+S{vnbV$0XV*UKE*i
+zKrF)v)$;i2ELJAzG`~Er;(mEnU45-6GEO#4SD9$3A|uaLLBkhGVh<RrbGuTO>8yF<
+zbzJCd!nYoGQssEOiRs=V^qL?!>;6<`b@*~=Ihw`W)kSd+nf+(%oVQerRfeiY{`EWV
+zYT?BAbBv<5iulEM-0AO*>9aU-PQ-76XhpmqOfqZoyI8j(+4B{S={u+l(-!~VdHGuX
+Nf9E~xu6p%%-rxHx0pS1u
+
+literal 0
+HcmV?d00001
+
+diff --git a/backend/send_error_2.txt b/backend/send_error_2.txt
+new file mode 100644
+index 0000000000000000000000000000000000000000..630445d1a46f40b9c5af5bd6bce5cfff8e35edc9
+GIT binary patch
+literal 3580
+zcmc(i?QR=I6o$`lB<^8lB$5bf<)dwARYeLRks{F+C=n6_tc|@6CXT&$H*Hc>Zjyh#
+z0<MDcyk|U_b!<|prJ&KSXJ^iwkN14c@$0{Kt!5N<ZY9418`-I4%*MPc)<@Q3cFwF~
+z<m?vL`<u35n|7aZ&mP#8-L-ALAJ}Ks_VJ;8VEgtB<0;QW&OPRI4VTPz?JGOvci$$A
+zF;8Zza9C%oIqh%Of;#TDSkub9CR%NA?jtnW;#udd^BM9A>tavIBP(jwO8Xf}Bfc}<
+z7w|f93Hlm4h3wDJZ^#(i3wCAw5FQo#E&G(G%TA9S$!<#3UTs%M341N9-bG4{)P1|;
+zTrtB~Is{(Hz79NdXmjU#)6(FV4(Ekc53XI;N7lc9zfQ_KB_nW_hT=9r`^tH?>`T_7
+z<x}UBxh3-V6uK#=6GD;__GP;?2>J~;8TjbkXXg~kuvS7-`KcUw&4#Qb1a(51&1)gL
+z+>ufo2<s`2;$_!<!Cqll*h{{L3uhz0x3S<4=eS%yX}QeqiWpENUAUeZ`c9ov=wG>(
+zZP0$@k<ur=YAAB|eTNghnJ1KW-;pUf5meY2dGU;uBi3r>cd&WO_Uyo(+voPZ^Lu5=
+zrV<&7Cq+=^2z`6a|HS2-vA#-Vk6nA|r#y%m(1k{^9sDBulxyOwNX?+kXZ&jW)6Zr^
+zjXbQZQM?DK8-C^!zUDQOpTxDpJJgQ0Q)IRSZCvZH7xTJ9#b|Tlk|$%nV;>_$8j1Vw
+z?`4R4HXD+%ht<;j6x1dle2BGu=8>lPtEha!UX90;>8dfx0aXg^t=hYLBy;<N)Q50Y
+zY$z{On^oI>upd1NRpaDo>AqNDZd!SOhvoY#`<j{JAZebe@F8{tA3t$a2E<?iLSrPI
+zv!eSTQ3n}O(g7SphPLbr^gf3ESDp!ZAT93@0Xd_(btlGgh@WG(ZdpvJ&V|YnD*7h3
+zkXD3KK=6^HqdF$7b{eRv-c%qla{rBqzzI|%ytf#^t6;u%eYR=ip4)ijaXoRXE{WY^
+z&zKXpu_@ztCPUhaI%LL8D>kSKcN=yDy&}Sj31xJRwiCBA><6C73VBL6B)yw49OggS
+z?IX&3{}yl1F(l8u$zoNJAvxEk%IKCJlZVmrj(btJ)sS7?)aq;Gefd@1mEX_a376YZ
+zi@W~@dddV@t9q#{R2TD4adRIGw;L!*en9eeOroBPk<|yw5NCzstIDoSs=@K?<0{H)
+zM%DjOD>iRnwV3x&Qz4_iOZg<*TV(bHH`O+I+GS5YZL>G-d+sUbR7vMMY4rvPyCw#2
+zswMJ%=sd$cpc>jmFLmJe{0`MkysVm}%t}0p>w326_t@WdJ=VJ3T~56AmmY~x59O0|
+zQ7=@3X3EQSyQ^DDQiJ9lsB>-vA+*L_w$5$V#5z=`_>TGX-~39CBWxPXu-3hr>`nKc
+zZu%8y)Okm2R#;2eg<fg|mHL{5fqLI~PJN-`PXB#Y=AufxgjTr6O6pj}x9VEx{MNnK
+bSjI<{zl1tQ-XpxDJG<~MMfXH+b`$;$dOcZ<
+
+literal 0
+HcmV?d00001
+
+diff --git a/backend/test_imports.py b/backend/test_imports.py
+new file mode 100644
+index 0000000..3b2dc48
+--- /dev/null
++++ b/backend/test_imports.py
+@@ -0,0 +1,15 @@
++import os
++from dotenv import load_dotenv
++load_dotenv()
++
++try:
++    from google import genai
++    print("Successfully imported genai from google")
++except ImportError as e:
++    print(f"ImportError: {e}")
++
++try:
++    import google.generativeai as genai_old
++    print("Successfully imported google.generativeai")
++except ImportError as e:
++    print(f"ImportError: {e}")
+diff --git a/backend/test_llm.py b/backend/test_llm.py
+new file mode 100644
+index 0000000..a912fd1
+--- /dev/null
++++ b/backend/test_llm.py
+@@ -0,0 +1,23 @@
++import sys
++import os
++
++# Add the project root to sys.path
++sys.path.append(os.getcwd())
++
++from dotenv import load_dotenv
++load_dotenv()
++
++from app.services.llm_service import LLMService
++
++def test_llm():
++    try:
++        reply = LLMService.generate_whatsapp_reply(
++            client_message="I want a house in Hamria",
++            properties_data=[]
++        )
++        print(f"Reply: {reply}")
++    except Exception as e:
++        print(f"ERROR: {e}")
++
++if __name__ == "__main__":
++    test_llm()
+diff --git a/backend/test_search.py b/backend/test_search.py
+new file mode 100644
+index 0000000..f0f0298
+--- /dev/null
++++ b/backend/test_search.py
+@@ -0,0 +1,21 @@
++import asyncio
++import sys
++import os
++
++# Add the project root to sys.path
++sys.path.append(os.getcwd())
++
++from dotenv import load_dotenv
++load_dotenv()
++
++from app.api.endpoints.properties import search_properties
++
++async def test_search():
++    try:
++        results = await search_properties(query="Hamria", limit=3)
++        print(f"Results: {results}")
++    except Exception as e:
++        print(f"Error: {e}")
++
++if __name__ == "__main__":
++    asyncio.run(test_search())
+diff --git a/backend/test_send.py b/backend/test_send.py
+new file mode 100644
+index 0000000..fc0d29f
+--- /dev/null
++++ b/backend/test_send.py
+@@ -0,0 +1,25 @@
++import asyncio
++import os
++import sys
++
++# Add the project root to sys.path
++sys.path.append(os.getcwd())
++
++from dotenv import load_dotenv
++load_dotenv()
++
++from app.services.whatsapp_service import WhatsAppService
++
++async def test_send():
++    phone = "2126659347298" # Taking from test_wh.py
++    message = "Test message from AqarBot debugging script 🚀"
++    
++    print(f"Attempting to send message to {phone}...")
++    success = await WhatsAppService.send_whatsapp_message(phone, message)
++    if success:
++        print("SUCCESS: Message sent successfully!")
++    else:
++        print("ERROR: Message failed to send.")
++
++if __name__ == "__main__":
++    asyncio.run(test_send())
+diff --git a/backend/test_wh.py b/backend/test_wh.py
+index d985b4b..8b8553b 100644
+--- a/backend/test_wh.py
++++ b/backend/test_wh.py
+@@ -1,42 +1,48 @@
+-import requests
++import httpx
+ import json
++import asyncio
+ 
+-url = "http://127.0.0.1:8000/api/whatsapp/webhook"
+-headers = {"Content-Type": "application/json"}
++async def main():
++    url = "http://127.0.0.1:8000/api/whatsapp/webhook"
++    headers = {"Content-Type": "application/json"}
+ 
+-payload = {
+-  "object": "whatsapp_business_account",
+-  "entry": [
+-    {
+-      "id": "123456789",
+-      "changes": [
++    payload = {
++      "object": "whatsapp_business_account",
++      "entry": [
+         {
+-          "value": {
+-            "messaging_product": "whatsapp",
+-            "metadata": {
+-              "display_phone_number": "212600000000",
+-              "phone_number_id": "123456789"
+-            },
+-            "contacts": [{"profile": {"name": "Imad"}, "wa_id": "212600000000"}],
+-            "messages": [
+-              {
+-                "from": "212600000000",
+-                "id": "wamid.HBgNMjEyNjAwMDAwMDAwFQIAERgSQjM0NTY3ODlBQkNERUZHSAA=",
+-                "timestamp": "1717610000",
+-                "text": {
+-                  "body": "Chambre n9iya f Hamria"
++          "id": "123456789",
++          "changes": [
++            {
++              "value": {
++                "messaging_product": "whatsapp",
++                "metadata": {
++                  "display_phone_number": "2126659347298",
++                  "phone_number_id": "123456789"
+                 },
+-                "type": "text"
+-              }
+-            ]
+-          },
+-          "field": "messages"
++                "contacts": [{"profile": {"name": "Imad"}, "wa_id": "2126659347298"}],
++                "messages": [
++                  {
++                    "from": "2126659347298",
++                    "id": "wamid.HBgNMjEyNjAwMDAwMDAwFQIAERgSQjM0NTY3ODlBQkNERUZHSAA=",
++                    "timestamp": "1717610000",
++                    "text": {
++                      "body": "Chambre n9iya f Hamria"
++                    },
++                    "type": "text"
++                  }
++                ]
++              },
++              "field": "messages"
++            }
++          ]
+         }
+       ]
+     }
+-  ]
+-}
+ 
+-response = requests.post(url, headers=headers, data=json.dumps(payload))
+-print(f"Status Code: {response.status_code}")
+-print(f"Response: {response.json()}")
+\ No newline at end of file
++    async with httpx.AsyncClient(timeout=60.0) as client:
++        response = await client.post(url, headers=headers, json=payload)
++        print(f"Status Code: {response.status_code}")
++        print(f"Response: {response.json()}")
++
++if __name__ == "__main__":
++    asyncio.run(main())
+-- 
+2.45.2.windows.1
+

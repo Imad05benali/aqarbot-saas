@@ -1,0 +1,382 @@
+import os
+import json
+import traceback
+import time
+import random
+from google import genai
+from google.genai import types
+
+class LLMService:
+    @staticmethod
+    def _call_gemini_with_retry(model: str, contents: str, config=None, max_retries: int = 3):
+        """
+        Internal helper to execute Gemini calls with exponential backoff for 429/503 errors.
+        """
+        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        for attempt in range(max_retries):
+            try:
+                if config:
+                    return client.models.generate_content(model=model, contents=contents, config=config)
+                return client.models.generate_content(model=model, contents=contents)
+            except Exception as e:
+                err_msg = str(e).upper()
+                is_retryable = "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "503" in err_msg or "OVERLOADED" in err_msg
+                
+                if is_retryable and attempt < max_retries - 1:
+                    wait_time = (2 ** attempt) + random.uniform(0, 1)
+                    print(f"\n⚠️  QUOTA HIT (Attempt {attempt+1}). Retrying in {wait_time:.2f}s...")
+                    time.sleep(wait_time)
+                    continue
+                raise e
+
+    # ───────────────────────────────────────────────────────────
+    #  QUALIFICATION STATE: Step-by-step question prompts
+    # ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    def generate_qualification_reply(
+        state: str,
+        client_message: str,
+        agency_name: str = "AqarBot",
+        collected: dict = None
+    ) -> str:
+        """
+        Generates a context-aware Darija response for each step of the
+        structured real-estate qualification protocol.
+
+        States: AWAITING_NAME -> AWAITING_TYPE -> AWAITING_CITY
+                -> AWAITING_SECTOR -> AWAITING_BUDGET -> QUALIFIED
+        """
+        collected = collected or {}
+
+        state_prompts = {
+            "GREETING": (
+                f"You are AqarBot AI, the smart real estate assistant for the agency '{agency_name}'.\n"
+                "A new client just contacted you for the first time on WhatsApp.\n"
+                "Greet them warmly in Moroccan Darija (Latin characters), introduce yourself as the AI assistant "
+                f"for '{agency_name}', and ask for their full name.\n"
+                "Use emojis. Keep it short and professional. Max 2-3 lines.\n"
+                "Do NOT ask about properties yet — only ask for the name."
+            ),
+            "AWAITING_NAME": (
+                f"You are AqarBot AI for the agency '{agency_name}'.\n"
+                f"The client just told you their name. Their message: \"{client_message}\"\n"
+                "Thank them warmly in Moroccan Darija (Latin characters), use their name, and then ask:\n"
+                "\"Wach kat-9elleb 3la Appartement wla Villa?\"\n"
+                "You MUST ask the Type question. Use emojis. Short and warm. Max 2-3 lines."
+            ),
+            "AWAITING_TYPE": (
+                f"You are AqarBot AI for '{agency_name}'.\n"
+                f"The client '{collected.get('name', '')}' just told you the property type.\n"
+                f"Their message: \"{client_message}\"\n"
+                "Acknowledge their choice warmly in Darija and ask:\n"
+                "\"F ina medina kat-9elleb? (Casa, Rabat, Marrakech, Tanger...)\"\n"
+                "You MUST ask for the City. Use emojis. Max 2-3 lines."
+            ),
+            "AWAITING_CITY": (
+                f"You are AqarBot AI for '{agency_name}'.\n"
+                f"The client '{collected.get('name', '')}' wants a {collected.get('Type', 'property')} "
+                f"and just told you the city.\n"
+                f"Their message: \"{client_message}\"\n"
+                "Acknowledge the city warmly in Darija and ask:\n"
+                "\"F ina 7ay / secteur / lblasa exactement kat-9elleb? (Maarif, Agdal, Guéliz...)\"\n"
+                "You MUST ask for the Sector/Neighborhood. Use emojis. Max 2-3 lines."
+            ),
+            "AWAITING_SECTOR": (
+                f"You are AqarBot AI for '{agency_name}'.\n"
+                f"The client '{collected.get('name', '')}' wants a {collected.get('Type', 'property')} "
+                f"in {collected.get('City', 'the city')}, sector {client_message}.\n"
+                f"Their message: \"{client_message}\"\n"
+                "Acknowledge their sector choice warmly in Darija and ask:\n"
+                "\"Chhal howa l-budget dyalk? (par exemple: 500,000 DH, 1 million DH...)\"\n"
+                "You MUST ask for the Budget. Use emojis. Max 2-3 lines."
+            ),
+            "AWAITING_BUDGET": (
+                f"You are AqarBot AI for '{agency_name}'.\n"
+                f"The client gave you their budget. Message: \"{client_message}\"\n"
+                "Do NOT generate any confirmation yourself.\n"
+                "Just say a very short warm acknowledgment in Darija like: \"Wakha, mzyan bzaf! ☺️\"\n"
+                "Keep it to ONE short line. The backend will append the structured confirmation."
+            ),
+        }
+
+        prompt = state_prompts.get(state)
+        if not prompt:
+            prompt = (
+                f"You are AqarBot AI for '{agency_name}'. Respond helpfully in Darija to: \"{client_message}\"\n"
+                "Use emojis. Max 2-3 lines."
+            )
+
+        try:
+            response = LLMService._call_gemini_with_retry(
+                model='gemini-2.0-flash-lite',
+                contents=prompt
+            )
+            return response.text.strip()
+        except Exception:
+            print(f"\n🚀 AI SURVIVAL MODE: {traceback.format_exc()}")
+            # Static fallbacks per state
+            fallbacks = {
+                "GREETING": f"Mar7ba bik m3a {agency_name}! 🏠 3afak, chnou s-smiya l-karima dyalk?",
+                "AWAITING_NAME": f"Metcharfin a si {client_message}! 🙌 Wach kat-9elleb 3la Appartement wla Villa?",
+                "AWAITING_TYPE": f"Wakha mzyan! 👍 F ina medina kat-9elleb? (Casa, Rabat, Marrakech...)",
+                "AWAITING_CITY": f"Mzyan {client_message}! 🏙️ F ina 7ay / secteur / lblasa exactement?",
+                "AWAITING_SECTOR": f"Top, {client_message}! 📍 Chhal howa l-budget dyalk? (500K, 1M DH...)",
+                "AWAITING_BUDGET": "Wakha, mzyan bzaf! ☺️",
+            }
+            return fallbacks.get(state, f"Sma7 lia, kayn mouchkil tekniki. Ghadi n-3awedou! 🏠")
+
+    # ───────────────────────────────────────────────────────────
+    #  FINAL CONFIRMATION: Structured lead qualification output
+    # ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    def generate_confirmation_message(
+        agency_name: str,
+        prop_type: str,
+        city: str,
+        sector: str,
+        budget: str
+    ) -> str:
+        """
+        Produces the exact structured confirmation layout required by the
+        qualification protocol. This is deterministic — no LLM involved.
+        """
+        sector_display = sector if sector and sector != "Non spécifié" else "Non spécifié"
+        budget_display = budget if budget else "Non spécifié"
+
+        return (
+            f"Parfait ! Votre demande a été enregistrée avec succès pour l'agence {agency_name}.\n"
+            f"Détails : {prop_type} à {city} (Secteur : {sector_display}) | Budget : {budget_display}.\n"
+            f"Un de nos agents commerciaux va vous contacter dans les plus brefs délais. "
+            f"Merci pour votre confiance ! 🙏🏠"
+        )
+
+    # ───────────────────────────────────────────────────────────
+    #  LEGACY: Property-based reply (still used for search results)
+    # ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _static_property_formatter(properties_data: list, needs_lead: bool, is_fallback: bool = False) -> str:
+        """
+        AI SURVIVAL MODE: Formats results without using the LLM.
+        """
+        if not properties_data:
+            return "Sma7 lia, mal9itch chi 7aja b-had l-mowasafat 7alyan. Ghadi n-9elleb lik ktar! 🔍"
+        
+        if needs_lead:
+            return "L9it lik chi 7wayj mofidin bzaf! 😍 Ghir 3tini ssmîtya dyalk nrejixtrik m3ana bach nṣîft lik telfon dyal l-agence direct."
+
+        prefix = "Sma7 lia, mal9itch l-exact dyal chnou tlabti, walakin ha chnou l9it lik li mzyan 7alyan: 🏠\n\n" if is_fallback else "L9it lik had l-3orod l-khayyalin: 🏠\n\n"
+        
+        response = prefix
+        for p in properties_data[:3]:
+            agency = p.get("agency", {})
+            response += f"📍 {p.get('title')}\n"
+            response += f"💰 {p.get('new_price')} DH | {p.get('City')}\n"
+            response += f"📞 Agence: {agency.get('phone', 'N/A')}\n"
+            response += "------------------\n"
+        
+        response += "\nKhdit had l-3orod direct mn l-base de données dyalna. InchaAllah i3jbok!"
+        return response
+
+    @staticmethod
+    def generate_whatsapp_reply(client_message: str, properties_data: list, needs_lead_collection: bool = False, is_fallback: bool = False) -> str:
+        """
+        Generates a personalized response in Moroccan Darija.
+        Falls back to AI Survival Mode if the Gemini API is exhausted.
+        """
+        # 1. Build Property Context for LLM
+        context_properties = ""
+        if properties_data:
+            for prop in properties_data:
+                agency = prop.get("agency", {})
+                context_properties += f"""
+                - ID: {prop.get('id', 'N/A')}
+                - Title: {prop.get('title')}
+                - Price: {prop.get('new_price')} DH
+                - Sector: {prop.get('Nighberd')}
+                - City: {prop.get('City')}
+                - Type: {prop.get('Type')}
+                - Agency: {agency.get('name', 'N/A')}
+                - Contact: {agency.get('phone', 'N/A')}
+                """
+        else:
+            context_properties = "No matching properties."
+
+        # 2. Define Behavioral Instructions
+        fallback_instruction = "IMPORTANT: This is a fallback result. Explain politely in Darija that you didn't find the exact match but found these great alternatives in the same city." if is_fallback else ""
+        
+        if needs_lead_collection and properties_data:
+            behavior_instruction = "Matches found. Ask for the user's name warmly in Darija."
+        elif properties_data:
+            behavior_instruction = f"Provide property details and contact info in Darija. {fallback_instruction}"
+        else:
+            behavior_instruction = "No matches found. Explain politely in Darija."
+
+        system_prompt = f"""
+        Role: 'AqarBot AI', a Moroccan real estate assistant.
+        Language: Moroccan Darija (Latin characters). Use emojis.
+        {behavior_instruction}
+        Context:
+        - Message: "{client_message}"
+        - Data: {context_properties}
+        """
+
+        try:
+            # SYNC: Using gemini-2.0-flash-lite for higher availability
+            response = LLMService._call_gemini_with_retry(
+                model='gemini-2.0-flash-lite',
+                contents=system_prompt
+            )
+            return response.text.strip()
+        except Exception:
+            # --- AI SURVIVAL MODE ACTIVATION ---
+            print(f"\n🚀 AI SURVIVAL MODE ACTIVATED: {traceback.format_exc()}")
+            return LLMService._static_property_formatter(properties_data, needs_lead_collection, is_fallback)
+
+    @staticmethod
+    def extract_client_name(message_text: str) -> str:
+        """
+        Optimized name extraction: Bypasses LLM for simple one-word answers.
+        """
+        text_clean = message_text.strip()
+        words = text_clean.split()
+        
+        if len(words) == 1:
+            name = words[0].capitalize()
+            print(f"DEBUG: Fast-path name extraction (No LLM): {name}")
+            return name
+
+        prompt = f"""Extract the personal name from: "{message_text}"\nReturn ONLY the name. If none, return "Unknown"."""
+        
+        try:
+            config = types.GenerateContentConfig(temperature=0.0)
+            response = LLMService._call_gemini_with_retry(
+                model='gemini-2.0-flash-lite',
+                contents=prompt,
+                config=config
+            )
+            name = response.text.strip()
+            return name if name.lower() != "unknown" else None
+        except Exception:
+            print(f"ERROR: Extraction failed: {traceback.format_exc()}")
+            return words[0].capitalize() if words else None
+
+    @staticmethod
+    def parse_property_intent(message_text: str) -> dict:
+        """
+        Extracts structured search entities (City, Nighberd, Type) from Darija.
+        Includes a local keyword fallback for stability when the LLM is unavailable.
+        """
+        message_text_lower = message_text.lower()
+        
+        # 1. Local Keyword Scanning (Resiliency Layer)
+        local_intent = {"City": None, "Type": None, "Nighberd": None}
+        
+        cities = ["casablanca", "rabat", "marrakech", "tangier", "tanger", "fes", "meknes", "agadir", "oujda", "kenitra", "tetouan", "safi", "mohammadia"]
+        types_map = {
+            "appartement": "Appartement", "ch9a": "Appartement", "appart": "Appartement",
+            "villa": "Villa",
+            "riad": "Riad",
+            "magasin": "Magasin", "mahal": "Magasin",
+            "terrain": "Terrain", "ard": "Terrain",
+            "bureau": "Bureau",
+            "maison": "Maison", "dar": "Maison"
+        }
+        # Moroccan sector/neighborhood keyword dictionary for local extraction
+        sectors_map = {
+            # Casablanca
+            "hamria": "Hamria", "anfa": "Anfa", "maarif": "Maarif", "ma3arif": "Maarif",
+            "ain diab": "Ain Diab", "ain sebaa": "Ain Sebaa", "bernoussi": "Bernoussi",
+            "sidi maarouf": "Sidi Maarouf", "bourgogne": "Bourgogne", "gauthier": "Gauthier",
+            "hay hassani": "Hay Hassani", "sbata": "Sbata", "derb sultan": "Derb Sultan",
+            "oulfa": "Oulfa", "hay mohammadi": "Hay Mohammadi", "2mars": "2 Mars",
+            "palmier": "Palmier", "racine": "Racine", "triangle d'or": "Triangle d'Or",
+            "belvédère": "Belvédère", "belvedere": "Belvédère", "california": "California",
+            # Rabat
+            "agdal": "Agdal", "hay riad": "Hay Riad", "ocean": "Océan",
+            "souissi": "Souissi", "hassan": "Hassan", "yacoub el mansour": "Yacoub El Mansour",
+            "les orangers": "Les Orangers", "temara": "Témara",
+            # Marrakech
+            "gueliz": "Guéliz", "hivernage": "Hivernage", "targa": "Targa",
+            "palmeraie": "Palmeraie", "menara": "Ménara", "sidi ghanem": "Sidi Ghanem",
+            "amelkis": "Amelkis", "route de fes": "Route de Fès",
+            # Tanger
+            "malabata": "Malabata", "iberia": "Iberia", "boukhalef": "Boukhalef",
+            "marchane": "Marchane", "moujahidine": "Moujahidine",
+            # Fès
+            "ville nouvelle": "Ville Nouvelle", "saiss": "Saiss", "narjiss": "Narjiss",
+            # Meknès
+            "hamria meknes": "Hamria", "marjane": "Marjane",
+            # Agadir
+            "talborjt": "Talborjt", "hay mohammadi agadir": "Hay Mohammadi",
+            "founty": "Founty", "sonaba": "Sonaba",
+        }
+        
+        for c in cities:
+            if c in message_text_lower:
+                local_intent["City"] = c.capitalize()
+                break
+        for k, v in types_map.items():
+            if k in message_text_lower:
+                local_intent["Type"] = v
+                break
+        # Sector/Neighborhood extraction (scan for known Moroccan sectors)
+        for k, v in sectors_map.items():
+            if k in message_text_lower:
+                local_intent["Nighberd"] = v
+                break
+
+        # 2. Try LLM Enrichment
+        prompt = f"""
+        Extract search entities from: "{message_text}"
+        Return JSON: {{"City": "...", "Type": "...", "Nighberd": "..."}}
+        Missing: null.
+        """
+        try:
+            config = types.GenerateContentConfig(temperature=0.0, response_mime_type="application/json")
+            response = LLMService._call_gemini_with_retry(
+                model='gemini-2.0-flash-lite',
+                contents=prompt,
+                config=config
+            )
+            llm_intent = json.loads(response.text.strip())
+            # Merge: LLM found content takes priority, otherwise use local scan
+            return {
+                "City": llm_intent.get("City") or local_intent["City"],
+                "Type": llm_intent.get("Type") or local_intent["Type"],
+                "Nighberd": llm_intent.get("Nighberd") or local_intent["Nighberd"]
+            }
+        except Exception as e:
+            print(f"⚠️ [Intent Parsing Fallback]: Using keywords (API Error: {str(e)})")
+            return local_intent
+
+    @staticmethod
+    def extract_budget(message_text: str) -> str:
+        """
+        Extracts a budget figure from free-form Darija text.
+        Handles formats like: '500000', '1 million', '1M', '800K', '500,000 DH'.
+        """
+        import re
+        text = message_text.lower().replace(",", "").replace(".", "").replace(" ", "")
+
+        # Check for 'million' shorthand
+        m_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:million|m|mly)', message_text.lower().replace(",", ""))
+        if m_match:
+            val = float(m_match.group(1))
+            return f"{int(val * 1_000_000)} DH"
+
+        # Check for 'K' shorthand
+        k_match = re.search(r'(\d+)\s*k', message_text.lower().replace(",", ""))
+        if k_match:
+            val = int(k_match.group(1))
+            return f"{val * 1000} DH"
+
+        # Raw number extraction
+        num_match = re.search(r'(\d{4,})', text)
+        if num_match:
+            return f"{int(num_match.group(1))} DH"
+
+        # If nothing numeric found, just return the raw text trimmed
+        return message_text.strip()
