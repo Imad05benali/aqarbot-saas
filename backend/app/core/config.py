@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     DIRECT_URL: Optional[str] = None
     
     # Supabase Client
-    SUPABASE_URL: str = "https://placeholder.supabase.co"
-    SUPABASE_ANON_KEY: str = "placeholder-anon-key"
+    SUPABASE_URL: str = "https://lvplxnfcuofvffbnurye.supabase.co"
+    SUPABASE_ANON_KEY: str = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2cGx4bmZjdW9mdmZmYm51cnllIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0OTg4MDAsImV4cCI6MjA5NjA3NDgwMH0.Px4xJz5cwDGaN5rfVeF0ohjm9MK8JYW-annrLZRSjn0"
 
     # Google Gemini
     GOOGLE_API_KEY: str = "your_google_api_key_here"
