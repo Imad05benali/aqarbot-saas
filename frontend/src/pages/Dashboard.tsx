@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getForecastData } from '../services/api';
 import EmptyStateComponent from '../components/EmptyStateComponent';
 import { supabase } from '../lib/supabase';
+import { useProfile } from '../context/ProfileContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 const chartData = [
@@ -16,6 +17,7 @@ const chartData = [
 ];
 
 export default function Dashboard() {
+  const { profile } = useProfile();
   const [stats, setStats] = useState({ total_leads: 0, hot_leads: 0, ai_conversations: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [forecast, setForecast] = useState({ percentage: 24.5, sector: 'Al-Maarif', trend: 'uptick' });
@@ -101,6 +103,16 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-12">
+      {/* Dynamic Profile Greeting */}
+      <div className="flex flex-col gap-1 px-4">
+        <h1 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
+          Bienvenue, <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400">{profile?.full_name?.split(' ')[0] || 'Partenaire'}</span> 👋
+        </h1>
+        <p className="text-slate-500 font-medium tracking-wide">
+          Voici un aperçu en temps réel des performances de l'agence <span className="text-emerald-500 font-bold">{profile?.agency_name || 'Vôtre Agence'}</span>.
+        </p>
+      </div>
+
       {/* Arctic KPI Hub */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {kpis.map((kpi, i) => (

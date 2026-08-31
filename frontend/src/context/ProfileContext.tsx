@@ -45,25 +45,26 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         console.error('Supabase Profile Sync Error:', error);
 
         // Profile might not exist yet – create it lazily from Auth metadata
-        if (error.code === 'PGRST116') {
+        if (error.code === 'PGRST116' || !data) {
           const meta = user.user_metadata || {};
           const fallback: UserProfile = {
             id: user.id,
-            full_name: meta.full_name || 'Utilisateur AqarBot',
-            agency_name: meta.agency_name || 'Mon Agence',
+            full_name: meta.full_name || user.email || 'Utilisateur AqarBot',
+            agency_name: meta.agency_name || 'Agence Immobilière',
             agency_logo: null,
             role: 'Owner',
           };
 
-          // Lazy insert — only id, full_name, agency_name, role are valid columns
+          // Lazy insert
           const { error: upsertError } = await supabase
             .from('users')
             .insert([{
               id: user.id,
-              full_name: meta.full_name || 'Utilisateur AqarBot',
-              agency_name: meta.agency_name || 'Mon Agence',
-              role: 'Owner',
+              full_name: fallback.full_name,
+              agency_name: fallback.agency_name,
+              role: fallback.role,
             }]);
+            
           if (upsertError) {
             console.error('Supabase Profile Sync Error (insert):', upsertError);
           } else {
