@@ -56,9 +56,9 @@ export default function Layout() {
 
   return (
     <div className="h-screen w-full flex font-sans overflow-hidden transition-colors duration-700 bg-transparent">
-      {/* ── Sidebar ──────────────────────────────────────────── */}
+      {/* ── Desktop Sidebar ──────────────────────────────────────────── */}
       <aside 
-        className={`${isSidebarOpen ? 'w-[260px]' : 'w-[90px]'} bg-[#0d1624] m-5 rounded-[2.5rem] flex flex-col z-20 shadow-2xl border-slate-800 border transition-all duration-300 relative`}
+        className={`hidden md:flex ${isSidebarOpen ? 'w-[260px]' : 'w-[90px]'} bg-[#0d1624] m-5 rounded-[2.5rem] flex-col z-20 shadow-2xl border-slate-800 border transition-all duration-300 relative`}
       >
         {/* Toggle Button */}
         <button 
@@ -144,10 +144,10 @@ export default function Layout() {
       </aside>
 
       {/* ── Main Content ─────────────────────────────────────── */}
-      <main className="flex-1 flex flex-col min-w-0 relative transition-all duration-300">
-        <header className="h-24 flex items-center justify-between px-12 z-10 sticky top-0">
-          <div className="flex flex-col">
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-1">
+      <main className="flex-1 flex flex-col min-w-0 relative transition-all duration-300 pb-24 md:pb-0">
+        <header className="h-24 flex items-center justify-between px-4 md:px-12 z-10 sticky top-0">
+          <div className="flex flex-col max-w-[200px] md:max-w-none">
+            <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-1 truncate">
               {navItems.find((i) => i.path === location.pathname)?.name || "Console d'Administration"}
             </h2>
             <div className="flex items-center gap-2">
@@ -156,17 +156,17 @@ export default function Layout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-3 md:gap-8">
             <button
               onClick={handleSimulateLead}
-              className="px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-2xl text-[10px] uppercase font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-lg active:scale-95"
+              className="px-3 md:px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-2xl text-[9px] md:text-[10px] uppercase font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-lg active:scale-95 whitespace-nowrap"
               title="Simuler un Lead Test"
             >
               Simuler Test
             </button>
             <button
               onClick={toggleTheme}
-              className="p-3 rounded-2xl glacier-card text-slate-400 hover:text-primary transition-all active:scale-90"
+              className="p-2 md:p-3 rounded-2xl glacier-card text-slate-400 hover:text-primary transition-all active:scale-90 shrink-0"
               aria-label="Toggle Theme"
             >
               {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -188,7 +188,7 @@ export default function Layout() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-auto px-12 pb-12 custom-scrollbar scroll-smooth">
+        <div className="flex-1 overflow-auto px-4 md:px-12 pb-6 custom-scrollbar scroll-smooth">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -202,6 +202,36 @@ export default function Layout() {
           </AnimatePresence>
         </div>
       </main>
+
+      {/* ── Mobile Bottom Navigation ─────────────────────────── */}
+      <nav className="md:hidden fixed bottom-0 left-0 w-full bg-[#0d1624]/90 backdrop-blur-xl border-t border-slate-800 z-50 px-4 py-3 pb-safe flex justify-between items-center shadow-[0_-10px_30px_rgba(0,0,0,0.5)]">
+        {navItems.map((item) => {
+          const isActive = location.pathname === item.path;
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.path}
+              to={item.path}
+              className="flex flex-col items-center justify-center p-2 relative group flex-1"
+            >
+              <div 
+                className={`flex items-center justify-center p-3 rounded-2xl transition-all duration-300 ${
+                  isActive 
+                    ? 'bg-primary text-[#0B1120] shadow-[0_0_15px_rgba(110,231,183,0.4)] -translate-y-2' 
+                    : 'text-slate-400 group-hover:text-primary'
+                }`}
+              >
+                <Icon className={`w-5 h-5 ${isActive ? '' : 'group-hover:scale-110'}`} />
+              </div>
+              <span className={`text-[9px] font-black tracking-wider uppercase mt-1 absolute -bottom-1 transition-all ${
+                isActive ? 'text-primary opacity-100 translate-y-1' : 'text-slate-500 opacity-0'
+              }`}>
+                {item.name.split(' ')[0]}
+              </span>
+            </Link>
+          );
+        })}
+      </nav>
     </div>
   );
 }

@@ -104,11 +104,11 @@ export default function Dashboard() {
   return (
     <div className="space-y-12">
       {/* Dynamic Profile Greeting */}
-      <div className="flex flex-col gap-1 px-4">
-        <h1 className="text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
+      <div className="flex flex-col gap-1 px-1 md:px-4">
+        <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
           Bienvenue, <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400">{profile?.full_name?.split(' ')[0] || 'Partenaire'}</span> 👋
         </h1>
-        <p className="text-slate-500 font-medium tracking-wide">
+        <p className="text-xs md:text-sm text-slate-500 font-medium tracking-wide">
           Voici un aperçu en temps réel des performances de l'agence <span className="text-emerald-500 font-bold">{profile?.agency_name || 'Vôtre Agence'}</span>.
         </p>
       </div>
@@ -121,14 +121,14 @@ export default function Dashboard() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1, type: "spring", stiffness: 100 }}
             key={kpi.label} 
-            className="glacier-card p-10 rounded-[3rem] group cursor-pointer"
+            className="glacier-card p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] group cursor-pointer"
           >
             <div className={`absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br ${kpi.color} opacity-0 group-hover:opacity-10 blur-[80px] transition-all duration-700`} />
             
             <div className="flex justify-between items-start relative z-10">
-              <div className="space-y-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">{kpi.label}</span>
-                <h3 className="text-6xl font-black tracking-tighter drop-shadow-sm bg-clip-text text-transparent bg-gradient-to-br from-slate-900 to-slate-500 dark:from-white dark:to-slate-500">
+              <div className="space-y-1 md:space-y-2">
+                <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] md:tracking-[0.3em]">{kpi.label}</span>
+                <h3 className="text-4xl md:text-6xl font-black tracking-tighter drop-shadow-sm bg-clip-text text-transparent bg-gradient-to-br from-slate-900 to-slate-500 dark:from-white dark:to-slate-500">
                     {kpi.value}
                 </h3>
               </div>
