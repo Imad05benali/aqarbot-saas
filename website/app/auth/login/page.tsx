@@ -85,8 +85,8 @@ function LoginForm() {
         document.cookie = `sb-refresh-token=${data.session.refresh_token}; path=/; max-age=604800; SameSite=Lax`;
       }
 
-      // Navigate to Vite dashboard
-      window.location.href = 'http://localhost:5173/dashboard';
+      // Navigate to dashboard
+      window.location.href = '/dashboard';
     } catch (err: unknown) {
       let message =
         err instanceof Error ? err.message : 'Erreur de connexion. Veuillez réessayer.';

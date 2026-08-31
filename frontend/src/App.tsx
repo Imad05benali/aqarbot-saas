@@ -35,7 +35,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
   if (!isAuthenticated) {
     console.log('Not authenticated, redirecting to login...');
-    window.location.replace('http://localhost:3000/auth/login');
+    window.location.replace('/auth/login');
     return null;
   }
 
