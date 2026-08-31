@@ -28,7 +28,6 @@ export default function Navbar() {
     return () => { document.body.style.overflow = 'unset'; };
   }, [isOpen]);
 
-  if (pathname.startsWith('/auth')) return null;
 
   const navLinks = [
     { name: 'Solutions', href: '/solutions' },

@@ -17,6 +17,9 @@ import {
   ShieldCheck,
   X,
   Phone,
+  Check,
+  Eye,
+  EyeOff,
   MapPin,
 } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
@@ -48,6 +51,7 @@ export default function RegisterPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [otpError, setOtpError] = React.useState<string | null>(null);
+  const [showPassword, setShowPassword] = React.useState(false);
 
   // ── Step 1: Submit form → show payment modal ──────────────
   const handleFormSubmit = (e: React.FormEvent) => {
@@ -160,16 +164,19 @@ export default function RegisterPage() {
   // ── Success screen ─────────────────────────────────────────
   if (step === 'success') {
     return (
-      <div className="min-h-screen w-full flex bg-transparent items-center justify-center relative z-10">
-        <div className="text-center flex flex-col items-center gap-6 p-12">
-          <div className="w-24 h-24 rounded-full bg-brand-emerald/20 flex items-center justify-center">
-            <CheckCircle2 className="w-12 h-12 text-brand-emerald animate-pulse" />
+      <div className="min-h-[100vh] pt-32 pb-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative text-slate-100 selection:bg-[#6EE7B7]/30 flex flex-col items-center justify-center overflow-x-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#6EE7B7]/10 blur-[150px] rounded-full pointer-events-none" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-8 p-12 w-full max-w-lg bg-[#0d1624] border border-slate-800 rounded-sm shadow-2xl text-center">
+          <div className="w-20 h-20 bg-[#6EE7B7]/10 flex items-center justify-center shadow-[0_0_30px_rgba(110,231,183,0.2)]">
+            <CheckCircle2 className="w-10 h-10 text-[#6EE7B7] animate-pulse" />
           </div>
-          <h2 className="text-4xl font-black text-foreground tracking-tight">Compte créé !</h2>
-          <p className="text-slate-500 font-medium">
-            Redirection vers la page de connexion...
-          </p>
-          <Loader2 className="w-6 h-6 animate-spin text-brand-emerald" />
+          <div>
+            <h2 className="text-3xl font-medium tracking-tight text-white mb-2">Protocole Activé</h2>
+            <p className="text-slate-400 text-sm">Transfert vers votre espace agence...</p>
+          </div>
+          <Loader2 className="w-5 h-5 animate-spin text-[#6EE7B7]" />
         </div>
       </div>
     );
@@ -178,96 +185,70 @@ export default function RegisterPage() {
   // ── Payment Gateway Modal ─────────────────────────────────
   if (step === 'payment') {
     return (
-      <div className="min-h-screen w-full flex bg-transparent items-center justify-center p-8 relative z-10">
-        {/* Ambient glow */}
-        <div className="absolute top-1/3 left-1/3 w-[600px] h-[600px] bg-brand-emerald/5 blur-[200px] rounded-full pointer-events-none" />
+      <div className="min-h-[100vh] pt-32 pb-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative text-slate-100 selection:bg-[#6EE7B7]/30 flex flex-col items-center justify-center overflow-x-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+        <div className="absolute top-1/4 right-1/4 w-[600px] h-[600px] bg-yellow-500/5 blur-[150px] rounded-full pointer-events-none" />
 
-        <ScrollReveal>
-          <div className="w-full max-w-lg animate-reveal">
-            {/* Back button */}
-            <button
-              onClick={() => { setStep('form'); setOtpError(null); }}
-              className="inline-flex items-center gap-2 mb-8 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-brand-emerald transition-colors group"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
-              Modifier les informations
-            </button>
+        <div className="relative z-10 w-full max-w-xl">
+          <ScrollReveal>
+             <button
+               onClick={() => { setStep('form'); setOtpError(null); }}
+               className="mb-8 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-[#6EE7B7] transition-colors flex items-center gap-2 group"
+             >
+               <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" /> MODIFIER LES DONNÉES
+             </button>
 
-            {/* Payment Card */}
-            <div className="glass-card p-10 rounded-[40px] border-neutral-200 dark:border-neutral-800 shadow-2xl relative overflow-hidden">
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-emerald/10 blur-[100px] rounded-full pointer-events-none" />
+             <div className="bg-[#0d1624] border border-slate-800 rounded-sm p-8 shadow-2xl space-y-8">
+               <div className="flex items-start justify-between border-b border-slate-800 pb-6">
+                 <div>
+                   <div className="flex items-center gap-2 mb-3">
+                     <div className="w-1.5 h-1.5 bg-[#6EE7B7] shadow-[0_0_10px_#6EE7B7]" />
+                     <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Simulation Garantie</span>
+                   </div>
+                   <h2 className="text-2xl font-medium tracking-tight text-white leading-tight">
+                     Passerelle de<br />Paiement Fictif
+                   </h2>
+                 </div>
+                 <div className="w-12 h-12 bg-slate-800/50 flex items-center justify-center">
+                   <CreditCard className="w-5 h-5 text-slate-400" />
+                 </div>
+               </div>
 
-              <div className="relative z-10 space-y-8">
-                {/* Header */}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="w-2 h-2 rounded-full bg-brand-emerald animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-[0.3em] text-brand-emerald">
-                        Simulation de Soutenance
-                      </span>
-                    </div>
-                    <h2 className="text-2xl font-black text-foreground tracking-tight leading-tight">
-                      Passerelle de<br />
-                      <span className="text-brand-emerald italic">Paiement Fictif</span>
-                    </h2>
-                  </div>
-                  <div className="w-12 h-12 rounded-2xl bg-brand-emerald/10 flex items-center justify-center">
-                    <CreditCard className="w-6 h-6 text-brand-emerald" />
-                  </div>
-                </div>
+               <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-6 space-y-4 shadow-inner">
+                 <div className="flex justify-between items-center text-xs">
+                   <span className="text-slate-500 font-bold uppercase tracking-widest">Plan AqarBot Pro</span>
+                   <span className="font-black text-[#6EE7B7]">499 MAD / mois</span>
+                 </div>
+                 <div className="flex justify-between items-center text-xs">
+                   <span className="text-slate-500 font-bold uppercase tracking-widest">Agence</span>
+                   <span className="font-bold text-white truncate max-w-[180px]">{agencyName}</span>
+                 </div>
+                 <div className="flex justify-between items-center text-xs">
+                   <span className="text-slate-500 font-bold uppercase tracking-widest">Titulaire</span>
+                   <span className="font-bold text-white">{fullName}</span>
+                 </div>
+                 <div className="border-t border-slate-800 pt-4 flex justify-between items-center mt-2">
+                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Total dû</span>
+                   <span className="text-xl font-black text-yellow-500">0 MAD</span>
+                 </div>
+               </div>
 
-                {/* Invoice summary */}
-                <div className="bg-black/20 dark:bg-white/5 rounded-2xl p-6 space-y-4 border border-white/5">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 font-medium">Plan AqarBot Pro</span>
-                    <span className="font-black text-foreground">499 MAD / mois</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 font-medium">Agence</span>
-                    <span className="font-bold text-foreground truncate max-w-[180px]">{agencyName}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 font-medium">Titulaire</span>
-                    <span className="font-bold text-foreground">{fullName}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-slate-500 font-medium">Email</span>
-                    <span className="font-bold text-foreground truncate max-w-[200px]">{email}</span>
-                  </div>
-                  <div className="border-t border-white/10 pt-4 flex justify-between items-center">
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-500">
-                      Total dû maintenant
-                    </span>
-                    <span className="text-xl font-black text-brand-emerald">0 MAD</span>
-                  </div>
-                </div>
+               <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-sm p-4">
+                 <ShieldCheck className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                 <p className="text-[10px] text-amber-500/80 font-bold uppercase tracking-[0.1em] leading-relaxed">
+                   Mode démo académique. Aucune transaction réelle ne sera effectuée lors de cette étape.
+                 </p>
+               </div>
 
-                {/* Mock payment notice */}
-                <div className="flex items-start gap-3 bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
-                  <ShieldCheck className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-300 font-bold leading-relaxed">
-                    Ceci est une simulation de paiement à des fins de démonstration académique.
-                    Aucune transaction réelle ne sera effectuée.
-                  </p>
-                </div>
-
-                {/* Confirm button */}
-                <button
-                  onClick={handlePaymentConfirm}
-                  className="w-full py-5 bg-brand-emerald text-black font-black rounded-2xl text-base hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand-emerald/20 flex items-center justify-center gap-3"
-                >
-                  <span>Confirmer le paiement</span>
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-
-                <p className="text-center text-[10px] font-bold text-slate-600 uppercase tracking-widest">
-                  Sécurisé par AqarBot Shield™ · Simulation uniquement
-                </p>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
+               <button
+                 onClick={handlePaymentConfirm}
+                 className="w-full bg-[#6EE7B7] text-[#0B1120] text-[11px] font-black tracking-[0.15em] uppercase py-5 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.15)]"
+               >
+                 VALIDER LE PAIEMENT FICTIF <ArrowRight className="w-4 h-4" />
+               </button>
+             </div>
+          </ScrollReveal>
+        </div>
       </div>
     );
   }
@@ -275,314 +256,293 @@ export default function RegisterPage() {
   // ── OTP verification screen ───────────────────────────────
   if (step === 'otp') {
     return (
-      <div className="min-h-screen w-full flex bg-transparent items-center justify-center p-8 relative z-10">
-        <ScrollReveal>
-          <div className="w-full max-w-md animate-reveal">
-            <button
-              onClick={() => { setStep('payment'); setOtpError(null); }}
-              className="inline-flex items-center gap-2 mb-8 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-brand-emerald transition-colors group"
-            >
-              <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
-              Retour au paiement
-            </button>
+      <div className="min-h-[100vh] pt-32 pb-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative text-slate-100 selection:bg-[#6EE7B7]/30 flex flex-col items-center justify-center overflow-x-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+        
+        <div className="relative z-10 w-full max-w-md">
+          <ScrollReveal>
+             <button
+               onClick={() => { setStep('payment'); setOtpError(null); }}
+               className="mb-8 text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 hover:text-[#6EE7B7] transition-colors flex items-center gap-2 group"
+             >
+               <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" /> REVENIR AU PAIEMENT
+             </button>
 
-            <div className="mb-8">
-              <h1 className="text-4xl font-black text-foreground tracking-tight mb-3">
-                Code de <span className="text-brand-emerald italic">Vérification</span>
-              </h1>
-              <p className="text-slate-500 font-medium">
-                Entrez le code à 6 chiffres envoyé à{' '}
-                <span className="text-foreground font-bold">{email}</span>.
-              </p>
-              <p className="mt-2 text-xs text-brand-emerald font-black">
-                💡 Code de démo : 123456
-              </p>
-            </div>
+             <div className="mb-8">
+               <h1 className="text-3xl font-medium tracking-tight text-white mb-4">Code de Vérification</h1>
+               <p className="text-slate-400 text-sm leading-relaxed">
+                 Un code à 6 chiffres a été envoyé à <span className="text-white font-bold">{email}</span>.
+               </p>
+               <p className="mt-4 text-[10px] text-yellow-500 font-black uppercase tracking-widest">
+                 Code démo requis : 123456
+               </p>
+             </div>
 
-            <form
-              onSubmit={handleOtpVerify}
-              className="glass-card p-10 rounded-[40px] border-neutral-200 dark:border-neutral-800 shadow-2xl relative overflow-hidden"
-            >
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-emerald/10 blur-[100px] rounded-full pointer-events-none" />
-              <div className="space-y-6 relative z-10">
-                {otpError && (
-                  <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-center">
-                    {otpError}
-                  </div>
-                )}
+             <form
+               onSubmit={handleOtpVerify}
+               className="bg-[#0d1624] border border-slate-800 rounded-sm p-8 shadow-2xl relative"
+             >
+               {otpError && (
+                 <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-sm text-[10px] font-bold uppercase tracking-[0.1em] text-center">
+                   {otpError}
+                 </div>
+               )}
 
-                <div className="space-y-2">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">
-                    Code de vérification à 6 chiffres
-                  </label>
-                  <div className="relative group/input">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within/input:text-brand-emerald transition-colors">
-                      <KeyRound className="w-5 h-5" />
-                    </div>
+               <div className="flex flex-col border-b border-slate-800 pb-2 relative group mb-8">
+                  <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-3 block">AUTH CODE</label>
+                  <div className="relative flex items-center text-slate-200">
+                    <KeyRound className="absolute left-0 w-4 h-4 text-slate-500 group-focus-within:text-[#6EE7B7] transition-colors" />
                     <input
                       type="text"
                       required
                       maxLength={6}
                       value={otp}
                       onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                      className="w-full bg-white/50 dark:bg-black/20 border border-neutral-200 dark:border-neutral-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-brand-emerald transition-all tracking-[0.5em] text-center"
+                      className="w-full bg-transparent pl-8 text-xl font-medium focus:outline-none placeholder-slate-700 transition-all tracking-[0.7em] text-center"
                       placeholder="••••••"
                     />
                   </div>
-                </div>
+               </div>
 
-                <button
-                  disabled={isSubmitting}
-                  type="submit"
-                  className="w-full py-5 bg-brand-emerald text-black font-black rounded-2xl text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand-emerald/20 flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Création du compte...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Vérifier et Créer mon Compte</span>
-                      <ArrowRight className="w-5 h-5" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </ScrollReveal>
+               <button
+                 disabled={isSubmitting}
+                 type="submit"
+                 className="w-full bg-[#6EE7B7] text-[#0B1120] text-[11px] font-black tracking-[0.15em] uppercase py-5 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.15)] disabled:opacity-50"
+               >
+                 {isSubmitting ? (
+                   <>
+                     <Loader2 className="w-4 h-4 animate-spin" /> CONFIGURATION...
+                   </>
+                 ) : (
+                   <>
+                     COMPLÉTER LA CRÉATION <ArrowRight className="w-4 h-4" />
+                   </>
+                 )}
+               </button>
+             </form>
+          </ScrollReveal>
+        </div>
       </div>
     );
   }
 
   // ── Main registration form ─────────────────────────────────
   return (
-    <div className="min-h-screen w-full flex bg-transparent relative z-10">
-      {/* Left Column: Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 md:p-16 text-center lg:text-left">
-        <ScrollReveal>
-          <div className="w-full max-w-lg animate-reveal">
-            <div className="mb-10">
-              <a
-                href="/"
-                className="inline-flex items-center gap-2 mb-8 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-brand-emerald transition-colors group"
-              >
-                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover:-translate-x-1" />
-                Retour à l&apos;accueil
-              </a>
-              <h1 className="text-4xl md:text-5xl font-black text-foreground mb-4 tracking-tight leading-none">
-                Prêt à transformer <br />
-                <span className="text-brand-emerald">votre agence ?</span>
-              </h1>
-              <p className="text-slate-500 font-medium leading-relaxed">
-                Créez votre compte en 30 secondes et activez votre AqarBot AI.
-              </p>
-            </div>
+    <div className="min-h-[100vh] pt-32 pb-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative text-slate-100 selection:bg-[#6EE7B7]/30 flex flex-col overflow-x-hidden">
+      
+      {/* Background Ambience */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+      <div className="absolute top-0 right-1/4 w-[800px] h-[800px] bg-gradient-to-br from-[#6EE7B7]/10 to-transparent blur-[120px] rounded-full pointer-events-none opacity-60" />
 
-            <form
-              action="javascript:void(0);"
-              onSubmit={handleFormSubmit}
-              className="glass-card p-8 md:p-10 rounded-[40px] border-neutral-200 dark:border-neutral-800 shadow-2xl relative overflow-hidden group"
-            >
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-brand-emerald/10 blur-[100px] rounded-full pointer-events-none" />
+      <div className="w-full max-w-[1200px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-start flex-1 relative z-10">
+        
+        {/* Left Column: Form */}
+        <div className="flex flex-col text-left">
+          <ScrollReveal>
+             <div className="mb-10">
+               <div className="flex items-end gap-6 mb-8 group">
+                 <span className="text-yellow-500 font-black text-5xl tracking-tighter opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out origin-bottom">01</span>
+                 <div className="flex flex-col pb-1">
+                   <div className="h-px w-12 bg-slate-800 mb-2" />
+                   <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">Onboarding Agence</span>
+                 </div>
+               </div>
+               <h1 className="text-4xl md:text-[3.5rem] font-medium leading-[1.1] tracking-tight mb-6">
+                 <span className="text-white">Votre agence.</span><br />
+                 <span className="text-[#6EE7B7]">Connectée.</span>
+               </h1>
+               <p className="text-sm md:text-base text-slate-400 font-medium leading-relaxed max-w-md">
+                 Configurez votre base de données et activez la qualification IA 24/7 sur votre marché immobilier.
+               </p>
+             </div>
 
-              <div className="space-y-5 relative z-10">
-                {error && (
-                  <div className="bg-rose-500/10 border border-rose-500/20 text-rose-500 p-4 rounded-xl text-xs font-bold uppercase tracking-widest text-center">
-                    {error}
-                  </div>
-                )}
+             <form
+               action="javascript:void(0);"
+               onSubmit={handleFormSubmit}
+               className="w-full bg-[#0d1624] border border-slate-800 rounded-sm p-6 lg:p-8 shadow-2xl flex flex-col"
+             >
+               {error && (
+                 <div className="mb-6 bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-sm text-[10px] font-bold uppercase tracking-[0.1em]">
+                   {error}
+                 </div>
+               )}
 
-                {/* Full Name */}
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">
-                    Nom complet
-                  </label>
-                  <div className="relative group/input">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within/input:text-brand-emerald transition-colors">
-                      <User className="w-5 h-5" />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="w-full bg-white/50 dark:bg-black/20 border border-neutral-200 dark:border-neutral-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-brand-emerald transition-all"
-                      placeholder="Ahmed Tazi"
-                    />
-                  </div>
-                </div>
-
-                {/* Agency Name */}
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">
-                    Nom de l&apos;Agence
-                  </label>
-                  <div className="relative group/input">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within/input:text-brand-emerald transition-colors">
-                      <Building2 className="w-5 h-5" />
-                    </div>
-                    <input
-                      type="text"
-                      required
-                      value={agencyName}
-                      onChange={(e) => setAgencyName(e.target.value)}
-                      className="w-full bg-white/50 dark:bg-black/20 border border-neutral-200 dark:border-neutral-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-brand-emerald transition-all"
-                      placeholder="Immo Excellence Maroc"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Phone */}
-                  <div className="space-y-2 text-left">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">
-                      Téléphone
-                    </label>
-                    <div className="relative group/input">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within/input:text-brand-emerald transition-colors">
-                        <Phone className="w-5 h-5" />
-                      </div>
-                      <input
-                        type="tel"
-                        required
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="w-full bg-white/50 dark:bg-black/20 border border-neutral-200 dark:border-neutral-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-brand-emerald transition-all"
-                        placeholder="+212 600 000 000"
-                      />
-                    </div>
-                  </div>
-
-                  {/* City */}
-                  <div className="space-y-2 text-left">
-                    <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">
-                      Ville
-                    </label>
-                    <div className="relative group/input">
-                      <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within/input:text-brand-emerald transition-colors">
-                        <MapPin className="w-5 h-5" />
-                      </div>
+               <div className="flex flex-col gap-6 mb-8">
+                 
+                 {/* Full Name */}
+                 <div className="flex flex-col border-b border-slate-800 pb-2 relative group">
+                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-3 block">Nom du Titulaire</label>
+                    <div className="relative flex items-center text-slate-200">
+                      <User className="absolute left-0 w-4 h-4 text-slate-500 group-focus-within:text-[#6EE7B7] transition-colors" />
                       <input
                         type="text"
                         required
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        className="w-full bg-white/50 dark:bg-black/20 border border-neutral-200 dark:border-neutral-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-brand-emerald transition-all"
-                        placeholder="Casablanca"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        className="w-full bg-transparent pl-8 text-sm font-medium focus:outline-none placeholder-slate-700 transition-all"
+                        placeholder="Ahmed Tazi"
                       />
                     </div>
-                  </div>
-                </div>
+                 </div>
 
-                {/* Email */}
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">
-                    Email professionnel
-                  </label>
-                  <div className="relative group/input">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within/input:text-brand-emerald transition-colors">
-                      <Mail className="w-5 h-5" />
+                 {/* Agency Name */}
+                 <div className="flex flex-col border-b border-slate-800 pb-2 relative group">
+                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-3 block">Nom de l'Agence</label>
+                    <div className="relative flex items-center text-slate-200">
+                      <Building2 className="absolute left-0 w-4 h-4 text-slate-500 group-focus-within:text-[#6EE7B7] transition-colors" />
+                      <input
+                        type="text"
+                        required
+                        value={agencyName}
+                        onChange={(e) => setAgencyName(e.target.value)}
+                        className="w-full bg-transparent pl-8 text-sm font-medium focus:outline-none placeholder-slate-700 transition-all"
+                        placeholder="Immo Excellence"
+                      />
                     </div>
-                    <input
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full bg-white/50 dark:bg-black/20 border border-neutral-200 dark:border-neutral-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-brand-emerald transition-all"
-                      placeholder="direction@votreagence.ma"
-                    />
-                  </div>
-                </div>
+                 </div>
 
-                {/* Password */}
-                <div className="space-y-2 text-left">
-                  <label className="text-xs font-black uppercase tracking-widest text-slate-500 ml-1">
-                    Mot de passe
-                  </label>
-                  <div className="relative group/input">
-                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within/input:text-brand-emerald transition-colors">
-                      <Lock className="w-5 h-5" />
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   {/* Phone */}
+                   <div className="flex flex-col border-b border-slate-800 pb-2 relative group">
+                      <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-3 block">Téléphone</label>
+                      <div className="relative flex items-center text-slate-200">
+                        <Phone className="absolute left-0 w-4 h-4 text-slate-500 group-focus-within:text-[#6EE7B7] transition-colors" />
+                        <input
+                          type="tel"
+                          required
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className="w-full bg-transparent pl-8 text-sm font-medium focus:outline-none placeholder-slate-700 transition-all"
+                          placeholder="+212 600 000 000"
+                        />
+                      </div>
+                   </div>
+
+                   {/* City */}
+                   <div className="flex flex-col border-b border-slate-800 pb-2 relative group">
+                      <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-3 block">Ville</label>
+                      <div className="relative flex items-center text-slate-200">
+                        <MapPin className="absolute left-0 w-4 h-4 text-slate-500 group-focus-within:text-[#6EE7B7] transition-colors" />
+                        <input
+                          type="text"
+                          required
+                          value={city}
+                          onChange={(e) => setCity(e.target.value)}
+                          className="w-full bg-transparent pl-8 text-sm font-medium focus:outline-none placeholder-slate-700 transition-all"
+                          placeholder="Casablanca"
+                        />
+                      </div>
+                   </div>
+                 </div>
+
+                 {/* Email */}
+                 <div className="flex flex-col border-b border-slate-800 pb-2 relative group">
+                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-3 block">Email Professionnel</label>
+                    <div className="relative flex items-center text-slate-200">
+                      <Mail className="absolute left-0 w-4 h-4 text-slate-500 group-focus-within:text-[#6EE7B7] transition-colors" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full bg-transparent pl-8 text-sm font-medium focus:outline-none placeholder-slate-700 transition-all"
+                        placeholder="direction@agence.ma"
+                      />
                     </div>
-                    <input
-                      type="password"
-                      required
-                      minLength={8}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="w-full bg-white/50 dark:bg-black/20 border border-neutral-200 dark:border-neutral-800 rounded-2xl py-4 pl-12 pr-4 text-sm font-bold focus:outline-none focus:border-brand-emerald transition-all"
-                      placeholder="••••••••"
-                    />
-                  </div>
-                </div>
+                 </div>
 
-                <button
-                  type="submit"
-                  className="w-full py-5 bg-brand-emerald text-black font-black rounded-2xl text-lg hover:scale-[1.02] active:scale-95 transition-all shadow-xl shadow-brand-emerald/20 flex items-center justify-center gap-3"
-                >
-                  <span>Continuer vers le paiement</span>
-                  <ArrowRight className="w-5 h-5" />
-                </button>
-              </div>
-            </form>
+                 {/* Password */}
+                 <div className="flex flex-col border-b border-slate-800 pb-2 relative group">
+                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-3 block">Mot de passe</label>
+                    <div className="relative flex items-center text-slate-200">
+                      <Lock className="absolute left-0 w-4 h-4 text-slate-500 group-focus-within:text-[#6EE7B7] transition-colors" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={8}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full bg-transparent pl-8 pr-10 text-sm font-medium focus:outline-none placeholder-slate-700 transition-all"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-0 pr-2 flex items-center h-full text-slate-500 hover:text-[#6EE7B7] transition-colors focus:outline-none"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                 </div>
+               </div>
 
-            <p className="text-center mt-8 text-sm font-medium text-slate-500">
-              Déjà un compte ?{' '}
-              <a
-                href="/auth/login"
-                className="text-brand-emerald font-black hover:underline underline-offset-4"
-              >
-                Se connecter
-              </a>
-            </p>
-          </div>
-        </ScrollReveal>
-      </div>
+               <button
+                 type="submit"
+                 className="w-full bg-[#6EE7B7] text-[#0B1120] text-[11px] font-black tracking-[0.15em] uppercase py-5 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.15)]"
+               >
+                 VOIR LE CONTRAT & PAIEMENT <ArrowRight className="w-4 h-4" />
+               </button>
 
-      {/* Right Column: Decorative */}
-      <div className="hidden lg:flex w-1/2 relative overflow-hidden bg-neutral-900 border-l border-white/5 items-center justify-center p-20">
-        <div className="absolute inset-0 z-0">
-          <div className="absolute top-1/3 right-1/4 w-[600px] h-[600px] bg-brand-emerald/10 blur-[180px] rounded-full animate-drift" />
+               <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-6">
+                 <span className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">Déjà certifié ?</span>
+                 <a href="/auth/login" className="text-[10px] font-black text-yellow-500 tracking-[0.1em] uppercase hover:text-yellow-400 flex items-center gap-1 transition-colors">
+                   Accès Session <ArrowRight className="w-3 h-3" />
+                 </a>
+               </div>
+             </form>
+          </ScrollReveal>
         </div>
 
-        <ScrollReveal stagger={0.2}>
-          <div className="relative z-10 max-w-md animate-reveal">
-            <h2 className="text-4xl font-black text-white mb-12 leading-tight">
-              Ce qui rend AqarBot unique :
-            </h2>
-
-            <div className="space-y-8">
-              {[
-                {
-                  title: 'Support Darija Natif',
-                  desc: 'La seule IA qui comprend réellement le dialecte marocain.',
-                  icon: <Star className="w-6 h-6 text-brand-emerald" />,
-                },
-                {
-                  title: 'Qualification 24/7',
-                  desc: 'Vos leads sont triés et qualifiés même quand vous dormez.',
-                  icon: <CheckCircle2 className="w-6 h-6 text-brand-emerald" />,
-                },
-                {
-                  title: 'Intégration Top-Speed',
-                  desc: 'Connectez votre base de données en moins de 5 minutes.',
-                  icon: <Zap className="w-6 h-6 text-brand-emerald" />,
-                },
-              ].map((item, i) => (
-                <div key={i} className="flex gap-6 group">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-brand-emerald/20 transition-colors">
-                    {item.icon}
+        {/* Right Column: Information Panel */}
+        <div className="hidden lg:flex flex-col w-full sticky top-32">
+          <ScrollReveal stagger={0.2}>
+            <div className="p-8 border border-slate-800 rounded-sm bg-[#0d1624] mb-8">
+              <p className="text-[10px] font-black tracking-[0.2em] uppercase text-[#6EE7B7] mb-8 flex items-center gap-3">
+                <span className="w-2 h-2 rounded-full bg-[#6EE7B7] shadow-[0_0_10px_#6EE7B7]" /> INFRASTRUCTURE AQARBOT
+              </p>
+              
+              <div className="space-y-6">
+                {[
+                  {
+                    title: 'Intelligence Darija native',
+                    desc: "Notre modèle filtre et score l'intention derrière chaque vocal WhatsApp ou message Darija.",
+                    icon: <Check className="w-4 h-4 text-yellow-500" />,
+                  },
+                  {
+                    title: 'Isolement absolu des leads',
+                    desc: 'Vos données de marché vivent dans un espace crypté indépendant.',
+                    icon: <Check className="w-4 h-4 text-yellow-500" />,
+                  },
+                  {
+                    title: 'Hub en direct',
+                    desc: "Interceptez les clients chauds pendant que l'IA gère le volume.",
+                    icon: <Check className="w-4 h-4 text-yellow-500" />,
+                  },
+                ].map((item, i) => (
+                  <div key={i} className="flex gap-4">
+                    <div className="mt-0.5 w-6 h-6 rounded-sm bg-[#0B1120] border border-slate-800 flex items-center justify-center shrink-0 text-[#6EE7B7]">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold text-white mb-1 tracking-wide">{item.title}</h4>
+                      <p className="text-slate-400 text-xs font-medium leading-relaxed">{item.desc}</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <h4 className="text-lg font-black text-white mb-1">{item.title}</h4>
-                    <p className="text-slate-500 font-medium text-sm leading-relaxed">{item.desc}</p>
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
-        </ScrollReveal>
+
+            <div className="w-full border border-slate-800 rounded-sm bg-[#0d1624] p-4 flex justify-between items-center text-xs font-bold uppercase tracking-widest">
+              <div className="flex items-center gap-3 text-slate-400 text-[9px]">
+                <ShieldCheck className="w-4 h-4 text-[#6EE7B7]" /> GARANTIE CONFIDENTIALITÉ
+              </div>
+              <div className="text-slate-600 text-[9px]">
+                SÉCURISÉ
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
+
       </div>
     </div>
   );

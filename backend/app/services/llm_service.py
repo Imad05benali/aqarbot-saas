@@ -29,6 +29,133 @@ class LLMService:
                     continue
                 raise e
 
+    # ───────────────────────────────────────────────────────────
+    #  QUALIFICATION STATE: Step-by-step question prompts
+    # ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    def generate_qualification_reply(
+        state: str,
+        client_message: str,
+        agency_name: str = "AqarBot",
+        collected: dict = None
+    ) -> str:
+        """
+        Generates a context-aware Darija response for each step of the
+        structured real-estate qualification protocol.
+
+        States: AWAITING_NAME -> AWAITING_TYPE -> AWAITING_CITY
+                -> AWAITING_SECTOR -> AWAITING_BUDGET -> QUALIFIED
+        """
+        collected = collected or {}
+
+        state_prompts = {
+            "GREETING": (
+                f"You are AqarBot AI, the smart real estate assistant for the agency '{agency_name}'.\n"
+                "A new client just contacted you for the first time on WhatsApp.\n"
+                "Greet them warmly in Moroccan Darija (Latin characters), introduce yourself as the AI assistant "
+                f"for '{agency_name}', and ask for their full name.\n"
+                "Use emojis. Keep it short and professional. Max 2-3 lines.\n"
+                "Do NOT ask about properties yet — only ask for the name."
+            ),
+            "AWAITING_NAME": (
+                f"You are AqarBot AI for the agency '{agency_name}'.\n"
+                f"The client just told you their name. Their message: \"{client_message}\"\n"
+                "Thank them warmly in Moroccan Darija (Latin characters), use their name, and then ask:\n"
+                "\"Wach kat-9elleb 3la Appartement wla Villa?\"\n"
+                "You MUST ask the Type question. Use emojis. Short and warm. Max 2-3 lines."
+            ),
+            "AWAITING_TYPE": (
+                f"You are AqarBot AI for '{agency_name}'.\n"
+                f"The client '{collected.get('name', '')}' just told you the property type.\n"
+                f"Their message: \"{client_message}\"\n"
+                "Acknowledge their choice warmly in Darija and ask:\n"
+                "\"F ina medina kat-9elleb? (Casa, Rabat, Marrakech, Tanger...)\"\n"
+                "You MUST ask for the City. Use emojis. Max 2-3 lines."
+            ),
+            "AWAITING_CITY": (
+                f"You are AqarBot AI for '{agency_name}'.\n"
+                f"The client '{collected.get('name', '')}' wants a {collected.get('Type', 'property')} "
+                f"and just told you the city.\n"
+                f"Their message: \"{client_message}\"\n"
+                "Acknowledge the city warmly in Darija and ask:\n"
+                "\"F ina 7ay / secteur / lblasa exactement kat-9elleb? (Maarif, Agdal, Guéliz...)\"\n"
+                "You MUST ask for the Sector/Neighborhood. Use emojis. Max 2-3 lines."
+            ),
+            "AWAITING_SECTOR": (
+                f"You are AqarBot AI for '{agency_name}'.\n"
+                f"The client '{collected.get('name', '')}' wants a {collected.get('Type', 'property')} "
+                f"in {collected.get('City', 'the city')}, sector {client_message}.\n"
+                f"Their message: \"{client_message}\"\n"
+                "Acknowledge their sector choice warmly in Darija and ask:\n"
+                "\"Chhal howa l-budget dyalk? (par exemple: 500,000 DH, 1 million DH...)\"\n"
+                "You MUST ask for the Budget. Use emojis. Max 2-3 lines."
+            ),
+            "AWAITING_BUDGET": (
+                f"You are AqarBot AI for '{agency_name}'.\n"
+                f"The client gave you their budget. Message: \"{client_message}\"\n"
+                "Do NOT generate any confirmation yourself.\n"
+                "Just say a very short warm acknowledgment in Darija like: \"Wakha, mzyan bzaf! ☺️\"\n"
+                "Keep it to ONE short line. The backend will append the structured confirmation."
+            ),
+        }
+
+        prompt = state_prompts.get(state)
+        if not prompt:
+            prompt = (
+                f"You are AqarBot AI for '{agency_name}'. Respond helpfully in Darija to: \"{client_message}\"\n"
+                "Use emojis. Max 2-3 lines."
+            )
+
+        try:
+            response = LLMService._call_gemini_with_retry(
+                model='gemini-2.0-flash-lite',
+                contents=prompt
+            )
+            return response.text.strip()
+        except Exception:
+            print(f"\n🚀 AI SURVIVAL MODE: {traceback.format_exc()}")
+            # Static fallbacks per state
+            fallbacks = {
+                "GREETING": f"Mar7ba bik m3a {agency_name}! 🏠 3afak, chnou s-smiya l-karima dyalk?",
+                "AWAITING_NAME": f"Metcharfin a si {client_message}! 🙌 Wach kat-9elleb 3la Appartement wla Villa?",
+                "AWAITING_TYPE": f"Wakha mzyan! 👍 F ina medina kat-9elleb? (Casa, Rabat, Marrakech...)",
+                "AWAITING_CITY": f"Mzyan {client_message}! 🏙️ F ina 7ay / secteur / lblasa exactement?",
+                "AWAITING_SECTOR": f"Top, {client_message}! 📍 Chhal howa l-budget dyalk? (500K, 1M DH...)",
+                "AWAITING_BUDGET": "Wakha, mzyan bzaf! ☺️",
+            }
+            return fallbacks.get(state, f"Sma7 lia, kayn mouchkil tekniki. Ghadi n-3awedou! 🏠")
+
+    # ───────────────────────────────────────────────────────────
+    #  FINAL CONFIRMATION: Structured lead qualification output
+    # ───────────────────────────────────────────────────────────
+
+    @staticmethod
+    def generate_confirmation_message(
+        agency_name: str,
+        prop_type: str,
+        city: str,
+        sector: str,
+        budget: str
+    ) -> str:
+        """
+        Produces the exact structured confirmation layout required by the
+        qualification protocol. This is deterministic — no LLM involved.
+        """
+        sector_display = sector if sector and sector != "Non spécifié" else "Non spécifié"
+        budget_display = budget if budget else "Non spécifié"
+
+        return (
+            f"Parfait ! Votre demande a été enregistrée avec succès pour l'agence {agency_name}.\n"
+            f"Détails : {prop_type} à {city} (Secteur : {sector_display}) | Budget : {budget_display}.\n"
+            f"Un de nos agents commerciaux va vous contacter dans les plus brefs délais. "
+            f"Merci pour votre confiance ! 🙏🏠"
+        )
+
+    # ───────────────────────────────────────────────────────────
+    #  LEGACY: Property-based reply (still used for search results)
+    # ───────────────────────────────────────────────────────────
+
     @staticmethod
     def _static_property_formatter(properties_data: list, needs_lead: bool, is_fallback: bool = False) -> str:
         """
@@ -157,6 +284,35 @@ class LLMService:
             "bureau": "Bureau",
             "maison": "Maison", "dar": "Maison"
         }
+        # Moroccan sector/neighborhood keyword dictionary for local extraction
+        sectors_map = {
+            # Casablanca
+            "hamria": "Hamria", "anfa": "Anfa", "maarif": "Maarif", "ma3arif": "Maarif",
+            "ain diab": "Ain Diab", "ain sebaa": "Ain Sebaa", "bernoussi": "Bernoussi",
+            "sidi maarouf": "Sidi Maarouf", "bourgogne": "Bourgogne", "gauthier": "Gauthier",
+            "hay hassani": "Hay Hassani", "sbata": "Sbata", "derb sultan": "Derb Sultan",
+            "oulfa": "Oulfa", "hay mohammadi": "Hay Mohammadi", "2mars": "2 Mars",
+            "palmier": "Palmier", "racine": "Racine", "triangle d'or": "Triangle d'Or",
+            "belvédère": "Belvédère", "belvedere": "Belvédère", "california": "California",
+            # Rabat
+            "agdal": "Agdal", "hay riad": "Hay Riad", "ocean": "Océan",
+            "souissi": "Souissi", "hassan": "Hassan", "yacoub el mansour": "Yacoub El Mansour",
+            "les orangers": "Les Orangers", "temara": "Témara",
+            # Marrakech
+            "gueliz": "Guéliz", "hivernage": "Hivernage", "targa": "Targa",
+            "palmeraie": "Palmeraie", "menara": "Ménara", "sidi ghanem": "Sidi Ghanem",
+            "amelkis": "Amelkis", "route de fes": "Route de Fès",
+            # Tanger
+            "malabata": "Malabata", "iberia": "Iberia", "boukhalef": "Boukhalef",
+            "marchane": "Marchane", "moujahidine": "Moujahidine",
+            # Fès
+            "ville nouvelle": "Ville Nouvelle", "saiss": "Saiss", "narjiss": "Narjiss",
+            # Meknès
+            "hamria meknes": "Hamria", "marjane": "Marjane",
+            # Agadir
+            "talborjt": "Talborjt", "hay mohammadi agadir": "Hay Mohammadi",
+            "founty": "Founty", "sonaba": "Sonaba",
+        }
         
         for c in cities:
             if c in message_text_lower:
@@ -165,6 +321,11 @@ class LLMService:
         for k, v in types_map.items():
             if k in message_text_lower:
                 local_intent["Type"] = v
+                break
+        # Sector/Neighborhood extraction (scan for known Moroccan sectors)
+        for k, v in sectors_map.items():
+            if k in message_text_lower:
+                local_intent["Nighberd"] = v
                 break
 
         # 2. Try LLM Enrichment
@@ -190,3 +351,32 @@ class LLMService:
         except Exception as e:
             print(f"⚠️ [Intent Parsing Fallback]: Using keywords (API Error: {str(e)})")
             return local_intent
+
+    @staticmethod
+    def extract_budget(message_text: str) -> str:
+        """
+        Extracts a budget figure from free-form Darija text.
+        Handles formats like: '500000', '1 million', '1M', '800K', '500,000 DH'.
+        """
+        import re
+        text = message_text.lower().replace(",", "").replace(".", "").replace(" ", "")
+
+        # Check for 'million' shorthand
+        m_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:million|m|mly)', message_text.lower().replace(",", ""))
+        if m_match:
+            val = float(m_match.group(1))
+            return f"{int(val * 1_000_000)} DH"
+
+        # Check for 'K' shorthand
+        k_match = re.search(r'(\d+)\s*k', message_text.lower().replace(",", ""))
+        if k_match:
+            val = int(k_match.group(1))
+            return f"{val * 1000} DH"
+
+        # Raw number extraction
+        num_match = re.search(r'(\d{4,})', text)
+        if num_match:
+            return f"{int(num_match.group(1))} DH"
+
+        # If nothing numeric found, just return the raw text trimmed
+        return message_text.strip()

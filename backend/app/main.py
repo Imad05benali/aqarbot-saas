@@ -334,7 +334,263 @@ def verify_webhook(request: Request):
     return Response(content="Verification failed", status_code=403)
 
 
-# 2. Reception w Parsing d l-messages b Darija via Gemini
+def _resolve_agency_id(phone_number: str = None) -> str:
+    """
+    MULTI-TENANT AGENCY RESOLUTION (Centralized Helper):
+    1. If the phone already has a lead record, use that lead's agency_id (preserves tenant binding).
+    2. Otherwise, fall back to the most recently registered user.
+    """
+    # Step 1: Check if this phone already belongs to an existing lead
+    if phone_number:
+        try:
+            existing = supabase.table("leads").select("agency_id").eq("phone_number", phone_number).limit(1).execute()
+            if existing.data and existing.data[0].get("agency_id"):
+                print(f"🔗 [Agency Resolve]: Reusing existing agency_id for phone {phone_number}")
+                return existing.data[0]["agency_id"]
+        except Exception as e:
+            print(f"⚠️ [Agency Resolve Lookup Error]: {str(e)}")
+
+    # Step 2: Fallback — pick the most recently registered agency user
+    try:
+        agency_res = supabase.table("users").select("id").order("created_at", desc=True).limit(1).execute()
+        if agency_res.data:
+            return agency_res.data[0]["id"]
+    except Exception as e:
+        print(f"⚠️ [Agency Resolve Fallback Error]: {str(e)}")
+    
+    return None
+
+
+def _resolve_agency_name(agency_id: str) -> str:
+    """
+    DYNAMIC AGENCY IDENTITY: Fetches the agency_name from the public.users table.
+    Returns 'AqarBot' as a fallback.
+    """
+    if not agency_id:
+        return "AqarBot"
+    try:
+        res = supabase.table("users").select("agency_name").eq("id", agency_id).limit(1).execute()
+        if res.data and res.data[0].get("agency_name"):
+            name = res.data[0]["agency_name"]
+            print(f"🏢 [Agency Name Resolved]: {name}")
+            return name
+    except Exception as e:
+        print(f"⚠️ [Agency Name Fallback]: {str(e)}")
+    return "AqarBot"
+
+
+# ───────────────────────────────────────────────────────────
+#  CHATBOT SIMULATION ENDPOINT (Frontend + WhatsApp Demo)
+#  Implements the full structured qualification protocol:
+#    NEW → AWAITING_NAME → AWAITING_TYPE → AWAITING_CITY
+#        → AWAITING_SECTOR → AWAITING_BUDGET → QUALIFIED
+# ───────────────────────────────────────────────────────────
+
+def _send_and_record(agency_id: str, phone: str, reply: str):
+    """Helper: records an AI message in the conversations table."""
+    supabase.table("conversations").insert({
+        "agency_id": agency_id,
+        "phone": phone,
+        "message": reply,
+        "sender": "ai"
+    }).execute()
+
+@app.post("/api/chatbot/simulate")
+async def chatbot_simulate(request: Request):
+    """
+    FRONTEND CHATBOT SUBMISSION PIPELINE with full qualification state machine.
+    Called by the embedded chatbot / demo widget in the frontend.
+    Accepts agency_id via JSON body or X-Agency-Id header.
+    """
+    try:
+        data = await request.json()
+        phone = data.get("phone", "").strip()
+        message = data.get("message", "").strip()
+        sender = data.get("sender", "client")
+        client_name = data.get("name", "Prospect Anonyme")
+        
+        # Resolve agency from body, header, or fallback
+        agency_id = data.get("agency_id") or request.headers.get("X-Agency-Id")
+        if not agency_id:
+            agency_id = _resolve_agency_id(phone)
+
+        if not agency_id:
+            print("❌ [Chatbot Simulate]: No agency_id could be resolved.")
+            return {"status": "error", "message": "Authentication missing for lead dispatch."}
+
+        if not phone or not message:
+            return {"status": "error", "message": "Missing phone or message."}
+
+        # Resolve agency name for AI prompt context
+        agency_name = _resolve_agency_name(agency_id)
+        print(f"🤖 [Chatbot Simulate]: agency={agency_id} ({agency_name}) phone={phone} sender={sender}")
+
+        # 1. Record the incoming message
+        supabase.table("conversations").insert({
+            "agency_id": agency_id,
+            "phone": phone,
+            "message": message,
+            "sender": sender
+        }).execute()
+
+        # If the sender is the agency (manual takeover reply), skip AI
+        if sender != "client":
+            return {"status": "success", "agency_id": agency_id, "ai_reply": None}
+
+        # 2. Ensure a lead record exists
+        existing_lead = supabase.table("leads").select("*").eq("phone_number", phone).eq("agency_id", agency_id).limit(1).execute()
+        if not existing_lead.data:
+            supabase.table("leads").insert({
+                "phone_number": phone,
+                "name": client_name,
+                "agency_id": agency_id,
+                "city": "Inconnu",
+                "status": "NEW"
+            }).execute()
+            print(f"✅ [Chatbot Simulate]: New lead created for {phone}")
+
+        # 3. Load current session state
+        session = user_sessions.get(phone, {"state": "GREETING"})
+        current_state = session.get("state", "GREETING")
+        print(f"🔄 [State Machine]: phone={phone} state={current_state}")
+
+        ai_reply = None
+
+        # ─── STATE MACHINE ───────────────────────────────────
+        if current_state == "GREETING":
+            # First contact: greet + ask for name
+            ai_reply = LLMService.generate_qualification_reply(
+                state="GREETING", client_message=message, agency_name=agency_name
+            )
+            user_sessions[phone] = {"state": "AWAITING_NAME"}
+
+        elif current_state == "AWAITING_NAME":
+            # Extract name, confirm, ask for Type
+            extracted_name = LLMService.extract_client_name(message)
+            if not extracted_name or extracted_name.lower() == "unknown":
+                extracted_name = message.strip().split()[0].capitalize() if message.strip() else "Client"
+            
+            supabase.table("leads").update({"name": extracted_name}).eq("phone_number", phone).eq("agency_id", agency_id).execute()
+            
+            ai_reply = LLMService.generate_qualification_reply(
+                state="AWAITING_NAME", client_message=message,
+                agency_name=agency_name, collected={"name": extracted_name}
+            )
+            user_sessions[phone] = {"state": "AWAITING_TYPE", "name": extracted_name}
+
+        elif current_state == "AWAITING_TYPE":
+            # Extract type (Appartement/Villa/etc.)
+            intent = LLMService.parse_property_intent(message)
+            extracted_type = intent.get("Type")
+            if not extracted_type:
+                # Common Darija quick-match
+                msg_lower = message.lower()
+                if any(kw in msg_lower for kw in ["appart", "ch9a", "appartement"]):
+                    extracted_type = "Appartement"
+                elif "villa" in msg_lower:
+                    extracted_type = "Villa"
+                elif "riad" in msg_lower:
+                    extracted_type = "Riad"
+                elif any(kw in msg_lower for kw in ["dar", "maison"]):
+                    extracted_type = "Maison"
+                elif "terrain" in msg_lower:
+                    extracted_type = "Terrain"
+                else:
+                    extracted_type = message.strip().capitalize()
+
+            ai_reply = LLMService.generate_qualification_reply(
+                state="AWAITING_TYPE", client_message=message,
+                agency_name=agency_name,
+                collected={"name": session.get("name"), "Type": extracted_type}
+            )
+            user_sessions[phone] = {**session, "state": "AWAITING_CITY", "Type": extracted_type}
+
+        elif current_state == "AWAITING_CITY":
+            # Extract city
+            intent = LLMService.parse_property_intent(message)
+            extracted_city = intent.get("City") or message.strip().capitalize()
+
+            ai_reply = LLMService.generate_qualification_reply(
+                state="AWAITING_CITY", client_message=message,
+                agency_name=agency_name,
+                collected={"name": session.get("name"), "Type": session.get("Type"), "City": extracted_city}
+            )
+            user_sessions[phone] = {**session, "state": "AWAITING_SECTOR", "City": extracted_city}
+
+        elif current_state == "AWAITING_SECTOR":
+            # Extract sector/neighborhood
+            intent = LLMService.parse_property_intent(message)
+            extracted_sector = intent.get("Nighberd") or message.strip().capitalize()
+
+            ai_reply = LLMService.generate_qualification_reply(
+                state="AWAITING_SECTOR", client_message=message,
+                agency_name=agency_name,
+                collected={**session, "Nighberd": extracted_sector}
+            )
+            user_sessions[phone] = {**session, "state": "AWAITING_BUDGET", "Nighberd": extracted_sector}
+
+        elif current_state == "AWAITING_BUDGET":
+            # Extract budget and finalize qualification
+            extracted_budget = LLMService.extract_budget(message)
+
+            e_type = session.get("Type", "Bien immobilier")
+            e_city = session.get("City", "Maroc")
+            e_sector = session.get("Nighberd", "Non spécifié")
+            e_name = session.get("name", "Client")
+
+            # Generate short AI ack + structured confirmation
+            ai_ack = LLMService.generate_qualification_reply(
+                state="AWAITING_BUDGET", client_message=message,
+                agency_name=agency_name, collected=session
+            )
+            confirmation = LLMService.generate_confirmation_message(
+                agency_name=agency_name,
+                prop_type=e_type,
+                city=e_city,
+                sector=e_sector,
+                budget=extracted_budget
+            )
+            ai_reply = f"{ai_ack}\n\n{confirmation}"
+
+            # UPDATE lead record with ALL qualification fields
+            lead_update = {
+                "city": e_city,
+                "sector": e_sector,
+                "Type": e_type,
+                "budget": extracted_budget,
+                "status": "QUALIFIED"
+            }
+            lead_update = {k: v for k, v in lead_update.items() if v is not None}
+            supabase.table("leads").update(lead_update).eq("phone_number", phone).eq("agency_id", agency_id).execute()
+            print(f"📝 [Lead Qualified]: {e_name} | {e_type} | {e_city} | {e_sector} | {extracted_budget} | Agency={agency_name}")
+
+            # Reset session for potential new search
+            user_sessions[phone] = {"state": "GREETING"}
+
+        else:
+            # Catch-all: reset to greeting
+            ai_reply = LLMService.generate_qualification_reply(
+                state="GREETING", client_message=message, agency_name=agency_name
+            )
+            user_sessions[phone] = {"state": "AWAITING_NAME"}
+
+        # Record AI reply
+        if ai_reply:
+            _send_and_record(agency_id, phone, ai_reply)
+
+        return {"status": "success", "agency_id": agency_id, "ai_reply": ai_reply}
+
+    except Exception as e:
+        print(f"❌ [Chatbot Simulate Error]: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {"status": "error", "message": str(e)}
+
+# ───────────────────────────────────────────────────────────
+#  WHATSAPP WEBHOOK (Meta Cloud API Inbound)
+#  Uses the SAME structured qualification state machine.
+# ───────────────────────────────────────────────────────────
+
 @app.post("/api/whatsapp/webhook")
 async def handle_whatsapp_webhook(request: Request):
     start_time = time.time()
@@ -364,10 +620,15 @@ async def handle_whatsapp_webhook(request: Request):
             raw_text = msg.get("text", {}).get("body", "")
             print(f"💬 [New Message]: From {phone_number} -> '{raw_text}'")
             
-            # Fetch default agency for webhook routing (to show in Dashboard)
-            # We sort by created_at DESC so newly registered demo users get the incoming messages safely
-            agency_res = supabase.table("users").select("id").order("created_at", desc=True).limit(1).execute()
-            agency_id = agency_res.data[0]["id"] if agency_res.data else None
+            # MULTI-TENANT AGENCY RESOLUTION
+            agency_id = _resolve_agency_id(phone_number)
+            if not agency_id:
+                print("❌ [Webhook]: No agency_id could be resolved. Aborting.")
+                return {"status": "error", "message": "No agency found"}
+            
+            # DYNAMIC AGENCY IDENTITY (fetched ONCE, used in all prompts)
+            agency_name = _resolve_agency_name(agency_id)
+            print(f"🔗 [Webhook]: agency_id={agency_id} ({agency_name}) phone={phone_number}")
 
             # RECORD CLIENT MESSAGE
             supabase.table("conversations").insert({
@@ -377,165 +638,150 @@ async def handle_whatsapp_webhook(request: Request):
                 "sender": "client"
             }).execute()
             
-            # --- STEP-BY-STEP ONBOARDING LOGIC (Unified 'leads' Table) ---
-            user_response = supabase.table("leads").select("*").eq("phone_number", phone_number).execute()
-            user_list = user_response.data
-            
-            # Fetch default agency for webhook routing (to show in Dashboard)
-            # We sort by created_at DESC so newly registered demo users get the incoming messages safely
-            agency_res = supabase.table("users").select("id").order("created_at", desc=True).limit(1).execute()
-            agency_id = agency_res.data[0]["id"] if agency_res.data else None
-            
-            if not user_list:
-                supabase.table("leads").insert({"phone_number": phone_number, "status": "Froid", "name": "Prospect Anonyme", "city": "Inconnu", "agency_id": agency_id}).execute()
-                
-                reply_val = "Mar7ba bik m3a AqarBot! 🏠 Chnou s-smiya l-karima dyalk bach n9yedha 3ndi?"
-                supabase.table("conversations").insert({
-                    "agency_id": agency_id,
-                    "phone": phone_number,
-                    "message": reply_val,
-                    "sender": "ai"
+            # Ensure a lead record exists
+            user_response = supabase.table("leads").select("*").eq("phone_number", phone_number).eq("agency_id", agency_id).execute()
+            if not user_response.data:
+                supabase.table("leads").insert({
+                    "phone_number": phone_number,
+                    "status": "NEW",
+                    "name": "Prospect Anonyme",
+                    "city": "Inconnu",
+                    "agency_id": agency_id
                 }).execute()
-                
-                await WhatsAppService.send_whatsapp_message(
-                    to_phone=phone_number,
-                    message_text=reply_val
+
+            # Load session state (defaults to GREETING for new users)
+            session = user_sessions.get(phone_number, {"state": "GREETING"})
+            current_state = session.get("state", "GREETING")
+            print(f"🔄 [WH State Machine]: phone={phone_number} state={current_state}")
+
+            reply_text = None
+
+            # ─── QUALIFICATION STATE MACHINE ─────────────────
+            if current_state == "GREETING":
+                reply_text = LLMService.generate_qualification_reply(
+                    state="GREETING", client_message=raw_text, agency_name=agency_name
                 )
-                return {"status": "success"}
+                user_sessions[phone_number] = {"state": "AWAITING_NAME"}
 
-            user = user_list[0]
-            full_name = user.get("name")
-
-            if not full_name or str(full_name).strip() == "" or full_name == "Prospect Anonyme":
-                supabase.table("leads").update({"name": raw_text}).eq("phone_number", phone_number).execute()
+            elif current_state == "AWAITING_NAME":
+                extracted_name = LLMService.extract_client_name(raw_text)
+                if not extracted_name or extracted_name.lower() == "unknown":
+                    extracted_name = raw_text.strip().split()[0].capitalize() if raw_text.strip() else "Client"
                 
-                reply_val = f"Metcharfin a si {raw_text}! 🙌 Daba goul lya, chnou hiya l-medina wla l-blassa li kat-ftech fiha 3la l-3aqar?"
-                supabase.table("conversations").insert({
-                    "agency_id": agency_id,
-                    "phone": phone_number,
-                    "message": reply_val,
-                    "sender": "ai"
-                }).execute()
+                supabase.table("leads").update({"name": extracted_name}).eq("phone_number", phone_number).eq("agency_id", agency_id).execute()
                 
-                await WhatsAppService.send_whatsapp_message(
-                    to_phone=phone_number,
-                    message_text=reply_val
+                reply_text = LLMService.generate_qualification_reply(
+                    state="AWAITING_NAME", client_message=raw_text,
+                    agency_name=agency_name, collected={"name": extracted_name}
                 )
-                return {"status": "success"}
+                user_sessions[phone_number] = {"state": "AWAITING_TYPE", "name": extracted_name}
 
-            # --- CONVERSATIONAL STATE MANAGEMENT (Safe Merge Strategy) ---
-            existing_session = user_sessions.get(phone_number, {"City": None, "Type": None, "Nighberd": None})
-            print(f"🔍 [DEBUG] Current Phone: {phone_number} | Raw Cache Before: {existing_session}")
-            
-            # Extract new entities from the current message
-            new_intent = LLMService.parse_property_intent(raw_text)
-            print(f"🧠 [DEBUG] New Intent Extracted: {new_intent}")
-            
-            # SAFE MERGE: Only update if the newly extracted entity is NOT None
-            if new_intent.get("City"): existing_session["City"] = new_intent["City"]
-            if new_intent.get("Type"): existing_session["Type"] = new_intent["Type"]
-            if new_intent.get("Nighberd"): existing_session["Nighberd"] = new_intent["Nighberd"]
-            
-            user_sessions[phone_number] = existing_session
-            print(f"✅ [DEBUG] Cache After Safe Merge: {user_sessions[phone_number]}")
-            
-            # Variables for flow control
-            e_city = existing_session.get("City")
-            e_type = existing_session.get("Type")
-            e_sector = existing_session.get("Nighberd")
+            elif current_state == "AWAITING_TYPE":
+                intent = LLMService.parse_property_intent(raw_text)
+                extracted_type = intent.get("Type")
+                if not extracted_type:
+                    msg_lower = raw_text.lower()
+                    if any(kw in msg_lower for kw in ["appart", "ch9a", "appartement"]):
+                        extracted_type = "Appartement"
+                    elif "villa" in msg_lower:
+                        extracted_type = "Villa"
+                    elif "riad" in msg_lower:
+                        extracted_type = "Riad"
+                    elif any(kw in msg_lower for kw in ["dar", "maison"]):
+                        extracted_type = "Maison"
+                    elif "terrain" in msg_lower:
+                        extracted_type = "Terrain"
+                    else:
+                        extracted_type = raw_text.strip().capitalize()
 
-            # A. Check for Required Entities (Prioritizing Search Readiness)
-            if not e_city:
-                reply_val = "M7taj n3ref ana medina kat9leb fiha exact bach n-sa3dek ktar mzyan? 🏠 (Meknes, Casa, Rabat...)"
-                supabase.table("conversations").insert({"agency_id": agency_id, "phone": phone_number, "message": reply_val, "sender": "ai"}).execute()
-                await WhatsAppService.send_whatsapp_message(to_phone=phone_number, message_text=reply_val)
-                return {"status": "success", "info": "awaiting_city"}
-            
-            if not e_type:
-                reply_val = f"Wakha a sidi f {e_city}! 🙌 Chnou bghiti t-chouf exactement? (Appartement, Villa, Riad, wla Terrain...)"
-                supabase.table("conversations").insert({"agency_id": agency_id, "phone": phone_number, "message": reply_val, "sender": "ai"}).execute()
-                await WhatsAppService.send_whatsapp_message(to_phone=phone_number, message_text=reply_val)
-                return {"status": "success", "info": "awaiting_type"}
+                reply_text = LLMService.generate_qualification_reply(
+                    state="AWAITING_TYPE", client_message=raw_text,
+                    agency_name=agency_name,
+                    collected={"name": session.get("name"), "Type": extracted_type}
+                )
+                user_sessions[phone_number] = {**session, "state": "AWAITING_CITY", "Type": extracted_type}
 
-            # --- PROPERTY SEARCH ---
-            # At this point, both City and Type are guaranteed in the session
-            refined_query = f"{e_type} {e_city} {e_sector if e_sector else ''}"
-            search_response = await get_matching_properties(refined_query)
-            properties_data = search_response.get("results", [])
-            was_fallback = search_response.get("is_fallback", False)
-            
-            print(f"🏠 [Search Results]: Found {len(properties_data)} properties. Fallback={was_fallback}")
+            elif current_state == "AWAITING_CITY":
+                intent = LLMService.parse_property_intent(raw_text)
+                extracted_city = intent.get("City") or raw_text.strip().capitalize()
 
-            # Clear session only after successful results are prepared
-            user_sessions[phone_number] = {"City": None, "Type": None, "Nighberd": None}
+                reply_text = LLMService.generate_qualification_reply(
+                    state="AWAITING_CITY", client_message=raw_text,
+                    agency_name=agency_name,
+                    collected={"name": session.get("name"), "Type": session.get("Type"), "City": extracted_city}
+                )
+                user_sessions[phone_number] = {**session, "state": "AWAITING_SECTOR", "City": extracted_city}
 
-            # --- LEAD & SESSION TRACKING (Auto-Update Primary Record) ---
-            try:
-                # Budget extraction (simple regex for numbers)
-                e_budget = None
-                budget_match = re.search(r'(\d+[\s,.]?\d*)', raw_text)
-                if budget_match:
-                    e_budget = budget_match.group(1)
+            elif current_state == "AWAITING_SECTOR":
+                intent = LLMService.parse_property_intent(raw_text)
+                extracted_sector = intent.get("Nighberd") or raw_text.strip().capitalize()
 
-                supabase.table("leads").update({
-                    "City": e_city,
+                reply_text = LLMService.generate_qualification_reply(
+                    state="AWAITING_SECTOR", client_message=raw_text,
+                    agency_name=agency_name,
+                    collected={**session, "Nighberd": extracted_sector}
+                )
+                user_sessions[phone_number] = {**session, "state": "AWAITING_BUDGET", "Nighberd": extracted_sector}
+
+            elif current_state == "AWAITING_BUDGET":
+                extracted_budget = LLMService.extract_budget(raw_text)
+
+                e_type = session.get("Type", "Bien immobilier")
+                e_city = session.get("City", "Maroc")
+                e_sector = session.get("Nighberd", "Non spécifié")
+                e_name = session.get("name", "Client")
+
+                # Generate AI ack + deterministic confirmation
+                ai_ack = LLMService.generate_qualification_reply(
+                    state="AWAITING_BUDGET", client_message=raw_text,
+                    agency_name=agency_name, collected=session
+                )
+                confirmation = LLMService.generate_confirmation_message(
+                    agency_name=agency_name,
+                    prop_type=e_type,
+                    city=e_city,
+                    sector=e_sector,
+                    budget=extracted_budget
+                )
+                reply_text = f"{ai_ack}\n\n{confirmation}"
+
+                # UPDATE lead with ALL qualification fields
+                lead_update = {
+                    "city": e_city,
                     "sector": e_sector,
                     "Type": e_type,
-                    "budget": e_budget
-                }).eq("phone_number", phone_number).execute()
-                print(f"📝 [Lead Tracking Sync]: Activity for {e_city} updated in primary record.")
-            except Exception as e:
-                print(f"⚠️ [Tracking Error]: {str(e)}")
+                    "budget": extracted_budget,
+                    "status": "QUALIFIED"
+                }
+                lead_update = {k: v for k, v in lead_update.items() if v is not None}
+                supabase.table("leads").update(lead_update).eq("phone_number", phone_number).eq("agency_id", agency_id).execute()
+                print(f"📝 [Lead Qualified]: {e_name} | {e_type} | {e_city} | {e_sector} | {extracted_budget} | Agency={agency_name}")
 
-            # --- DARIJA NLP LAYER ---
-            try:
-                # Use properties_data to generate a tailored reply
-                reply_text = LLMService.generate_whatsapp_reply(
-                    raw_text, 
-                    properties_data=properties_data,
-                    is_fallback=was_fallback
+                # Telemetry
+                process_incoming_lead_and_log(
+                    phone_number=phone_number,
+                    raw_text=raw_text,
+                    darija_intent="QUALIFIED",
+                    tokens=100,
+                    start_time=start_time
                 )
-                
-                # Intent Extraction (Simple keyword-based fallback)
-                darija_intent = "UNKNOWN"
-                raw_lower = raw_text.lower()
-                if any(word in raw_lower for word in ["chri", "buy", "achat", "bghit", "nchri"]):
-                    darija_intent = "CHRA"
-                elif any(word in raw_lower for word in ["kra", "kri", "rent", "location", "nekri"]):
-                    darija_intent = "KRYA"
-                elif "riad" in raw_lower:
-                    darija_intent = "RIAD"
-                
-            except Exception as e:
-                print(f"⚠️ [LLM Fallback]: {str(e)}")
-                reply_text = "Sma7 lia, l-base d l-données dyalna 3liha l-ghach. Ghadi n-contactiwk dghya! 🏠"
-                darija_intent = "UNKNOWN"
-            
-            print(f"🧠 [Response]: Intent={darija_intent} | PayloadLen={len(reply_text)}")
-            
-            # Log to Supabase leads table
-            process_incoming_lead_and_log(
-                phone_number=phone_number,
-                raw_text=raw_text,
-                darija_intent=darija_intent,
-                tokens=100,
-                start_time=start_time
-            )
 
-            # RECORD AI MESSAGE
-            supabase.table("conversations").insert({
-                "agency_id": agency_id,
-                "phone": phone_number,
-                "message": reply_text,
-                "sender": "ai"
-            }).execute()
+                # Reset session for potential new search
+                user_sessions[phone_number] = {"state": "GREETING"}
 
-            # Send back to WhatsApp
-            await WhatsAppService.send_whatsapp_message(
-                to_phone=phone_number,
-                message_text=reply_text
-            )
-            print(f"📤 [Sent]: To {phone_number}")
+            else:
+                reply_text = LLMService.generate_qualification_reply(
+                    state="GREETING", client_message=raw_text, agency_name=agency_name
+                )
+                user_sessions[phone_number] = {"state": "AWAITING_NAME"}
+
+            # RECORD & SEND AI REPLY
+            if reply_text:
+                _send_and_record(agency_id, phone_number, reply_text)
+                await WhatsAppService.send_whatsapp_message(
+                    to_phone=phone_number, message_text=reply_text
+                )
+                print(f"📤 [Sent]: To {phone_number} | Agency: {agency_name}")
             
         return {"status": "success"}
         

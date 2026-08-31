@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, ArrowUpRight, CheckCircle2, ChevronDown, Check, Server, Building2, MapPin, Search } from 'lucide-react';
 import StructuredData from '@/components/StructuredData';
+import Features from '@/components/Features';
 
 function useOnScreen(ref: React.RefObject<Element | null>, rootMargin = '0px') {
   const [isIntersecting, setIntersecting] = useState(false);
@@ -45,7 +46,7 @@ export default function Home() {
   }, []);
 
   return (
-    <main className="bg-[#0B1120] text-slate-100 min-h-screen selection:bg-[#6EE7B7]/30 overflow-x-hidden">
+    <main className="bg-[#0B1120] text-slate-100 min-h-screen selection:bg-[#6EE7B7]/30">
       <StructuredData />
 
       {/* ─── 1. HERO SECTION (REFERENCE MATCH) ───────────────────────────────────── */}
@@ -67,7 +68,7 @@ export default function Home() {
           {/* ================ LEFT COLUMN ================ */}
           <div className="flex flex-col text-left max-w-2xl">
             <Reveal delay={300}>
-              <h1 className="text-[clamp(3.3rem,6vw,5.5rem)] font-medium leading-[1.05] tracking-tight mb-8 text-white">
+              <h1 className="text-[clamp(2rem,4vw,3.8rem)] font-medium leading-[1.05] tracking-tight mb-5 text-white">
                 La Première<br />
                 Plateforme SaaS<br />
                 Immobilière<br />
@@ -80,7 +81,7 @@ export default function Home() {
             </Reveal>
 
             <Reveal delay={500}>
-              <p className="text-lg md:text-[1.3rem] text-slate-400 max-w-xl font-normal leading-relaxed mb-14">
+              <p className="text-base text-slate-400 max-w-lg font-normal leading-relaxed mb-8">
                 AqarBot transforme chaque message en opportunité. Qualifiez, assignez et faites avancer vos prospects — avant même que votre café ne refroidisse.
               </p>
             </Reveal>
@@ -296,6 +297,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ─── FEATURES: EXPLORER LE SYSTÈME ───────────────────────────────────────── */}
+      <Features />
+
       {/* ─── SECTION 03: LA SALLE DES MACHINES ─────────────────────────────── */}
       <section className="py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-24 items-center">
@@ -461,16 +465,128 @@ export default function Home() {
             </div>
             
             <div className="w-full h-px bg-slate-800/80 mt-2" />
-         </div>
+          </div>
       </section>
 
-      {/* ─── SECTION 05: PAS DE SURPRISE AU CONTRAT (CTA) ─────────────────────────────── */}
+      {/* ─── SECTION 05: TARIFS (NEW DESIGN) ─────────────────────────────── */}
+      <section className="pt-32 pb-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative">
+        <div className="max-w-[1400px] mx-auto">
+          
+          <Reveal>
+            {/* Top Header Bar */}
+            <div className="flex justify-between items-center border-t border-slate-800/80 pt-4 mb-20">
+              <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.2em]">Tarifs - Trois Niveaux</span>
+              <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.2em]">Essai 14 Jours - Sans CB</span>
+            </div>
+
+            {/* Main Headline & Subtitle */}
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 mb-12">
+              <h2 className="text-[4rem] md:text-[6rem] font-bold leading-[0.9] tracking-tighter text-white">
+                CHOISISSEZ<br />
+                VOTRE <span className="text-[#6EE7B7] relative inline-block">NIVEAU.<span className="absolute bottom-1 left-0 w-full h-[4px] bg-[#6EE7B7] opacity-80"></span></span>
+              </h2>
+              <div className="max-w-sm pb-4">
+                <p className="text-slate-300 text-sm leading-relaxed font-medium">
+                  Avec Agence, votre site web immobilier est offert : créé, connecté au CRM, hébergé et maintenu.<br />
+                  Essai 14 jours sans carte bancaire.
+                </p>
+              </div>
+            </div>
+
+            <p className="text-slate-500 text-[10px] mb-8 font-medium">Prix facturés en MAD - montants indicatifs.</p>
+          </Reveal>
+
+          {/* Pricing Linked Cards */}
+          <Reveal delay={200} className="w-full border border-slate-800 rounded-lg overflow-hidden flex flex-col md:flex-row bg-[#0B1120]">
+            
+            {/* Column 1 - SOLO */}
+            <div className="flex-1 p-10 md:p-14 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col items-start bg-[#0B1522]">
+              <div className="text-slate-500 text-sm font-black mb-12">01</div>
+              <div className="text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] mb-2">Agent Solo - Indépendant</div>
+              <h3 className="text-white text-3xl font-black uppercase mb-12 tracking-tight">Solo</h3>
+              
+              <div className="mb-2 flex items-baseline gap-2">
+                <span className="text-white text-7xl font-bold tracking-tighter leading-none">499</span>
+                <span className="text-slate-400 text-sm font-medium">DH /mois</span>
+              </div>
+              <div className="text-slate-500 text-xs font-medium mb-12">≈ 49 €</div>
+              
+              <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-[280px] mb-8 flex-grow">
+                Le CRM complet pour l'agent indépendant : contacts WhatsApp, biens, matching, pipeline et agenda.
+              </p>
+
+              <button className="w-full py-4 px-6 border border-slate-700 bg-[#0d1624] hover:bg-slate-800 transition-colors text-white text-sm font-semibold rounded-md">
+                Démarrer gratuitement
+              </button>
+            </div>
+
+            {/* Column 2 - AGENCE (Highlighted) */}
+            <div className="flex-1 p-10 md:p-14 border-b md:border-b-0 md:border-r border-[#6EE7B7]/20 flex flex-col bg-[#112a28] relative">
+              <div className="absolute inset-0 bg-gradient-to-b from-[#6EE7B7]/5 to-transparent pointer-events-none" />
+              
+              <div className="flex justify-between items-start mb-12 relative z-10 w-full">
+                <div className="text-[#6EE7B7] text-sm font-black">02</div>
+                <div className="bg-[#6EE7B7] text-[#0B1120] text-[9px] font-black uppercase tracking-[0.15em] px-3 py-1.5 rounded-sm flex items-center gap-1.5 shadow-[0_0_15px_rgba(110,231,183,0.3)]">
+                  <span className="text-[10px]">★</span> Recommandé
+                </div>
+              </div>
+              
+              <div className="text-[#6EE7B7] text-[9px] font-black uppercase tracking-[0.2em] mb-2 relative z-10">Agence - 3 Agents Inclus</div>
+              <h3 className="text-white text-3xl font-black uppercase mb-12 tracking-tight relative z-10">Agence</h3>
+              
+              <div className="mb-2 flex items-baseline gap-2 relative z-10">
+                <span className="text-[#6EE7B7] text-7xl font-bold tracking-tighter leading-none">1290</span>
+                <span className="text-slate-400 text-sm font-medium">DH /mois</span>
+              </div>
+              <div className="text-[#6EE7B7]/60 text-xs font-medium mb-12 relative z-10">≈ 129 €</div>
+              
+              <p className="text-slate-300 text-sm font-medium leading-relaxed max-w-[280px] relative z-10 mb-8">
+                Le CRM d'équipe pour suivre, collaborer et qualifier à plusieurs sur un dashboard unifié.
+              </p>
+
+              {/* Special Featured Box */}
+              <div className="mt-8 mb-10 w-full max-w-[320px] bg-[#0c1c20] border border-slate-700/50 rounded-md p-6 relative z-10 flex-grow">
+                <p className="text-[#6EE7B7] text-[9px] font-black uppercase tracking-[0.2em] mb-3">Inclus avec Agence</p>
+                <h4 className="text-white text-lg font-semibold tracking-tight mb-2">Site web offert</h4>
+                <p className="text-slate-400 text-xs leading-relaxed font-medium">Créé, connecté au CRM, hébergé et maintenu.</p>
+              </div>
+
+              <button className="w-full py-4 px-6 bg-[#6EE7B7] hover:bg-[#4ade80] transition-colors text-[#0B1120] text-xs font-black uppercase tracking-[0.15em] rounded-md shadow-[0_0_20px_rgba(110,231,183,0.2)] relative z-10">
+                DÉMARRER L'ESSAI
+              </button>
+            </div>
+
+            {/* Column 3 - SUR-MESURE */}
+            <div className="flex-1 p-10 md:p-14 flex flex-col items-start bg-[#0B1522]">
+              <div className="text-slate-500 text-sm font-black mb-12">03</div>
+              <div className="text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] mb-2">Tout Métier Immobilier</div>
+              <h3 className="text-white text-3xl font-black uppercase mb-12 tracking-tight">Sur-Mesure</h3>
+              
+              <div className="mb-2">
+                <span className="text-white text-6xl font-bold tracking-tighter leading-none">Devis</span>
+              </div>
+              <div className="text-slate-500 text-xs font-medium mb-12 mt-4 inline-block">Mise en place dès 20 000 MAD</div>
+              
+              <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-[280px] mb-8 flex-grow">
+                Votre logiciel façonné par notre équipe sur notre socle CRM. Votre métier définit le produit, maintenu à vos côtés.
+              </p>
+
+              <button className="w-full py-4 px-6 border border-slate-700 bg-[#0d1624] hover:bg-slate-800 transition-colors text-white text-sm font-semibold rounded-md">
+                Planifier un appel
+              </button>
+            </div>
+            
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ─── SECTION 06: PAS DE SURPRISE AU CONTRAT (CTA) ─────────────────────────────── */}
       <section className="pt-24 pb-12 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative">
         <div className="max-w-[1400px] mx-auto">
           <Reveal className="flex flex-col md:flex-row justify-between items-end gap-10 mb-16">
              <div>
                 <Reveal delay={100} className="flex items-end gap-6 mb-8 group">
-                  <span className="text-yellow-500 font-black text-5xl tracking-tighter opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out origin-bottom">05</span>
+                  <span className="text-yellow-500 font-black text-5xl tracking-tighter opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 ease-out origin-bottom">06</span>
                   <div className="flex flex-col pb-1">
                     <div className="h-px w-12 bg-slate-800 mb-2 transition-all duration-700 group-hover:w-20 group-hover:bg-yellow-500/50" />
                     <span className="text-[#6EE7B7] text-[10px] font-black uppercase tracking-[0.25em]">Pas De Surprise Au Contrat</span>

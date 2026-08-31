@@ -13,15 +13,18 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 def process_incoming_lead_and_log(phone_number: str, raw_text: str, darija_intent: str, tokens: int, start_time: float):
     """
-    Pipeline s s7i7 to handle incoming WhatsApp messages, parse intent, 
-    and log telemetry directly into the standardized 'leads' table.
+    Pipeline to handle incoming WhatsApp messages, parse intent, 
+    and log telemetry into the standardized 'leads' table.
+    
+    IMPORTANT: Uses a selective UPDATE (not upsert) to avoid overwriting
+    spatial/qualification fields (city, sector, budget) that are set
+    by the onboarding flow in main.py.
     """
     latency = time.time() - start_time
     
     try:
-        # Standardized on the 'leads' table for all prospect data and telemetry
-        lead_data = {
-            "phone_number": phone_number,
+        # Only update TELEMETRY columns — never overwrite city/sector/budget
+        telemetry_data = {
             "darija_intent": darija_intent,
             "last_message": raw_text,
             "latency_ms": int(latency * 1000),
@@ -29,11 +32,11 @@ def process_incoming_lead_and_log(phone_number: str, raw_text: str, darija_inten
             "status": "ACTIVE"
         }
         
-        supabase.table("leads").upsert(
-            lead_data, on_conflict="phone_number"
-        ).execute()
+        supabase.table("leads").update(
+            telemetry_data
+        ).eq("phone_number", phone_number).execute()
         
-        print(f"📊 [Database Standardized]: Lead {phone_number} synchronized in primary leads table.")
+        print(f"📊 [Database Telemetry Sync]: Lead {phone_number} telemetry updated (city/sector/budget preserved).")
         
     except Exception as e:
         print(f"❌ [Database Error]: Couldn't sync lead telemetry: {str(e)}")

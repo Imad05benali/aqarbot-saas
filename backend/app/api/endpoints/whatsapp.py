@@ -7,6 +7,7 @@ from app.services.llm_service import LLMService
 from app.services.whatsapp_service import WhatsAppService
 from app.services.lead_service import LeadService
 from app.api.endpoints.properties import search_properties
+from app.core.supabase import supabase
 
 router = APIRouter()
 
@@ -16,6 +17,23 @@ VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "aqarbot_secret_token_2026")
 sessions = {}
 # Deduplication store
 processed_messages = set()
+
+def _resolve_agency_for_router(phone_number: str = None) -> str:
+    """Resolve agency_id: first from existing lead, then fallback to newest user."""
+    if phone_number:
+        try:
+            existing = supabase.table("leads").select("agency_id").eq("phone_number", phone_number).limit(1).execute()
+            if existing.data and existing.data[0].get("agency_id"):
+                return existing.data[0]["agency_id"]
+        except Exception:
+            pass
+    try:
+        agency_res = supabase.table("users").select("id").order("created_at", desc=True).limit(1).execute()
+        if agency_res.data:
+            return agency_res.data[0]["id"]
+    except Exception:
+        pass
+    return None
 
 @router.get("/webhook")
 async def whatsapp_verify(
@@ -68,6 +86,10 @@ async def whatsapp_webhook(request: Request):
                     client_text = message_obj.get("text", {}).get("body", "").strip()
                     print(f"MESSAGE: From {client_phone}: '{client_text}'")
                     
+                    # 2.5 MULTI-TENANT: Resolve agency_id
+                    agency_id = _resolve_agency_for_router(client_phone)
+                    print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone}")
+
                     # 3. Intent Interception
                     search_keywords = ["bghit", "dar", "villa", "appart", "chambre", "kri", "9leb", "bhgt", "fin"]
                     if any(kw in client_text.lower() for kw in search_keywords):
@@ -75,7 +97,7 @@ async def whatsapp_webhook(request: Request):
                         sessions[client_phone] = {"state": "SEARCHING"}
 
                     session = sessions.get(client_phone, {"state": "SEARCHING"})
-                    is_registered = LeadService.check_lead_exists(client_phone)
+                    is_registered = LeadService.check_lead_exists(client_phone, agency_id=agency_id)
                     print(f"STATE: {session['state']} | Registered: {is_registered}")
 
                     # 4. Routing logic
@@ -93,7 +115,7 @@ async def whatsapp_webhook(request: Request):
                                 props = session.get("last_properties", [])
                                 pid = props[0].get("id") if props else None
                                 
-                                if LeadService.create_lead(client_phone, client_name, pid):
+                                if LeadService.create_lead(client_phone, client_name, pid, agency_id=agency_id):
                                     sessions[client_phone] = {"state": "SEARCHING"}
                                     ai_reply = LLMService.generate_whatsapp_reply(
                                         client_message=f"My name is {client_name}", 
