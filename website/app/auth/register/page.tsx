@@ -1,8 +1,7 @@
 'use client';
 
-// Prevent static prerendering — the Supabase client is initialized at module
-// level and requires a valid URL, which is only available at runtime.
-export const dynamic = 'force-dynamic';
+// The Supabase client is initialized at module level and requires a valid URL, 
+// which is handled via a fallback in lib/supabase.ts.
 
 import React from 'react';
 import {
