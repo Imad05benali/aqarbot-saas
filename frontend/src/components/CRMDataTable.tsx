@@ -18,7 +18,7 @@ interface CRMDataTableProps {
   title?: string;
 }
 
-export default function CRMDataTable({ data, onDelete, onBulkUpload, title = "Catalogue de Données" }: CRMDataTableProps) {
+export default function CRMDataTable({ data, onDelete, onBulkUpload, title: _title = "Catalogue de Données" }: CRMDataTableProps) {
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');

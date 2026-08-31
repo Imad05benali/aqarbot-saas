@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, MessageCircle, Flame, BarChart3, TrendingUp, Activity, Crosshair } from 'lucide-react';
+import { Users, MessageCircle, Flame, BarChart3, TrendingUp, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getForecastData } from '../services/api';
 import EmptyStateComponent from '../components/EmptyStateComponent';
