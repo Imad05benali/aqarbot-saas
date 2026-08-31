@@ -48,9 +48,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (initialSession) {
           activeSession = initialSession;
         } else {
-          // Parse shared cookies from multi-port localhost environment
-          const accessToken = getCookie('sb-access-token');
-          const refreshToken = getCookie('sb-refresh-token');
+          let accessToken = getCookie('sb-access-token');
+          let refreshToken = getCookie('sb-refresh-token');
+          
+          // 2. Parse URL hash for Cross-Domain Handoff (Next.js -> Vite)
+          if (typeof window !== 'undefined' && window.location.hash.includes('access_token')) {
+            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+            const urlAccessToken = hashParams.get('access_token');
+            const urlRefreshToken = hashParams.get('refresh_token');
+            
+            if (urlAccessToken && urlRefreshToken) {
+              accessToken = urlAccessToken;
+              refreshToken = urlRefreshToken;
+              // Clean up the URL securely
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+          }
+
           if (accessToken && refreshToken) {
             const { data } = await supabase.auth.setSession({
               access_token: accessToken,

@@ -84,8 +84,12 @@ function LoginForm() {
         document.cookie = `sb-refresh-token=${data.session.refresh_token}; path=/; max-age=604800; SameSite=Lax`;
       }
 
-      // Navigate to dashboard
-      window.location.href = 'https://aqarbot-dashboard.vercel.app/dashboard';
+      // Navigate to dashboard with secure hash-based session handoff
+      if (data.session) {
+        window.location.href = `https://aqarbot-dashboard.vercel.app/dashboard#access_token=${data.session.access_token}&refresh_token=${data.session.refresh_token}`;
+      } else {
+        window.location.href = 'https://aqarbot-dashboard.vercel.app/dashboard';
+      }
     } catch (err: unknown) {
       let message =
         err instanceof Error ? err.message : 'Erreur de connexion. Veuillez réessayer.';
