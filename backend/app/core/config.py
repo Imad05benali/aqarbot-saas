@@ -11,12 +11,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # Database
-    DATABASE_URL: str
+    DATABASE_URL: str = "postgresql://localhost/dummy"
     DIRECT_URL: Optional[str] = None
     
     # Supabase Client
-    SUPABASE_URL: str
-    SUPABASE_ANON_KEY: str
+    SUPABASE_URL: str = "https://placeholder.supabase.co"
+    SUPABASE_ANON_KEY: str = "placeholder-anon-key"
 
     # Google Gemini
     GOOGLE_API_KEY: str = "your_google_api_key_here"
