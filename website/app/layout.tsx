@@ -80,7 +80,7 @@ export const metadata: Metadata = {
 };
 
 import SmoothScroll from "@/components/SmoothScroll";
-import GlobalBackground from "@/components/GlobalBackground";
+
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
@@ -102,7 +102,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SmoothScroll>
-            <GlobalBackground />
+
             <Navbar />
             <div className="relative z-10 min-h-screen">
               {children}
