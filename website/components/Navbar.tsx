@@ -71,7 +71,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4">
             <div className="hidden sm:flex items-center">
               <a 
-                href="https://aqarbot-frontend.vercel.app/login" 
+                href="/auth/login" 
                 className="px-6 py-3.5 bg-[#6EE7B7] text-[#0B1120] text-[10px] uppercase tracking-[0.2em] font-black hover:bg-[#4ade80] transition-colors shadow-lg active:scale-95 flex items-center gap-2"
               >
                 Espace Agence (CRM) <ChevronRight className="w-4 h-4" />
@@ -118,7 +118,7 @@ export default function Navbar() {
           
           <div className="flex flex-col gap-4">
             <a 
-              href="https://aqarbot-frontend.vercel.app/login"
+              href="/auth/login"
               onClick={() => setIsOpen(false)}
               className="w-full py-5 bg-[#6EE7B7] text-[#0B1120] text-[11px] font-black uppercase tracking-[0.2em] text-center shadow-[0_0_20px_rgba(110,231,183,0.2)]"
             >

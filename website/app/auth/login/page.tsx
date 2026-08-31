@@ -86,7 +86,7 @@ function LoginForm() {
       }
 
       // Navigate to dashboard
-      window.location.href = '/dashboard';
+      window.location.href = 'https://aqarbot-frontend.vercel.app/dashboard';
     } catch (err: unknown) {
       let message =
         err instanceof Error ? err.message : 'Erreur de connexion. Veuillez réessayer.';

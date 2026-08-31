@@ -489,7 +489,7 @@ export default function RegisterPage() {
 
                <div className="mt-6 flex items-center justify-between border-t border-slate-800 pt-6">
                  <span className="text-[10px] text-slate-500 font-medium tracking-wide uppercase">Déjà certifié ?</span>
-                 <a href="https://aqarbot-frontend.vercel.app/login" className="text-[10px] font-black text-yellow-500 tracking-[0.1em] uppercase hover:text-yellow-400 flex items-center gap-1 transition-colors">
+                 <a href="/auth/login" className="text-[10px] font-black text-yellow-500 tracking-[0.1em] uppercase hover:text-yellow-400 flex items-center gap-1 transition-colors">
                    Accès Session <ArrowRight className="w-3 h-3" />
                  </a>
                </div>
