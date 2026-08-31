@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// Prevent Next.js from attempting to statically pre-render this route at build time.
+// This is required for any route that reads dynamic request data (searchParams, body, etc.)
+export const dynamic = 'force-dynamic';
+
 // 1. Verification Endpoint l-Meta (GET)
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
