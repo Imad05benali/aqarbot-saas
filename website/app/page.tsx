@@ -614,7 +614,7 @@ export default function Home() {
                </div>
              </div>
              
-             <div className="p-10 lg:p-16 bg-[#131d2c] flex flex-col justify-center min-w-[400px]">
+             <div className="p-10 lg:p-16 bg-[#131d2c] flex flex-col justify-center md:min-w-[400px]">
                <p className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-500 mb-6">VOTRE PROCHAIN AVANTAGE</p>
                <h3 className="text-white text-3xl md:text-3xl font-medium tracking-tight mb-10">L'intelligence<br/>dans votre équipe.</h3>
                <a href="/auth/login" className="w-full bg-[#6EE7B7] text-[#0B1120] text-[10px] font-black uppercase tracking-[0.15em] py-5 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.15)]">
