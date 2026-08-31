@@ -277,37 +277,108 @@ function FeaturesDesktop() {
   );
 }
 
-// ─── MOBILE: stacked accordion-style version ─────────────────────────────────
+// ─── MOBILE: swipeable slider version ─────────────────────────────────
 function FeaturesMobile() {
+  const [active, setActive] = React.useState(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const index = Math.round(el.scrollLeft / el.clientWidth);
+    if (index !== active && index >= 0 && index < features.length) {
+      setActive(index);
+    }
+  };
+
+  const scrollToFeature = (idx: number) => {
+    if (!scrollRef.current) return;
+    const el = scrollRef.current;
+    el.scrollTo({ left: el.clientWidth * idx, behavior: 'smooth' });
+  };
+
   return (
-    <div className="w-full border-t border-slate-800 divide-y divide-slate-800/60">
-      {features.map((f) => (
-        <div key={f.number} className="px-6 py-10">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-[#6EE7B7] text-xs font-black">{f.number}</span>
-            <span className="w-px h-4 bg-slate-700" />
-            <span className="text-[10px] text-[#6EE7B7] font-black uppercase tracking-[0.2em]">{f.tagline}</span>
-          </div>
-          <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-4 leading-tight">{f.title}</h3>
-          <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8">{f.description}</p>
-
-          {/* Mockup */}
-          <div className="mb-8">{f.mockup}</div>
-
-          {/* Detail bullets */}
-          <div className="space-y-4">
-            {f.details.map((d) => (
-              <div key={d.label} className="flex gap-3">
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-500 shrink-0 mt-1.5" />
-                <div>
-                  <p className="text-white font-black text-sm mb-0.5">{d.label}</p>
-                  <p className="text-slate-500 text-xs font-medium">{d.desc}</p>
-                </div>
-              </div>
-            ))}
-          </div>
+    <div className="w-full border-t border-slate-800 bg-[#0B1120] relative flex flex-col overflow-hidden">
+      {/* Sticky Top Indicator Bar */}
+      <div className="sticky top-[70px] z-30 bg-[#0B1120]/95 backdrop-blur-lg border-b border-slate-800 pb-4 pt-5 px-6 shadow-xl">
+        <div className="flex justify-between items-center mb-5">
+          <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] flex items-center gap-2">
+             Explorer 
+             <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse shadow-[0_0_8px_#EAB308]" />
+          </p>
+          <span className="text-[10px] font-black text-[#6EE7B7] tracking-widest bg-[#6EE7B7]/10 px-2.5 py-1 rounded-sm border border-[#6EE7B7]/20 shadow-sm">
+            {String(active + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}
+          </span>
         </div>
-      ))}
+        
+        {/* Pills indicator slider */}
+        <div className="flex items-center gap-3 overflow-x-auto snap-x snap-mandatory pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {features.map((f, i) => {
+            const isActive = i === active;
+            return (
+              <button
+                key={f.number}
+                onClick={() => scrollToFeature(i)}
+                className={`snap-start flex-shrink-0 px-4 py-2.5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2.5 shadow-sm ${
+                  isActive 
+                    ? 'bg-[#6EE7B7] text-[#0B1120] shadow-[0_0_15px_rgba(110,231,183,0.3)] scale-100' 
+                    : 'bg-slate-800/80 text-slate-400 hover:bg-slate-700 hover:text-slate-300 border border-slate-700/50 scale-95 opacity-80'
+                }`}
+              >
+                <span>{f.number}</span>
+                {isActive && <span className="max-w-[140px] truncate">{f.title}</span>}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* Swipeable Feature Cards */}
+      <div 
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="flex overflow-x-auto snap-x snap-mandatory w-full bg-[#0d1624] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+        style={{ scrollBehavior: 'smooth' }}
+      >
+        {features.map((f) => (
+          <div key={f.number} className="w-full shrink-0 snap-center px-6 py-12 flex flex-col relative overflow-hidden">
+            <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+            
+            <div className="relative z-10 flex flex-col justify-center h-full max-w-lg mx-auto w-full">
+              <div className="flex items-center gap-3 mb-6">
+                <span className="text-[#6EE7B7] text-xs font-black flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-[#6EE7B7] animate-[pulse_2s_ease-out_infinite] shadow-[0_0_10px_#6EE7B7]" />
+                  {f.number}
+                </span>
+                <span className="w-px h-4 bg-slate-700" />
+                <span className="text-[9px] text-[#6EE7B7] font-black uppercase tracking-[0.2em]">{f.tagline}</span>
+              </div>
+              
+              <h3 className="text-3xl font-black text-white uppercase tracking-tight mb-5 leading-[1.05] drop-shadow-sm">{f.title}</h3>
+              <p className="text-slate-400 text-sm font-medium leading-relaxed mb-10">{f.description}</p>
+
+              {/* Mockup */}
+              <div className="mb-10 shadow-2xl relative w-full pt-2">
+                {f.mockup}
+              </div>
+
+              {/* Detail bullets */}
+              <div className="space-y-5 border-t border-slate-800/80 pt-8 mt-auto">
+                {f.details.map((d) => (
+                  <div key={d.label} className="flex gap-4">
+                    <div className="w-6 h-6 shrink-0 rounded-full bg-[#0d1624] border border-slate-800 flex items-center justify-center -mt-0.5 shadow-sm">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7]" />
+                    </div>
+                    <div>
+                      <p className="text-slate-200 font-bold text-sm tracking-wide mb-1.5">{d.label}</p>
+                      <p className="text-slate-500 text-xs font-medium leading-relaxed">{d.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
