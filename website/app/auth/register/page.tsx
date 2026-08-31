@@ -1,5 +1,9 @@
 'use client';
 
+// Prevent static prerendering — the Supabase client is initialized at module
+// level and requires a valid URL, which is only available at runtime.
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import {
   Mail,
