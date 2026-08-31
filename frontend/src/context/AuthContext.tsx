@@ -109,8 +109,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           clearCookie('sb-refresh-token');
         }
       }
-      
-      setIsLoading(false);
     });
 
     return () => {
