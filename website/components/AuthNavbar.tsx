@@ -38,7 +38,7 @@ export default function AuthNavbar({ type }: AuthNavbarProps) {
             </a>
           ) : (
             <a 
-              href="/auth/login" 
+              href="https://aqarbot-frontend.vercel.app/login" 
               className="px-4 py-1.5 bg-neutral-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-lg hover:bg-brand-emerald dark:hover:bg-brand-emerald hover:text-white dark:hover:text-black transition-all shadow-md active:scale-95 flex items-center gap-2"
             >
               <LogIn className="w-3.5 h-3.5" /> Connexion
