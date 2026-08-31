@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { Menu, X, Rocket, ChevronRight } from 'lucide-react';
+import Image from 'next/image';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -47,9 +48,11 @@ export default function Navbar() {
           
           {/* Logo */}
           <a href="/" className="flex items-center group">
-            <img 
+            <Image 
               src="/logo-icon.png" 
               alt="AqarBot Logo" 
+              width={40}
+              height={40}
               className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
             />
           </a>

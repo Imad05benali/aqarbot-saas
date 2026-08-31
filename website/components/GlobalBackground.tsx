@@ -4,7 +4,7 @@ import React from 'react';
 
 export default function GlobalBackground() {
   return (
-    <div className="fixed inset-0 z-0 bg-background overflow-hidden pointer-events-none">
+    <div className="fixed inset-0 z-0 bg-background overflow-hidden pointer-events-none hidden md:block">
       {/* 1. CYBER CONSTELLATION MESH (Theme-Aware Mint Green Nodes) */}
       {/* Cluster Left */}
       <div className="absolute left-[5%] top-[15%] w-[400px] h-[400px] opacity-[0.3] dark:opacity-[0.4] animate-drift">

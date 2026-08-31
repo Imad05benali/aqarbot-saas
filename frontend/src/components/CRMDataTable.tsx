@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Upload, FileCheck, Trash2, Search, Filter } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -23,11 +23,11 @@ export default function CRMDataTable({ data, onDelete, onBulkUpload, title: _tit
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredData = data.filter(row => 
+  const filteredData = useMemo(() => data.filter(row => 
     row.City?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     row.Nighberd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     row.Type?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  ), [data, searchTerm]);
 
   return (
     <div className="space-y-6">

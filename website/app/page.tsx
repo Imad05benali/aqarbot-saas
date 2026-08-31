@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, ArrowUpRight, CheckCircle2, ChevronDown, Check, Server, Building2, MapPin, Search } from 'lucide-react';
+import Image from 'next/image';
 import StructuredData from '@/components/StructuredData';
 import Features from '@/components/Features';
 
@@ -57,7 +58,7 @@ export default function Home() {
 
         {/* Ambient Glows */}
         <div 
-          className="absolute top-0 right-1/4 translate-x-1/4 pointer-events-none transition-transform duration-75 ease-out"
+          className="absolute top-0 right-1/4 translate-x-1/4 pointer-events-none transition-transform duration-75 ease-out hidden md:block"
           style={{ transform: `translateX(25%) translateY(${scrollY * 0.4}px)`, opacity: Math.max(0, 1 - scrollY / 700) }}
         >
           <div className="w-[800px] h-[800px] bg-gradient-to-br from-[#6EE7B7]/10 to-transparent blur-[120px] rounded-full opacity-60" />
@@ -143,7 +144,7 @@ export default function Home() {
               <div className="absolute w-44 h-44 bg-gradient-to-b from-[#0d1c25] to-[#070b13] border border-[#6EE7B7]/20 rounded-full flex flex-col items-center justify-center z-20 shadow-[0_0_40px_rgba(110,231,183,0.1)]">
                 <span className="relative flex h-14 w-14 mb-4">
                   <span className="animate-[ping_2s_ease-out_infinite] absolute inline-flex h-full w-full rounded-full bg-[#6EE7B7] opacity-20"></span>
-                  <img src="/logo-icon.png" alt="Aqarbot Core" className="relative inline-flex h-full w-full object-contain drop-shadow-[0_0_15px_rgba(110,231,183,0.5)]" />
+                  <Image src="/logo-icon.png" alt="Aqarbot Core" width={56} height={56} className="relative inline-flex h-full w-full object-contain drop-shadow-[0_0_15px_rgba(110,231,183,0.5)]" />
                 </span>
                 <p className="text-white text-xs font-bold mb-1">Aqar Intelligence</p>
                 <p className="text-[#6EE7B7]/70 text-[8px] uppercase tracking-widest font-black">En écoute · 24/7</p>
@@ -254,7 +255,7 @@ export default function Home() {
             ].map((p, i) => (
               <div key={i} className="bg-[#0d1624] border border-slate-800 rounded-sm overflow-hidden flex flex-col group cursor-pointer hover:border-slate-600 transition-colors">
                 <div className="h-48 w-full relative flex flex-col justify-between p-4 overflow-hidden">
-                  <img src={p.image} alt={p.type} className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-700" />
+                  <Image src={p.image} alt={p.type} fill className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 group-hover:opacity-80 transition-all duration-700" />
                   <div className={`absolute inset-0 bg-gradient-to-br ${p.gradient} to-transparent mix-blend-overlay`} />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0d1624] via-transparent to-transparent opacity-100" />
                   
@@ -356,7 +357,7 @@ export default function Home() {
                <div className="flex flex-1">
                  <div className="w-32 border-r border-slate-800 p-4 flex flex-col gap-6 bg-[#0B1120]">
                     <div className="flex items-center gap-2 mb-4">
-                      <img src="/logo-icon.png" className="w-5 h-5 opacity-80" />
+                      <Image src="/logo-icon.png" alt="icon" width={20} height={20} className="w-5 h-5 opacity-80" />
                       <span className="text-[9px] font-bold text-white">aqarbot</span>
                     </div>
                     <div className="flex flex-col gap-4 text-[9px] font-bold text-slate-500">
@@ -428,7 +429,7 @@ export default function Home() {
 
       {/* ─── SECTION 04: LA MESURE DU CALME (METRICS) ─────────────────────────────── */}
       <section className="py-24 px-6 md:px-12 lg:px-20 bg-gradient-to-br from-[#0B1120] to-[#05080f] relative border-t border-slate-900/50">
-         <div className="absolute right-0 top-0 w-[600px] h-[600px] bg-[#6EE7B7]/10 blur-[150px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3" />
+         <div className="absolute right-0 top-0 w-[600px] h-[600px] bg-[#6EE7B7]/10 blur-[150px] rounded-full pointer-events-none translate-x-1/3 -translate-y-1/3 hidden md:block" />
          <div className="max-w-[1400px] mx-auto">
             <Reveal className="mb-20 pt-10">
               <Reveal delay={100} className="flex items-end gap-6 mb-8 group">

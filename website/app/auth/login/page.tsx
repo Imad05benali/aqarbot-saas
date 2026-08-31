@@ -5,6 +5,7 @@
 
 import React, { Suspense } from 'react';
 import { Mail, Lock, ArrowRight, ShieldCheck, Zap, ArrowLeft, Loader2, Eye, EyeOff } from 'lucide-react';
+import Image from 'next/image';
 import ScrollReveal from '@/components/ScrollReveal';
 import { supabase, isSupabaseReachable } from '@/lib/supabase';
 import { useSearchParams } from 'next/navigation';
@@ -236,7 +237,7 @@ function LoginForm() {
              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-44 h-44 bg-[#0d1624] border border-[#6EE7B7]/20 rounded-full flex flex-col items-center justify-center z-20 shadow-[0_0_40px_rgba(110,231,183,0.1)]">
                <span className="relative flex h-14 w-14 mb-4">
                  <span className="animate-[ping_2s_ease-out_infinite] absolute inline-flex h-full w-full rounded-full bg-[#6EE7B7] opacity-20"></span>
-                 <img src="/logo-icon.png" alt="Aqarbot Core" className="relative inline-flex h-full w-full object-contain drop-shadow-[0_0_15px_rgba(110,231,183,0.5)]" />
+                 <Image src="/logo-icon.png" alt="Aqarbot Core" width={56} height={56} className="relative inline-flex h-full w-full object-contain drop-shadow-[0_0_15px_rgba(110,231,183,0.5)]" />
                </span>
                <p className="text-white text-xs font-bold mb-1">Aqar Intelligence</p>
                <p className="text-[#6EE7B7]/70 text-[8px] uppercase tracking-widest font-black">EN ATTENTE...</p>

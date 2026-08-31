@@ -4,6 +4,7 @@ import React from 'react';
 import Navbar from '@/components/Navbar';
 import ScrollReveal from '@/components/ScrollReveal';
 import { Bot, LineChart, Globe, Zap, MessageCircle, Database } from 'lucide-react';
+import Image from 'next/image';
 
 const productFeatures = [
   {
@@ -99,9 +100,10 @@ export default function ProduitPage() {
             
             <div className="relative w-full aspect-[4/3] lg:aspect-auto lg:h-[500px] bg-[#0d1624] border border-slate-800 rounded-sm shadow-2xl overflow-hidden flex items-center justify-center p-8 group">
               <div className="absolute inset-0 bg-gradient-to-br from-[#6EE7B7]/5 to-transparent z-0" />
-              <img 
+              <Image 
                   src="/whatsapp-crm.png" 
                   alt="WhatsApp CRM Integration" 
+                  width={800} height={600}
                   className="w-full max-w-[80%] h-auto object-contain relative z-10 transform group-hover:scale-[1.05] transition-transform duration-1000" 
               />
             </div>

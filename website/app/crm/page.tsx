@@ -41,7 +41,7 @@ export default function FonctionnalitesPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <ScrollReveal>
             <div className="bg-[#0d1624] border border-slate-800 rounded-sm hover:border-[#6EE7B7]/50 p-10 lg:p-16 transition-colors shadow-2xl relative">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#6EE7B7]/10 blur-[100px] rounded-full pointer-events-none" />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#6EE7B7]/10 blur-[100px] rounded-full pointer-events-none hidden md:block" />
               <div className="w-16 h-16 rounded-sm bg-[#6EE7B7]/10 flex items-center justify-center mb-10 border border-[#6EE7B7]/20">
                 <Zap className="w-8 h-8 text-[#6EE7B7]" />
               </div>
@@ -106,7 +106,7 @@ export default function FonctionnalitesPage() {
         </ScrollReveal>
 
         <ScrollReveal delay={200} className="relative max-w-4xl mx-auto flex items-center justify-center">
-          <div className="absolute inset-0 bg-[#6EE7B7]/10 blur-[120px] rounded-full mix-blend-screen pointer-events-none" />
+          <div className="absolute inset-0 bg-[#6EE7B7]/10 blur-[120px] rounded-full mix-blend-screen pointer-events-none hidden md:block" />
           <img 
             src="/maroc-core-tech-v2.png" 
             alt="Architecture Écosystème SaaS" 

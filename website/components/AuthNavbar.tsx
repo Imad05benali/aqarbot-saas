@@ -3,6 +3,7 @@
 import React from 'react';
 import { ArrowLeft, UserPlus, LogIn } from 'lucide-react';
 import { ThemeToggle } from './ThemeToggle';
+import Image from 'next/image';
 
 interface AuthNavbarProps {
   type: 'login' | 'register';
@@ -14,9 +15,11 @@ export default function AuthNavbar({ type }: AuthNavbarProps) {
       <div className="flex items-center justify-between h-10">
         <div className="flex items-center gap-6">
           <a href="/" className="flex items-center group">
-            <img 
+            <Image 
               src="/logo-icon.png" 
               alt="AqarBot Logo" 
+              width={40}
+              height={40}
               className="h-8 md:h-10 w-auto object-contain transition-transform group-hover:scale-105"
             />
           </a>

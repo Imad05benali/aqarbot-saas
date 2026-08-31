@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 
 export default function Footer() {
   const pathname = usePathname();
@@ -23,7 +24,7 @@ export default function Footer() {
           {/* Brand & Intro */}
           <div className="col-span-1 lg:col-span-1">
             <div className="flex items-center gap-3 mb-6">
-              <img src="/logo-icon.png" alt="Aqarbot" className="h-8 w-auto px-1" />
+              <Image src="/logo-icon.png" alt="Aqarbot" width={32} height={32} className="h-8 w-auto px-1" />
               <span className="text-white text-xl font-bold tracking-tight">Aqarbot.</span>
             </div>
             <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8">
@@ -98,9 +99,11 @@ export default function Footer() {
           
           <div className="w-14 h-14 sm:w-20 sm:h-20 md:w-28 md:h-28 lg:w-40 lg:h-40 rounded-full bg-[#6EE7B7] flex items-center justify-center shrink-0 shadow-[0_0_50px_rgba(110,231,183,0.3)] transition-transform hover:scale-[1.02] cursor-pointer ml-4">
             {/* Using brightness-0 to turn the logo pure black to match the reference style */}
-            <img 
+            <Image 
               src="/logo-icon.png" 
-              alt="Aqarbot Icon" 
+              alt="Aqarbot Icon"
+              width={64}
+              height={64} 
               className="w-[50%] h-[50%] object-contain brightness-0" 
             />
           </div>

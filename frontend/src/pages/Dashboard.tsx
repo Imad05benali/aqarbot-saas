@@ -94,7 +94,7 @@ export default function Dashboard() {
   if (isLoading) return (
     <div className="h-full flex flex-col items-center justify-center gap-6">
         <div className="h-16 w-16 relative">
-            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
+            <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse hidden md:block" />
             <Activity className="w-full h-full text-primary animate-spin" />
         </div>
         <span className="font-black text-[10px] uppercase tracking-[0.5em] text-slate-400">Synchronisation des Cœurs Arctiques</span>
@@ -123,7 +123,7 @@ export default function Dashboard() {
             key={kpi.label} 
             className="glacier-card p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] group cursor-pointer"
           >
-            <div className={`absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br ${kpi.color} opacity-0 group-hover:opacity-10 blur-[80px] transition-all duration-700`} />
+            <div className={`absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br ${kpi.color} opacity-0 group-hover:opacity-10 blur-[80px] transition-all duration-700 hidden md:block`} />
             
             <div className="flex justify-between items-start relative z-10">
               <div className="space-y-1 md:space-y-2">
@@ -299,7 +299,7 @@ export default function Dashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-2xl"
+            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/95 md:bg-slate-950/80 md:backdrop-blur-2xl"
           >
             <motion.div 
               initial={{ scale: 0.9, y: 40 }}
