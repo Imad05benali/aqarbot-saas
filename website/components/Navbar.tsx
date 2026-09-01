@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Rocket, ChevronRight, ArrowRight } from 'lucide-react';
+import { Menu, X, ChevronRight, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 
 export default function Navbar() {
@@ -127,7 +127,7 @@ export default function Navbar() {
             href="/auth/login"
             className="w-full bg-[#6EE7B7] text-[#0B1120] text-xs font-black uppercase tracking-wider rounded-[1.25rem] py-4 flex items-center justify-between px-6 transition-transform active:scale-95 shadow-xl"
           >
-            <span>Ouvrir l'Espace Agence</span>
+            <span>Ouvrir l&apos;Espace Agence</span>
             <ChevronRight className="w-5 h-5 flex-shrink-0" />
           </a>
           <a 
