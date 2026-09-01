@@ -80,7 +80,7 @@ export default function Navbar() {
       </nav>
 
       {/* ─── MOBILE FLOATING PILL ───────────────────────────────────────────── */}
-      <nav className={`md:hidden fixed top-3 left-3 right-3 z-[110] flex items-center justify-between bg-[#1f2322] rounded-full pl-5 pr-1.5 py-1.5 shadow-2xl border border-white/5 transition-all duration-300 ${isOpen ? 'bg-[#0d100f] border-transparent' : ''}`}>
+      <nav className={`md:hidden fixed top-3 left-3 right-3 z-[110] flex items-center justify-between bg-[#131d2c]/95 backdrop-blur-xl rounded-full pl-5 pr-1.5 py-1.5 shadow-2xl border border-white/10 transition-all duration-300 ${isOpen ? 'bg-[#0B1120] border-transparent' : ''}`}>
         <a href="/" className="flex items-center gap-2" onClick={() => setIsOpen(false)}>
           <Image src="/logo-icon.png" alt="Aqarbot" width={20} height={20} className="opacity-90 brightness-0 invert" />
           <span className="text-white font-extrabold tracking-tight text-lg mb-0.5">aqarbot</span>
@@ -96,10 +96,10 @@ export default function Navbar() {
       </nav>
 
       {/* ─── MOBILE FULLSCREEN MENU ─────────────────────────────────────────── */}
-      <div className={`fixed inset-0 z-[100] md:hidden transition-all duration-400 ease-in-out bg-[#0D100F] flex flex-col pt-20 px-3 pb-6 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+      <div className={`fixed inset-0 z-[100] md:hidden transition-all duration-400 ease-in-out bg-[#0B1120] flex flex-col pt-20 px-3 pb-6 ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         
         {/* Navigation Links List */}
-        <div className="flex-1 flex flex-col bg-[#121514] rounded-3xl p-5 border border-white/5 mt-4 overflow-y-auto">
+        <div className="flex-1 flex flex-col bg-[#0d1624] rounded-3xl p-5 border border-white/5 mt-4 overflow-y-auto">
           {navLinks.map((link, i) => (
             <a 
               key={link.name} 
@@ -132,7 +132,7 @@ export default function Navbar() {
           </a>
           <a 
             href="/auth/register"
-            className="w-full bg-[#181a1a] text-white border border-white/5 text-xs font-black uppercase tracking-wider rounded-[1.25rem] py-4 flex items-center justify-between px-6 transition-transform active:scale-95"
+            className="w-full bg-[#131d2c] text-white border border-white/5 text-xs font-black uppercase tracking-wider rounded-[1.25rem] py-4 flex items-center justify-between px-6 transition-transform active:scale-95"
           >
             <span>Essai Gratuit</span>
             <ChevronRight className="w-5 h-5 text-slate-500 flex-shrink-0" />
