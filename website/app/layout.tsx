@@ -92,7 +92,7 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300 overflow-x-hidden`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300 overflow-x-clip`}
         suppressHydrationWarning
       >
         <ThemeProvider
@@ -104,7 +104,7 @@ export default function RootLayout({
           <SmoothScroll>
 
             <Navbar />
-            <div className="relative z-10 min-h-screen overflow-x-hidden">
+            <div className="relative z-10 min-h-screen overflow-x-clip">
               {children}
               <Footer />
             </div>

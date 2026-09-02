@@ -192,7 +192,9 @@ function FeaturesDesktop() {
   });
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    const index = Math.min(features.length - 1, Math.floor(latest * features.length));
+    // Clamp the raw index to strictly stay within the array bounds to prevent React crashes on macOS bounce/overscroll.
+    const rawIndex = Math.floor(latest * features.length);
+    const index = Math.max(0, Math.min(features.length - 1, rawIndex));
     setActive(index);
   });
 
@@ -203,12 +205,14 @@ function FeaturesDesktop() {
     if (!containerRef.current) return;
     const { top, height } = containerRef.current.getBoundingClientRect();
     const scrollTarget = window.scrollY + top + (height / features.length) * idx;
-    window.scrollTo({ top: scrollTarget, behavior: 'smooth' });
+    
+    // Using auto instead of smooth to avoid conflicts with Lenis hijacking
+    window.scrollTo({ top: scrollTarget, behavior: 'auto' });
   };
 
   return (
-    <div ref={containerRef} className="relative w-full border-t border-slate-800" style={{ height: `${features.length * 100}vh` }}>
-      <div className="sticky top-0 h-screen w-full flex overflow-hidden">
+    <div ref={containerRef} className="relative w-full border-t border-slate-800" style={{ height: `${features.length * 65}vh` }}>
+      <div className="sticky top-0 h-screen w-full flex overflow-hidden pt-[72px] md:pt-[80px] lg:pt-[96px]">
         {/* LEFT SIDEBAR */}
         <aside className="w-[240px] xl:w-[280px] shrink-0 border-r border-slate-800 bg-[#0B1120] flex flex-col justify-center px-6 xl:px-8 py-10 z-20 shadow-2xl">
           <p className="text-[10px] text-slate-600 font-black uppercase tracking-[0.3em] mb-6">
@@ -277,78 +281,97 @@ function FeaturesDesktop() {
   );
 }
 
-// ─── MOBILE: swipeable slider version ─────────────────────────────────
+// ─── MOBILE: editorial stacked sections + right-side scroll indicator ─
 function FeaturesMobile() {
-  const [active, setActive] = React.useState(0);
+  const [activeIdx, setActiveIdx] = React.useState(0);
+  const sectionRefs = React.useRef<(HTMLDivElement | null)[]>([]);
+
+  React.useEffect(() => {
+    const observers = sectionRefs.current.map((ref, i) => {
+      if (!ref) return null;
+      const obs = new IntersectionObserver(
+        ([entry]) => { if (entry.isIntersecting) setActiveIdx(i); },
+        { threshold: 0.4 }
+      );
+      obs.observe(ref);
+      return obs;
+    });
+    return () => observers.forEach((obs) => obs?.disconnect());
+  }, []);
 
   return (
-    <div className="w-full border-t border-slate-800 bg-[#0B1120] px-6 py-12">
-      <div className="max-w-lg mx-auto w-full">
-        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
-          Explorer 
-          <span className="text-[#6EE7B7]">{String(active + 1).padStart(2, '0')} / {String(features.length).padStart(2, '0')}</span>
-        </p>
-        <div className="h-px w-full bg-slate-800 mb-10 rounded-full overflow-hidden relative">
-           <div className="absolute left-0 top-0 h-full bg-[#6EE7B7] transition-all duration-300 rounded-full" style={{ width: `${((active + 1) / features.length) * 100}%` }} />
-        </div>
+    <div className="w-full bg-[#0B1120] relative">
+      {/* Subtle green grid background */}
+      <div className="absolute inset-0 pointer-events-none opacity-[0.035]" style={{ backgroundImage: 'linear-gradient(to right, #6EE7B7 1px, transparent 1px), linear-gradient(to bottom, #6EE7B7 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
-        <div className="space-y-3">
-          {features.map((f, i) => {
-            const isActive = i === active;
-            return (
-              <div key={f.number} className="flex flex-col">
-                <button
-                  onClick={() => setActive(isActive ? -1 : i)}
-                  className={`w-full text-left flex items-center justify-between gap-4 px-5 py-4 rounded-xl transition-all duration-300 ${
-                    isActive ? 'bg-[#6EE7B7]' : 'hover:bg-slate-800/40 bg-slate-900/40 border border-white/5'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <span className={`text-[13px] font-black tabular-nums transition-colors ${isActive ? 'text-[#0B1120]' : 'text-slate-600'}`}>{f.number}</span>
-                    <span className={`flex-1 font-black text-sm tracking-wide transition-colors ${isActive ? 'text-[#0B1120]' : 'text-slate-400'}`}>{f.title}</span>
-                  </div>
-                  {isActive ? (
-                    <ArrowRight className="w-4 h-4 text-[#0B1120] shrink-0" />
-                  ) : null}
-                </button>
-
-                {/* Expanded Content */}
-                <div className={`overflow-hidden transition-all duration-500 ease-in-out ${isActive ? 'max-h-[2500px] opacity-100 mt-6 mb-10' : 'max-h-0 opacity-0'}`}>
-                  <div className="flex flex-col px-1">
-                    <div className="flex items-center gap-3 mb-6">
-                      <span className="w-px h-4 bg-slate-700" />
-                      <span className="text-[9px] text-[#6EE7B7] font-black uppercase tracking-[0.2em]">{f.tagline}</span>
-                    </div>
-                    
-                    <h3 className="text-2xl font-black text-white uppercase tracking-tight mb-4 leading-[1.1]">{f.title}</h3>
-                    <p className="text-slate-400 text-sm font-medium leading-relaxed mb-10">{f.description}</p>
-
-                    {/* Mockup */}
-                    <div className="mb-10 relative w-full pt-2">
-                       {f.mockup}
-                    </div>
-
-                    {/* Detail bullets */}
-                    <div className="space-y-4 border-t border-slate-800/80 pt-8 mt-4">
-                      {f.details.map((d) => (
-                        <div key={d.label} className="flex gap-4">
-                          <div className="w-6 h-6 shrink-0 rounded-full bg-[#0d1624] border border-slate-800 flex items-center justify-center -mt-0.5 shadow-sm">
-                            <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7]" />
-                          </div>
-                          <div>
-                            <p className="text-slate-200 font-bold text-sm tracking-wide mb-1.5">{d.label}</p>
-                            <p className="text-slate-500 text-xs font-medium leading-relaxed">{d.desc}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+      {/* ── RIGHT-SIDE STICKY INDICATOR (Scoped to this section) ── */}
+      <div className="absolute right-0 top-0 h-full w-12 z-50 pointer-events-none md:hidden">
+        <div className="sticky top-[30%] -translate-y-1/2 pr-2 pointer-events-auto flex justify-end">
+          <div className="flex flex-col items-center gap-5 bg-[#0B1120]/90 backdrop-blur-sm border border-slate-700/50 rounded-2xl px-2.5 py-4">
+            {features.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => sectionRefs.current[i]?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                className="flex flex-col items-center gap-1.5 group"
+              >
+                {i === activeIdx ? (
+                  <span className="text-[16px] font-black text-[#6EE7B7] tabular-nums leading-none transition-all duration-300 drop-shadow-[0_0_12px_#6EE7B7]">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                ) : (
+                  <span className="text-[13px] font-black text-slate-600 tabular-nums leading-none transition-all duration-300 group-hover:text-slate-400">
+                    {String(i + 1).padStart(2, '0')}
+                  </span>
+                )}
+                {i === activeIdx && (
+                  <span className="w-2 h-2 rounded-full bg-[#6EE7B7] drop-shadow-[0_0_8px_#6EE7B7]" />
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
+
+      {/* ── STACKED SECTIONS ── */}
+      {features.map((f, i) => (
+        <div
+          key={f.number}
+          ref={(el) => { sectionRefs.current[i] = el; }}
+          className="relative border-t border-slate-800/60 px-6 py-10 pr-10"
+        >
+          {/* Category tag */}
+          <p className="flex items-center gap-2 text-[9px] text-[#6EE7B7] font-black uppercase tracking-[0.25em] mb-4">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] shadow-[0_0_8px_#6EE7B7]" />
+            {f.tagline}
+          </p>
+
+          {/* Big title */}
+          <h3 className="text-[2rem] font-black text-white uppercase tracking-tight leading-[0.88] mb-4 pr-6">
+            {f.title}
+          </h3>
+
+          {/* Description */}
+          <p className="text-slate-400 text-sm font-medium leading-relaxed mb-8">
+            {f.description}
+          </p>
+
+          {/* 2-column feature grid */}
+          <div className="grid grid-cols-2 gap-x-5 gap-y-5 mb-8">
+            {f.details.map((d) => (
+              <div key={d.label}>
+                <p className="text-white text-[11px] font-black tracking-wide mb-1 flex items-center gap-1.5">
+                  <span className="w-1 h-1 rounded-full bg-[#6EE7B7] shrink-0" />
+                  {d.label}
+                </p>
+                <p className="text-slate-500 text-[10px] font-medium leading-relaxed">{d.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Mockup */}
+          <div className="w-full">{f.mockup}</div>
+        </div>
+      ))}
     </div>
   );
 }
