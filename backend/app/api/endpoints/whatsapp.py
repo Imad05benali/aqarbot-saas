@@ -43,7 +43,7 @@ async def whatsapp_verify(
 ):
     if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
         print("INFO: WhatsApp Webhook Verified Successfully!")
-        return Response(content=hub_challenge)
+        return PlainTextResponse(content=hub_challenge)
     raise HTTPException(status_code=403, detail="Verification token mismatch")
 
 @router.post("/webhook")

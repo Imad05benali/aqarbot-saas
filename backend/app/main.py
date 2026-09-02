@@ -319,6 +319,8 @@ async def update_settings(request: Request):
     data = await request.json()
     return {"status": "success", "updated_tone": data.get("tone")}
 
+from fastapi.responses import PlainTextResponse
+
 # 1. Verification d Webhook Meta (WhatsApp)
 @app.get("/api/whatsapp/webhook")
 def verify_webhook(
@@ -331,10 +333,10 @@ def verify_webhook(
     
     if hub_mode == "subscribe" and hub_verify_token == verify_token:
         print("✅ [Webhook Verification]: Success!")
-        return Response(content=hub_challenge)
+        return PlainTextResponse(content=hub_challenge)
     
     print("❌ [Webhook Verification]: Failed")
-    return Response(content="Verification failed", status_code=403)
+    return PlainTextResponse(content="Verification failed", status_code=403)
 
 
 def _resolve_agency_id(phone_number: str = None) -> str:
