@@ -368,29 +368,29 @@ export default function Home() {
                     </div>
                  </div>
                  
-                 <div className="flex-1 p-6 flex flex-col">
-                   <div className="flex justify-between items-start mb-6">
-                     <div>
-                       <p className="text-[8px] font-black uppercase tracking-widest text-[#6EE7B7] mb-1">VUE D'ENSEMBLE</p>
-                       <h3 className="text-2xl font-medium text-white">Bonjour, Yasmine</h3>
+                 <div className="flex-1 p-5 flex flex-col overflow-hidden">
+                   <div className="flex justify-between items-start mb-5">
+                     <div className="min-w-0 pr-2">
+                       <p className="text-[7px] font-black uppercase tracking-widest text-[#6EE7B7] mb-1">VUE D'ENSEMBLE</p>
+                       <h3 className="text-lg sm:text-xl font-black text-white uppercase tracking-tight whitespace-nowrap truncate">BONJOUR, YASMINE</h3>
                      </div>
-                     <button className="px-3 py-1 border border-slate-700 text-slate-300 text-[8px] font-bold uppercase rounded-sm">○ Aide</button>
+                     <button className="shrink-0 px-2.5 py-1 flex items-center gap-1 border border-slate-700 text-slate-300 text-[7px] font-bold uppercase rounded-sm"><span className="text-[6px]">○</span> Aide</button>
                    </div>
                    
-                   <div className="grid grid-cols-3 gap-4 mb-8">
-                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-4">
-                       <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wide mb-3">Leads aujourd'hui</p>
-                       <p className="text-2xl font-black text-white mb-2">42</p>
+                   <div className="grid grid-cols-3 gap-2 sm:gap-3 mb-6">
+                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-3 flex flex-col justify-center min-h-[70px]">
+                       <p className="text-[6.5px] font-bold text-slate-500 uppercase tracking-wide mb-2 leading-tight">Leads<br/>Aujourd'hui</p>
+                       <p className="text-lg font-black text-white">42</p>
                      </div>
-                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-4 relative">
-                       <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wide mb-3">Score moyen</p>
-                       <p className="text-2xl font-black text-[#6EE7B7] mb-2">76.2</p>
-                       <div className="absolute bottom-4 left-4 right-4 h-0.5 bg-slate-800"><div className="h-full bg-[#6EE7B7] w-[76%]" /></div>
+                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-3 flex flex-col justify-center min-h-[70px] relative">
+                       <p className="text-[6.5px] font-bold text-slate-500 uppercase tracking-wide mb-2 leading-tight">Score<br/>Moyen</p>
+                       <p className="text-lg font-black text-[#6EE7B7]">76.2</p>
+                       <div className="absolute bottom-2 left-3 right-3 h-[1.5px] bg-slate-800"><div className="h-full bg-[#6EE7B7] w-[76%]" /></div>
                      </div>
-                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-4 relative">
-                       <p className="text-[8px] font-bold text-slate-500 uppercase tracking-wide mb-3">Réponse médiane</p>
-                       <p className="text-2xl font-black text-white mb-2">00:28</p>
-                       <div className="absolute bottom-4 left-4 right-4 h-0.5 bg-slate-800"><div className="h-full bg-yellow-500 w-[20%]" /></div>
+                     <div className="bg-[#0B1120] border border-slate-800 rounded-sm p-3 flex flex-col justify-center min-h-[70px] relative overflow-hidden">
+                       <p className="text-[6.5px] font-bold text-slate-500 uppercase tracking-wide mb-2 leading-tight w-full truncate">Réponse<br/>Médiane</p>
+                       <p className="text-lg font-black text-white whitespace-nowrap">00:28</p>
+                       <div className="absolute bottom-2 left-3 right-3 h-[1.5px] bg-slate-800"><div className="h-full bg-yellow-500 w-[20%]" /></div>
                      </div>
                    </div>
 
@@ -493,10 +493,10 @@ export default function Home() {
           </Reveal>
 
           {/* Pricing Linked Cards */}
-          <Reveal delay={200} className="w-full border border-slate-800 rounded-lg overflow-hidden flex flex-col lg:flex-row bg-[#0B1120]">
+          <Reveal delay={200} className="w-full border border-slate-800 rounded-lg overflow-x-auto overflow-y-hidden snap-x snap-mandatory flex bg-[#0B1120] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
             
             {/* Column 1 - SOLO */}
-            <div className="flex-1 p-10 md:p-14 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col items-start bg-[#0B1522]">
+            <div className="flex-1 w-full min-w-[85vw] sm:min-w-[400px] lg:min-w-0 shrink-0 snap-center p-8 md:p-14 border-r border-slate-800 flex flex-col items-start bg-[#0B1522]">
               <div className="text-slate-500 text-sm font-black mb-12">01</div>
               <div className="text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] mb-2">Agent Solo - Indépendant</div>
               <h3 className="text-white text-3xl font-black uppercase mb-12 tracking-tight">Solo</h3>
@@ -517,7 +517,7 @@ export default function Home() {
             </div>
 
             {/* Column 2 - AGENCE (Highlighted) */}
-            <div className="flex-1 p-10 md:p-14 border-b md:border-b-0 md:border-r border-[#6EE7B7]/20 flex flex-col bg-[#112a28] relative">
+            <div className="flex-1 w-full min-w-[85vw] sm:min-w-[400px] lg:min-w-0 shrink-0 snap-center p-8 md:p-14 border-r border-[#6EE7B7]/20 flex flex-col bg-[#112a28] relative">
               <div className="absolute inset-0 bg-gradient-to-b from-[#6EE7B7]/5 to-transparent pointer-events-none" />
               
               <div className="flex justify-between items-start mb-12 relative z-10 w-full">
@@ -553,7 +553,7 @@ export default function Home() {
             </div>
 
             {/* Column 3 - SUR-MESURE */}
-            <div className="flex-1 p-10 md:p-14 flex flex-col items-start bg-[#0B1522]">
+            <div className="flex-1 w-full min-w-[85vw] sm:min-w-[400px] lg:min-w-0 shrink-0 snap-center p-8 md:p-14 flex flex-col items-start bg-[#0B1522]">
               <div className="text-slate-500 text-sm font-black mb-12">03</div>
               <div className="text-slate-500 text-[9px] font-black uppercase tracking-[0.2em] mb-2">Tout Métier Immobilier</div>
               <h3 className="text-white text-3xl font-black uppercase mb-12 tracking-tight">Sur-Mesure</h3>
