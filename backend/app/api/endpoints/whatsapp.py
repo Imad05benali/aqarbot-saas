@@ -1,7 +1,7 @@
 import os
 import json
 import traceback
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Response
 from fastapi.responses import PlainTextResponse
 from app.services.llm_service import LLMService
 from app.services.whatsapp_service import WhatsAppService
@@ -11,7 +11,7 @@ from app.core.supabase import supabase
 
 router = APIRouter()
 
-VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "aqarbot_secret_token_2026")
+VERIFY_TOKEN = os.getenv("META_VERIFY_TOKEN", "aqarbot_secret_token_2026")
 
 # In-memory session store (Simple State Machine)
 sessions = {}
@@ -38,12 +38,12 @@ def _resolve_agency_for_router(phone_number: str = None) -> str:
 @router.get("/webhook")
 async def whatsapp_verify(
     hub_mode: str = Query(None, alias="hub.mode"),
-    hub_challenge: int = Query(None, alias="hub.challenge"),
+    hub_challenge: str = Query(None, alias="hub.challenge"),
     hub_verify_token: str = Query(None, alias="hub.verify_token")
 ):
     if hub_mode == "subscribe" and hub_verify_token == VERIFY_TOKEN:
         print("INFO: WhatsApp Webhook Verified Successfully!")
-        return PlainTextResponse(str(hub_challenge))
+        return Response(content=hub_challenge)
     raise HTTPException(status_code=403, detail="Verification token mismatch")
 
 @router.post("/webhook")

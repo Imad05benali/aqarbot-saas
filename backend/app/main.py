@@ -3,7 +3,7 @@ import time
 import re
 from collections import Counter
 from dotenv import load_dotenv
-from fastapi import FastAPI, Request, Response, File, UploadFile
+from fastapi import FastAPI, Request, Response, File, UploadFile, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables before importing other modules
@@ -321,14 +321,17 @@ async def update_settings(request: Request):
 
 # 1. Verification d Webhook Meta (WhatsApp)
 @app.get("/api/whatsapp/webhook")
-def verify_webhook(request: Request):
-    params = request.query_params
-    print(f"🔍 [Webhook Verification]: Params -> {params}")
-    verify_token = os.getenv("WHATSAPP_VERIFY_TOKEN", "aqarbot_secret_token_2026")
+def verify_webhook(
+    hub_mode: str = Query(None, alias="hub.mode"),
+    hub_challenge: str = Query(None, alias="hub.challenge"),
+    hub_verify_token: str = Query(None, alias="hub.verify_token")
+):
+    print(f"🔍 [Webhook Verification]: Mode -> {hub_mode}, Token -> {hub_verify_token}, Challenge -> {hub_challenge}")
+    verify_token = os.getenv("META_VERIFY_TOKEN", "aqarbot_secret_token_2026")
     
-    if params.get("hub.mode") == "subscribe" and params.get("hub.verify_token") == verify_token:
+    if hub_mode == "subscribe" and hub_verify_token == verify_token:
         print("✅ [Webhook Verification]: Success!")
-        return Response(content=params.get("hub.challenge"), media_type="text/plain")
+        return Response(content=hub_challenge)
     
     print("❌ [Webhook Verification]: Failed")
     return Response(content="Verification failed", status_code=403)
