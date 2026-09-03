@@ -4,10 +4,14 @@ import traceback
 import time
 import random
 import re
+import logging
 from datetime import datetime, timedelta, timezone
 from google import genai
 from google.genai import types
 from app.core.supabase import supabase
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 AQARBOT_SYSTEM_PROMPT = """
 You are AqarBot, a professional Moroccan virtual real estate agent. You must converse with the user exclusively in Moroccan Darija, maintaining a respectful, friendly, and highly concise tone suitable for WhatsApp. 
@@ -83,6 +87,7 @@ class LLMService:
         """
         try:
             # 1. Store user message in DB
+            logger.info("Attempting to save user message to Supabase...")
             db_save_user = supabase.table("conversation_history").insert({
                 "phone_number": phone_number,
                 "role": "user",
@@ -90,9 +95,11 @@ class LLMService:
             }).execute()
 
             # 2. Fetch history (Last 24 hours)
+            logger.info("Attempting to fetch conversation history from Supabase...")
             time_threshold = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
             history_req = supabase.table("conversation_history").select("*").eq("phone_number", phone_number).gte("created_at", time_threshold).order("created_at", desc=False).execute()
             history_records = history_req.data if history_req.data else []
+            logger.info(f"Successfully fetched {len(history_records)} history records.")
 
             # 3. Format history for Gemini API
             contents = []
@@ -102,6 +109,7 @@ class LLMService:
                 contents.append(types.Content(role=role, parts=[types.Part.from_text(text=record["content"])]))
             
             # 4. Call Gemini
+            logger.info("Sending prompt and history to Gemini...")
             config = types.GenerateContentConfig(
                 system_instruction=AQARBOT_SYSTEM_PROMPT,
                 temperature=0.7
@@ -113,8 +121,10 @@ class LLMService:
             )
             
             model_text = response.text.strip()
+            logger.info("Successfully received Gemini response.")
             
             # 5. Save model response to DB
+            logger.info("Attempting to save model response to Supabase...")
             db_save_model = supabase.table("conversation_history").insert({
                 "phone_number": phone_number,
                 "role": "model",
@@ -124,7 +134,9 @@ class LLMService:
             return model_text
             
         except Exception as e:
-            print(f"ERROR in chat_with_agent: {traceback.format_exc()}")
+            logger.error(f"CRITICAL ERROR in chat_with_agent: {str(e)}", exc_info=True)
+            # Make sure we don't return silent strings during testing if they want explicit logs.
+            # Returning fallback, but logs will contain the raw trace.
             return "Sma7 lia khoya, kayn mouchkil tekniki 7alyan. Jereb mrra okhra men be3d! 🏠"
 
     # ───────────────────────────────────────────────────────────

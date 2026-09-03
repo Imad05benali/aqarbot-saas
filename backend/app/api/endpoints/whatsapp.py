@@ -1,6 +1,7 @@
 import os
 import json
 import traceback
+import logging
 from fastapi import APIRouter, Request, HTTPException, Query, Response
 from fastapi.responses import PlainTextResponse
 from app.services.llm_service import LLMService
@@ -8,6 +9,9 @@ from app.services.whatsapp_service import WhatsAppService
 from app.services.lead_service import LeadService
 from app.api.endpoints.properties import search_properties
 from app.core.supabase import supabase
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 router = APIRouter()
 
@@ -157,13 +161,13 @@ async def whatsapp_webhook(request: Request):
                                     await WhatsAppService.send_whatsapp_message(client_phone, caption)
                     
                     except Exception as inner_e:
-                        print(f"⚠️ WEBHOOK INNER ERROR: {traceback.format_exc()}")
+                        logger.error(f"⚠️ WEBHOOK INNER ERROR: {str(inner_e)}", exc_info=True)
                         fallback = "Sma7 lia bzaf, kayn chi mouchkil tekniki daba. Ghadi n-jawbek dghia ghir issebek l-fara7! 🏠"
                         await WhatsAppService.send_whatsapp_message(client_phone, fallback)
                             
-        print(f"--- INCOMING WHATSAPP WEBHOOK END ---\n")
+        logger.info(f"--- INCOMING WHATSAPP WEBHOOK END ---\n")
         return {"status": "received"}
         
     except Exception as e:
-        print(f"❌ CRITICAL WEBHOOK ERROR: {traceback.format_exc()}")
+        logger.error(f"❌ CRITICAL WEBHOOK ERROR: {str(e)}", exc_info=True)
         return {"status": "error", "detail": str(e)}
