@@ -26,7 +26,7 @@ def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Pro
     """Resolve agency_id: first from existing lead, then fallback to newest user."""
     if phone_number:
         try:
-            existing = supabase.table("leads").select("agency_id").eq("phone_number", phone_number).limit(1).execute()
+            existing = supabase.table("leads").select("agency_id").eq("phone", phone_number).limit(1).execute()
             if existing.data and existing.data[0].get("agency_id"):
                 return existing.data[0]["agency_id"]
         except Exception:
@@ -45,9 +45,9 @@ def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Pro
     if agency_id and phone_number:
         try:
             supabase.table("leads").insert({
-                "phone_number": phone_number,
+                "phone": phone_number,
                 "agency_id": agency_id,
-                "full_name": client_name,
+                "name": client_name,
                 "status": "new"
             }).execute()
         except Exception as e:
