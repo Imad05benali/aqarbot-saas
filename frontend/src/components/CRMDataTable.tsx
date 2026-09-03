@@ -23,11 +23,12 @@ export default function CRMDataTable({ data, onDelete, onBulkUpload, title: _tit
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
-  const filteredData = useMemo(() => data.filter(row => 
-    row.City?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    row.Nighberd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    row.Type?.toLowerCase().includes(searchTerm.toLowerCase())
-  ), [data, searchTerm]);
+  const safeData = Array.isArray(data) ? data : ((data as any)?.properties || (data as any)?.data || []);
+  const filteredData = useMemo(() => safeData.filter(row => 
+    row?.City?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    row?.Nighberd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    row?.Type?.toLowerCase().includes(searchTerm.toLowerCase())
+  ), [safeData, searchTerm]);
 
   return (
     <div className="space-y-6">
@@ -102,13 +103,13 @@ export default function CRMDataTable({ data, onDelete, onBulkUpload, title: _tit
                     >
                       <td className="px-6 py-4">
                         <div className="flex flex-col">
-                          <span className="font-bold text-slate-900 dark:text-white">{row.City}</span>
-                          <span className="text-[10px] font-mono opacity-60 uppercase">{row.Nighberd}</span>
+                          <span className="font-bold text-slate-900 dark:text-white">{row?.City || 'N/A'}</span>
+                          <span className="text-[10px] font-mono opacity-60 uppercase">{row?.Nighberd || 'N/A'}</span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span className="px-2.5 py-1 rounded-md bg-accent/10 text-accent font-bold text-[10px] uppercase border border-accent/20">
-                          {row.Type}
+                          {row?.Type || 'N/A'}
                         </span>
                       </td>
                       <td className="px-6 py-4 font-mono font-bold text-slate-950 dark:text-white text-right">
