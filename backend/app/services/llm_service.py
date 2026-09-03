@@ -115,7 +115,7 @@ class LLMService:
                 temperature=0.7
             )
             response = LLMService._call_gemini_with_retry(
-                model='gemini-2.0-flash-lite',
+                model='gemini-3.5-flash-lite',
                 contents=contents,
                 config=config
             )
@@ -219,7 +219,7 @@ class LLMService:
 
         try:
             response = LLMService._call_gemini_with_retry(
-                model='gemini-2.0-flash-lite',
+                model='gemini-3.5-flash-lite',
                 contents=prompt
             )
             return response.text.strip()
@@ -334,9 +334,9 @@ class LLMService:
         """
 
         try:
-            # SYNC: Using gemini-2.0-flash-lite for higher availability
+            # SYNC: Using gemini-3.5-flash-lite for higher availability
             response = LLMService._call_gemini_with_retry(
-                model='gemini-2.0-flash-lite',
+                model='gemini-3.5-flash-lite',
                 contents=system_prompt
             )
             return response.text.strip()
@@ -363,7 +363,7 @@ class LLMService:
         try:
             config = types.GenerateContentConfig(temperature=0.0)
             response = LLMService._call_gemini_with_retry(
-                model='gemini-2.0-flash-lite',
+                model='gemini-3.5-flash-lite',
                 contents=prompt,
                 config=config
             )
@@ -447,7 +447,7 @@ class LLMService:
         try:
             config = types.GenerateContentConfig(temperature=0.0, response_mime_type="application/json")
             response = LLMService._call_gemini_with_retry(
-                model='gemini-2.0-flash-lite',
+                model='gemini-3.5-flash-lite',
                 contents=prompt,
                 config=config
             )
