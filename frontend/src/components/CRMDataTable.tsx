@@ -24,7 +24,7 @@ export default function CRMDataTable({ data, onDelete, onBulkUpload, title: _tit
   const [searchTerm, setSearchTerm] = useState('');
 
   const safeData = Array.isArray(data) ? data : ((data as any)?.properties || (data as any)?.data || []);
-  const filteredData = useMemo(() => safeData.filter(row => 
+  const filteredData = useMemo(() => safeData.filter((row: any) => 
     row?.City?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     row?.Nighberd?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     row?.Type?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -92,7 +92,7 @@ export default function CRMDataTable({ data, onDelete, onBulkUpload, title: _tit
                     </td>
                   </tr>
                 ) : (
-                  filteredData.map((row, i) => (
+                  filteredData.map((row: any, i: number) => (
                     <motion.tr 
                       key={row.id}
                       initial={{ opacity: 0 }}
