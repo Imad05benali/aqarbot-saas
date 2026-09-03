@@ -22,7 +22,7 @@ sessions = {}
 # Deduplication store
 processed_messages = set()
 
-def _resolve_agency_for_router(phone_number: str = None) -> str:
+def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Prospect") -> str:
     """Resolve agency_id: first from existing lead, then fallback to newest user."""
     if phone_number:
         try:
@@ -31,13 +31,29 @@ def _resolve_agency_for_router(phone_number: str = None) -> str:
                 return existing.data[0]["agency_id"]
         except Exception:
             pass
+            
+    # Fallback to the newest registered agency owner
+    agency_id = None
     try:
         agency_res = supabase.table("users").select("id").order("created_at", desc=True).limit(1).execute()
         if agency_res.data:
-            return agency_res.data[0]["id"]
+            agency_id = agency_res.data[0]["id"]
     except Exception:
         pass
-    return None
+        
+    # Lead didn't exist, so let's automatically create them now!
+    if agency_id and phone_number:
+        try:
+            supabase.table("leads").insert({
+                "phone_number": phone_number,
+                "agency_id": agency_id,
+                "full_name": client_name,
+                "status": "new"
+            }).execute()
+        except Exception as e:
+            logger.error(f"Error auto-creating lead: {e}")
+            
+    return agency_id
 
 @router.get("/webhook")
 async def whatsapp_verify(
@@ -72,27 +88,29 @@ async def whatsapp_webhook(request: Request):
                 if "statuses" in value:
                     continue
 
-                if "messages" in value and value["messages"]:
-                    message_obj = value["messages"][0]
-                    client_phone = value.get("contacts", [{}])[0].get("wa_id", message_obj.get("from"))
-                    
-                    # 1. Deduplication
-                    msg_id = message_obj.get("id")
-                    if msg_id in processed_messages:
-                        print(f"DEBUG: Skipping duplicate message {msg_id}")
-                        continue
-                    
-                    if len(processed_messages) > 1000:
-                        processed_messages.clear()
-                    processed_messages.add(msg_id)
-
-                    # 2. Clean input
-                    client_text = message_obj.get("text", {}).get("body", "").strip()
-                    print(f"MESSAGE: From {client_phone}: '{client_text}'")
-                    
-                    # 2.5 MULTI-TENANT: Resolve agency_id
-                    agency_id = _resolve_agency_for_router(client_phone)
-                    print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone}")
+                    if "messages" in value and value["messages"]:
+                        message_obj = value["messages"][0]
+                        contact_info = value.get("contacts", [{}])[0]
+                        client_phone = contact_info.get("wa_id", message_obj.get("from"))
+                        client_name = contact_info.get("profile", {}).get("name", "Prospect")
+                        
+                        # 1. Deduplication
+                        msg_id = message_obj.get("id")
+                        if msg_id in processed_messages:
+                            print(f"DEBUG: Skipping duplicate message {msg_id}")
+                            continue
+                        
+                        if len(processed_messages) > 1000:
+                            processed_messages.clear()
+                        processed_messages.add(msg_id)
+    
+                        # 2. Clean input
+                        client_text = message_obj.get("text", {}).get("body", "").strip()
+                        print(f"MESSAGE: From {client_name} ({client_phone}): '{client_text}'")
+                        
+                        # 2.5 MULTI-TENANT: Resolve agency_id & Auto-create lead
+                        agency_id = _resolve_agency_for_router(client_phone, client_name)
+                        print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone}")
                     
                     if agency_id:
                         try:
