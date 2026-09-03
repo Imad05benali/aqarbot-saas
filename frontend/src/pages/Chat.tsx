@@ -4,8 +4,7 @@ import { MessageSquare, User, Send, Bot, Shield, Search, Terminal, Info, Zap } f
 import { motion } from 'framer-motion';
 import TakeoverToggle from '../components/TakeoverToggle';
 import { supabase } from '../lib/supabase';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+import api from '../api/axios';
 
 export default function Chat() {
   const [sessions, setSessions] = useState<any[]>([]);
@@ -51,19 +50,16 @@ export default function Chat() {
 
       // 1. Persist to backend via /api/chatbot/simulate (ensures lead + conversation + agency_id binding)
       try {
-        await fetch(`${API_BASE_URL}/api/chatbot/simulate`, {
-          method: 'POST',
+        await api.post('/api/chatbot/simulate', {
+          agency_id: user.id,
+          phone: activeSession.phone,
+          message: currentMessage,
+          sender: 'agency',
+          name: activeSession.name || 'Prospect'
+        }, {
           headers: {
-            'Content-Type': 'application/json',
             'X-Agency-Id': user.id
-          },
-          body: JSON.stringify({
-            agency_id: user.id,
-            phone: activeSession.phone,
-            message: currentMessage,
-            sender: 'agency',
-            name: activeSession.name || 'Prospect'
-          })
+          }
         });
       } catch (syncErr) {
         console.error("Backend sync error (falling back to direct insert):", syncErr);
@@ -81,13 +77,9 @@ export default function Chat() {
 
       // 2. Dispatch the message out to the actual Meta Graph API
       try {
-        await fetch(`${API_BASE_URL}/api/chat/send`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            phone: activeSession.phone,
-            message: currentMessage
-          })
+        await api.post('/api/chat/send', {
+          phone: activeSession.phone,
+          message: currentMessage
         });
       } catch (err) {
         console.error("Meta API transmission error:", err);
