@@ -5,6 +5,47 @@ import traceback
 
 class WhatsAppService:
     @staticmethod
+    async def send_whatsapp_image(to_phone: str, image_url: str, caption: str) -> bool:
+        """
+        Sends an image WhatsApp message to a client using Meta Cloud API.
+        """
+        access_token = os.getenv("WHATSAPP_ACCESS_TOKEN")
+        phone_number_id = os.getenv("WHATSAPP_PHONE_NUMBER_ID")
+        
+        if not access_token or not phone_number_id:
+            print("ERROR: Meta WhatsApp credentials missing in .env.")
+            return False
+
+        url = f"https://graph.facebook.com/v25.0/{phone_number_id}/messages"
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": to_phone,
+            "type": "image",
+            "image": {
+                "link": image_url,
+                "caption": caption
+            }
+        }
+
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, json=payload, headers=headers)
+                if response.status_code in [200, 201]:
+                    return True
+                else:
+                    print(f"ERROR: Image Send Failed: {response.text}")
+                    return False
+        except Exception:
+            print(f"❌ CRITICAL EXCEPTION in send_whatsapp_image: {traceback.format_exc()}")
+            return False
+
+    @staticmethod
     async def send_whatsapp_message(to_phone: str, message_text: str) -> bool:
         """
         Sends a raw text WhatsApp message to a client using Meta Cloud API.

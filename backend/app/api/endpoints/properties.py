@@ -126,6 +126,7 @@ def _format_final_results(results: list) -> list:
             "Nighberd": row.get("Nighberd"),
             "City": row.get("City"),
             "Type": row.get("Type"),
+            "image_url": row.get("image_url"),
             "agency": {
                 "id": 0,
                 "name": "General Listing",

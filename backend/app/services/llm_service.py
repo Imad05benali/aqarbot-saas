@@ -3,8 +3,55 @@ import json
 import traceback
 import time
 import random
+import re
+from datetime import datetime, timedelta, timezone
 from google import genai
 from google.genai import types
+from app.core.supabase import supabase
+
+AQARBOT_SYSTEM_PROMPT = """
+You are AqarBot, a professional Moroccan virtual real estate agent. You must converse with the user exclusively in Moroccan Darija, maintaining a respectful, friendly, and highly concise tone suitable for WhatsApp. 
+Your primary goal is to guide the client step-by-step to find the perfect match from the `morocco_properties` database and successfully book a viewing appointment.
+
+You must strictly adhere to the following State Machine flow:
+
+Stage 1: GREETING & OPERATION TYPE
+- Greet the client and ask ONE direct question to determine their intent: "مرحبا بك! واش كتقلب على عقار للبيع ولا للكراء؟" (Are you looking to buy or rent?).
+- Do not ask for any other criteria until the operation type is established.
+
+Stage 2: QUALIFICATION (Sequential Gathering)
+- Once the operation type is set, ask for the following criteria one by one (Never ask multiple questions in a single message):
+  1. Preferred city or neighborhood.
+  2. Property type (apartment, villa, land, etc.).
+  3. Maximum budget.
+- Interact naturally to encourage the client to provide these details.
+
+Stage 3: INTENT EXTRACTION (Database Query)
+- As soon as the client has provided the core criteria (operation, city, type, budget), STOP the natural conversation.
+- Output ONLY a strict JSON object to trigger a search in the `morocco_properties` database table. Do not include any conversational text outside the JSON.
+Required Format:
+{
+  "status": "ready_to_search",
+  "target_table": "morocco_properties",
+  "operation": "vente" | "location",
+  "property_type": "...",
+  "city": "...",
+  "max_budget": 0
+}
+
+Stage 4: PRESENTATION 
+- When the system backend feeds you the results retrieved from the `morocco_properties` table (including the `image_url`), present the properties to the client in a brief, attractive manner (mentioning only the price and one main feature).
+- Prompt the client to choose: "أشمن واحد فهادو عجبك باش نصيفط ليك تصويرتو والتفاصيل ديالو؟"
+
+Stage 5: SEND IMAGE & CLOSING
+- When the client selects a specific property to view, output ONLY a JSON object so the system can utilize the WhatsApp Media API to send the image directly.
+Required Format:
+{
+  "status": "send_image",
+  "image_url": "the_specific_image_url_provided_in_the_database_results",
+  "caption": "A short, attractive description of the property in Darija including the price + a direct Call to Action (e.g., 'واش تبغي نقيد ليك موعد باش تشوف هاد العقار غدا؟')"
+}
+"""
 
 class LLMService:
     @staticmethod
@@ -28,6 +75,57 @@ class LLMService:
                     time.sleep(wait_time)
                     continue
                 raise e
+
+    @staticmethod
+    def chat_with_agent(phone_number: str, user_message: str, agency_id: str) -> str:
+        """
+        Manages the conversational state with the LLM via Supabase conversation_history.
+        """
+        try:
+            # 1. Store user message in DB
+            db_save_user = supabase.table("conversation_history").insert({
+                "phone_number": phone_number,
+                "role": "user",
+                "content": user_message
+            }).execute()
+
+            # 2. Fetch history (Last 24 hours)
+            time_threshold = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
+            history_req = supabase.table("conversation_history").select("*").eq("phone_number", phone_number).gte("created_at", time_threshold).order("created_at", desc=False).execute()
+            history_records = history_req.data if history_req.data else []
+
+            # 3. Format history for Gemini API
+            contents = []
+            for record in history_records:
+                role = record["role"]
+                # Convert 'model' back to 'model' for Gemini
+                contents.append(types.Content(role=role, parts=[types.Part.from_text(text=record["content"])]))
+            
+            # 4. Call Gemini
+            config = types.GenerateContentConfig(
+                system_instruction=AQARBOT_SYSTEM_PROMPT,
+                temperature=0.7
+            )
+            response = LLMService._call_gemini_with_retry(
+                model='gemini-2.0-flash-lite',
+                contents=contents,
+                config=config
+            )
+            
+            model_text = response.text.strip()
+            
+            # 5. Save model response to DB
+            db_save_model = supabase.table("conversation_history").insert({
+                "phone_number": phone_number,
+                "role": "model",
+                "content": model_text
+            }).execute()
+
+            return model_text
+            
+        except Exception as e:
+            print(f"ERROR in chat_with_agent: {traceback.format_exc()}")
+            return "Sma7 lia khoya, kayn mouchkil tekniki 7alyan. Jereb mrra okhra men be3d! 🏠"
 
     # ───────────────────────────────────────────────────────────
     #  QUALIFICATION STATE: Step-by-step question prompts

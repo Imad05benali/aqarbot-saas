@@ -90,72 +90,76 @@ async def whatsapp_webhook(request: Request):
                     agency_id = _resolve_agency_for_router(client_phone)
                     print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone}")
 
-                    # 3. Intent Interception
-                    search_keywords = ["bghit", "dar", "villa", "appart", "chambre", "kri", "9leb", "bhgt", "fin"]
-                    if any(kw in client_text.lower() for kw in search_keywords):
-                        print(f"INTENT: New search detected. Resetting session state.")
-                        sessions[client_phone] = {"state": "SEARCHING"}
-
-                    session = sessions.get(client_phone, {"state": "SEARCHING"})
-                    is_registered = LeadService.check_lead_exists(client_phone, agency_id=agency_id)
-                    print(f"STATE: {session['state']} | Registered: {is_registered}")
-
-                    # 4. Routing logic
-                    ai_reply = ""
+                    # 3. LLM State Machine Routing
                     try:
-                        if session["state"] == "AWAITING_NAME" and not is_registered:
-                            # ROUTE 1: NAME COLLECTION
-                            client_name = LLMService.extract_client_name(client_text)
-                            
-                            if not client_name or len(client_text.split()) == 1:
-                                client_name = client_text.capitalize()
-                                print(f"DEBUG: Using programmatic fallback name: {client_name}")
-
-                            if client_name and client_name.lower() != "unknown":
-                                props = session.get("last_properties", [])
-                                pid = props[0].get("id") if props else None
+                        import re
+                        import json
+                        
+                        llm_response = LLMService.chat_with_agent(client_phone, client_text, agency_id)
+                        print(f"LLM RESPONSE: {llm_response}")
+                        
+                        # Strip markdown JSON backticks if present
+                        json_str = llm_response
+                        if "```json" in json_str:
+                            match = re.search(r"```json\n(.*?)```", json_str, re.DOTALL)
+                            if match:
+                                json_str = match.group(1).strip()
+                        elif "```" in json_str:
+                            match = re.search(r"```\n(.*?)```", json_str, re.DOTALL)
+                            if match:
+                                json_str = match.group(1).strip()
                                 
-                                if LeadService.create_lead(client_phone, client_name, pid, agency_id=agency_id):
-                                    sessions[client_phone] = {"state": "SEARCHING"}
-                                    ai_reply = LLMService.generate_whatsapp_reply(
-                                        client_message=f"My name is {client_name}", 
-                                        properties_data=props,
-                                        needs_lead_collection=False
-                                    )
-                                else:
-                                    ai_reply = "Sma7 lia khoya, wa9e3 chi mouchkil f l-rejixtrasyon."
-                            else:
-                                ai_reply = "Sma7 lia, ma-9dertch n-ched ssmîtya dyalk. Gha 3tini ssmîtya dyalk n-9eyydek m3ana."
-
+                        is_json = False
+                        parsed_json = {}
+                        if json_str.startswith("{") and json_str.endswith("}"):
+                            try:
+                                parsed_json = json.loads(json_str)
+                                is_json = True
+                            except json.JSONDecodeError:
+                                pass
+                                
+                        if not is_json:
+                            # Plain text conversation
+                            await WhatsAppService.send_whatsapp_message(client_phone, llm_response)
                         else:
-                            # ROUTE 2: ROBUST TOKEN-BASED SEARCH
-                            print(f"DEBUG: Executing SQL-Based Search for: {client_text}")
-                            
-                            # CRITICAL: Await the search function
-                            search_results = await search_properties(query=client_text, limit=3)
-                            
-                            # Safe extraction
-                            props = search_results.get("properties", []) if isinstance(search_results, dict) else []
-                            print(f"DEBUG: Found {len(props)} properties.")
-                            
-                            needs_lead = not is_registered and len(props) > 0
-                            if needs_lead:
-                                print("STATE: Switching to AWAITING_NAME.")
-                                sessions[client_phone] = {"state": "AWAITING_NAME", "last_properties": props}
-                            
-                            ai_reply = LLMService.generate_whatsapp_reply(
-                                client_message=client_text, 
-                                properties_data=props,
-                                needs_lead_collection=needs_lead
-                            )
-
+                            status = parsed_json.get("status")
+                            if status == "ready_to_search":
+                                # Execute search
+                                operation = parsed_json.get("operation", "")
+                                city = parsed_json.get("city", "")
+                                prop_type = parsed_json.get("property_type", "")
+                                budget = str(parsed_json.get("max_budget", ""))
+                                search_query = f"{operation} {city} {prop_type} {budget}".strip()
+                                
+                                search_results = await search_properties(query=search_query, limit=3)
+                                props = search_results.get("properties", []) if isinstance(search_results, dict) else []
+                                
+                                # Format properties as system message to feed back to LLM
+                                context = "SYSTEM: Search completed. Present these properties concisely:\n"
+                                if props:
+                                    for p in props:
+                                        # Use image_url if available, else fallback
+                                        img = p.get('image_url', 'N/A')
+                                        context += f"- Title: {p.get('title')} | Price: {p.get('new_price')} DH | City: {p.get('City')} | image_url: {img}\n"
+                                else:
+                                    context += "No properties found matching criteria."
+                                    
+                                # Ask LLM for the presentation message
+                                presentation_msg = LLMService.chat_with_agent(client_phone, context, agency_id)
+                                await WhatsAppService.send_whatsapp_message(client_phone, presentation_msg)
+                                
+                            elif status == "send_image":
+                                img_url = parsed_json.get("image_url")
+                                caption = parsed_json.get("caption", "Here is the property!")
+                                if img_url:
+                                    await WhatsAppService.send_whatsapp_image(client_phone, img_url, caption)
+                                else:
+                                    await WhatsAppService.send_whatsapp_message(client_phone, caption)
+                    
                     except Exception as inner_e:
                         print(f"⚠️ WEBHOOK INNER ERROR: {traceback.format_exc()}")
-                        ai_reply = "Sma7 lia bzaf, kayn chi mouchkil tekniki daba. Ghadi n-jawbek dghia ghir issebek l-fara7! 🏠"
-
-                    # 5. Outbound Communication
-                    if ai_reply:
-                        await WhatsAppService.send_whatsapp_message(client_phone, ai_reply)
+                        fallback = "Sma7 lia bzaf, kayn chi mouchkil tekniki daba. Ghadi n-jawbek dghia ghir issebek l-fara7! 🏠"
+                        await WhatsAppService.send_whatsapp_message(client_phone, fallback)
                             
         print(f"--- INCOMING WHATSAPP WEBHOOK END ---\n")
         return {"status": "received"}
