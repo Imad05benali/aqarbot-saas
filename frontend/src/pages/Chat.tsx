@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import TakeoverToggle from '../components/TakeoverToggle';
 import { supabase } from '../lib/supabase';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+
 export default function Chat() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export default function Chat() {
 
       // 1. Persist to backend via /api/chatbot/simulate (ensures lead + conversation + agency_id binding)
       try {
-        await fetch('http://localhost:8000/api/chatbot/simulate', {
+        await fetch(`${API_BASE_URL}/api/chatbot/simulate`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -79,7 +81,7 @@ export default function Chat() {
 
       // 2. Dispatch the message out to the actual Meta Graph API
       try {
-        await fetch('http://localhost:8000/api/chat/send', {
+        await fetch(`${API_BASE_URL}/api/chat/send`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

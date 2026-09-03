@@ -174,7 +174,7 @@ export default function Settings() {
     persona_prompt: '',
     whatsapp_phone_id: '',
     whatsapp_verify_token: '',
-    backend_url: 'http://localhost:8000',
+    backend_url: import.meta.env.VITE_API_URL || 'http://localhost:8000',
     full_name: '',
     org_title: '',
     account_status: 'Active Founder Key',
@@ -210,7 +210,7 @@ export default function Settings() {
           persona_prompt: data.persona_prompt || '',
           whatsapp_phone_id: data.whatsapp_phone_id || '',
           whatsapp_verify_token: data.whatsapp_verify_token || '',
-          backend_url: data.backend_url || 'http://localhost:8000',
+          backend_url: data.backend_url || import.meta.env.VITE_API_URL || 'http://localhost:8000',
         }));
       } catch (err) {
         console.error('Failed to load config', err);

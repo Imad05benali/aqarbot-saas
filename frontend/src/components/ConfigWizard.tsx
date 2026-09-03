@@ -90,10 +90,10 @@ export default function ConfigWizard({ initialData, onSave }: ConfigWizardProps)
             </label>
             <input 
               type="text"
-              value={formData.backend_url || 'http://localhost:8000'}
+              value={formData.backend_url || import.meta.env.VITE_API_URL || 'http://localhost:8000'}
               onChange={(e) => setFormData({...formData, backend_url: e.target.value})}
               className="w-full p-4 rounded-xl border border-accent/20 dark:border-accent/10 bg-accent/5 dark:bg-accent/5 text-slate-950 dark:text-white font-mono text-sm shadow-sm focus:ring-1 focus:ring-accent"
-              placeholder="http://localhost:8000"
+              placeholder={import.meta.env.VITE_API_URL || "http://localhost:8000"}
             />
           </div>
         </div>
