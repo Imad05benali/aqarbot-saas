@@ -93,6 +93,17 @@ async def whatsapp_webhook(request: Request):
                     # 2.5 MULTI-TENANT: Resolve agency_id
                     agency_id = _resolve_agency_for_router(client_phone)
                     print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone}")
+                    
+                    if agency_id:
+                        try:
+                            supabase.table("conversations").insert({
+                                "agency_id": agency_id,
+                                "phone": client_phone,
+                                "message": client_text,
+                                "sender": "client"
+                            }).execute()
+                        except Exception as e:
+                            logger.error(f"Error saving client message to conversations: {e}")
 
                     # 3. LLM State Machine Routing
                     try:
@@ -124,6 +135,16 @@ async def whatsapp_webhook(request: Request):
                                 
                         if not is_json:
                             # Plain text conversation
+                            if agency_id:
+                                try:
+                                    supabase.table("conversations").insert({
+                                        "agency_id": agency_id,
+                                        "phone": client_phone,
+                                        "message": llm_response,
+                                        "sender": "ai"
+                                    }).execute()
+                                except Exception as e:
+                                    logger.error(f"Error saving AI message: {e}")
                             await WhatsAppService.send_whatsapp_message(client_phone, llm_response)
                         else:
                             status = parsed_json.get("status")
@@ -150,11 +171,31 @@ async def whatsapp_webhook(request: Request):
                                     
                                 # Ask LLM for the presentation message
                                 presentation_msg = LLMService.chat_with_agent(client_phone, context, agency_id)
+                                if agency_id:
+                                    try:
+                                        supabase.table("conversations").insert({
+                                            "agency_id": agency_id,
+                                            "phone": client_phone,
+                                            "message": presentation_msg,
+                                            "sender": "ai"
+                                        }).execute()
+                                    except Exception as e:
+                                        logger.error(f"Error saving AI presentation message: {e}")
                                 await WhatsAppService.send_whatsapp_message(client_phone, presentation_msg)
                                 
                             elif status == "send_image":
                                 img_url = parsed_json.get("image_url")
                                 caption = parsed_json.get("caption", "Here is the property!")
+                                if agency_id:
+                                    try:
+                                        supabase.table("conversations").insert({
+                                            "agency_id": agency_id,
+                                            "phone": client_phone,
+                                            "message": f"[Image Sent] {caption}",
+                                            "sender": "ai"
+                                        }).execute()
+                                    except Exception:
+                                        pass
                                 if img_url:
                                     await WhatsAppService.send_whatsapp_image(client_phone, img_url, caption)
                                 else:
