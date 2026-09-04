@@ -26,7 +26,7 @@ def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Pro
     """Resolve agency_id: first from existing lead, then fallback to newest user."""
     if phone_number:
         try:
-            existing = supabase.table("leads").select("agency_id").eq("phone", phone_number).limit(1).execute()
+            existing = supabase.table("leads").select("agency_id").eq("phone_number", phone_number).limit(1).execute()
             if existing.data and existing.data[0].get("agency_id"):
                 return existing.data[0]["agency_id"]
         except Exception:
@@ -44,14 +44,17 @@ def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Pro
     # Lead didn't exist, so let's automatically create them now!
     if agency_id and phone_number:
         try:
-            supabase.table("leads").insert({
-                "phone": phone_number,
+            res = supabase.table("leads").insert({
+                "phone_number": phone_number,
                 "agency_id": agency_id,
-                "name": client_name,
+                "full_name": client_name,
+                "city": "Unknown",
+                "sector": "Unknown",
                 "status": "new"
             }).execute()
+            logger.info(f"Auto-created lead: {res.data}")
         except Exception as e:
-            logger.error(f"Error auto-creating lead: {e}")
+            logger.error(f"CRITICAL Error auto-creating lead. Exception: {e}", exc_info=True)
             
     return agency_id
 

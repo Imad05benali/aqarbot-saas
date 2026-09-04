@@ -197,8 +197,8 @@ async def get_dashboard():
             "recent_leads": [
                 {
                     "id": l.get("id"),
-                    "name": l.get("name") or "Prospect Anonyme",
-                    "phone": l.get("phone") or "N/A",
+                    "name": l.get("full_name") or l.get("name") or "Prospect Anonyme",
+                    "phone": l.get("phone_number") or l.get("phone") or "N/A",
                     "budget": l.get("budget") or "N/A",
                     "Nighberd": l.get("sector") or l.get("Nighberd") or "Pas de secteur",
                     "status": l.get("status") or "Froid",
