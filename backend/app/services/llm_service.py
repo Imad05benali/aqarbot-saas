@@ -5,6 +5,7 @@ import time
 import random
 import re
 import logging
+import urllib.request
 from datetime import datetime, timedelta, timezone
 from google import genai
 from google.genai import types
@@ -14,18 +15,58 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 # --- GEMINI MODEL CHAIN ---------------------------------------------------
-# Ordered fallback chain for every Gemini call: the first entry is the primary
-# model; the rest are tried when it is overloaded (HTTP 429/5xx). Override in
-# the deployed environment with GEMINI_MODEL_CHAIN (comma-separated list).
+# Every Gemini call walks an ordered model chain: the preferred model first,
+# then the models the API actually reports as available, then the static
+# fallbacks below. Override entirely with GEMINI_MODEL_CHAIN (comma-separated).
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
 FALLBACK_MODELS = ["gemini-3-flash", "gemini-2.5-flash"]
+
+# 10-minute cache of the models reported by the Gemini API for this key.
+_MODEL_CACHE = {"ts": 0.0, "names": []}
+
+
+def _fetch_available_models() -> list:
+    """List the Gemini models actually available to the runtime API key."""
+    now = time.time()
+    if _MODEL_CACHE["names"] and now - _MODEL_CACHE["ts"] < 600:
+        return _MODEL_CACHE["names"]
+    try:
+        key = os.getenv("GOOGLE_API_KEY")
+        if not key:
+            return []
+        with urllib.request.urlopen(
+            f"https://generativelanguage.googleapis.com/v1beta/models?key={key}",
+            timeout=10,
+        ) as resp:
+            payload = json.loads(resp.read().decode("utf-8"))
+        names = []
+        for m in payload.get("models", []):
+            n = m.get("name", "")
+            if n.startswith("models/gemini"):
+                names.append(n.split("/", 1)[1])
+        # flash-lite first, then other flash, then pro models
+        names.sort(key=lambda n: (0 if "flash-lite" in n else 1 if "flash" in n else 2, n))
+        _MODEL_CACHE["ts"] = now
+        _MODEL_CACHE["names"] = names
+        print(f"\n[Gemini] models available ({len(names)}): {names[:10]}")
+        return names
+    except Exception as e:
+        print(f"[Gemini] model discovery failed (using static fallbacks): {e}")
+        return []
 
 
 def _model_chain(preferred: str) -> list:
     env_chain = os.getenv("GEMINI_MODEL_CHAIN")
     if env_chain and env_chain.strip():
         return [m.strip() for m in env_chain.split(",") if m.strip()]
-    return [preferred] + [m for m in FALLBACK_MODELS if m != preferred]
+    chain = [preferred]
+    for name in _fetch_available_models()[:8]:
+        if name not in chain:
+            chain.append(name)
+    for name in FALLBACK_MODELS:
+        if name not in chain:
+            chain.append(name)
+    return chain
 
 AQARBOT_SYSTEM_PROMPT = """
 You are AqarBot, a professional Moroccan virtual real estate agent. You must converse with the user exclusively in Moroccan Darija, maintaining a respectful, friendly, and highly concise tone suitable for WhatsApp. 
@@ -83,8 +124,10 @@ class LLMService:
         chain = _model_chain(model)
         last_error: Exception | None = None
 
-        for m in chain:
-            for attempt in range(max_retries):
+        for idx, m in enumerate(chain):
+            # Retry the preferred model with backoff; try alternates once each.
+            attempts = max_retries if idx == 0 else 1
+            for attempt in range(attempts):
                 try:
                     if config:
                         return client.models.generate_content(model=m, contents=contents, config=config)
@@ -95,14 +138,13 @@ class LLMService:
                         t in err_msg for t in ("429", "RESOURCE_EXHAUSTED", "503", "OVERLOADED", "UNAVAILABLE", "500", "INTERNAL")
                     )
                     last_error = e
-                    if is_retryable and attempt < max_retries - 1:
+                    if is_retryable and attempt < attempts - 1:
                         wait_time = (2 ** attempt) + random.uniform(0, 1)
-                        print(f"\n⚠️  QUOTA HIT on {m} (Attempt {attempt + 1}). Retrying in {wait_time:.2f}s...")
+                        print(f"\n[Gemini] QUOTA HIT on {m} (Attempt {attempt + 1}). Retrying in {wait_time:.2f}s...")
                         time.sleep(wait_time)
                         continue
-                    # Exhausted this model — try the next one in the chain.
                     if m != chain[-1]:
-                        print(f"\n⚠️  MODEL {m} FAILED. Switching fallback -> {chain[chain.index(m) + 1]}")
+                        print(f"\n[Gemini] MODEL {m} FAILED ({type(e).__name__}). Next -> {chain[idx + 1]}")
                         break
                     raise last_error
 
