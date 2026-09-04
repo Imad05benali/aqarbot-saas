@@ -1,0 +1,7 @@
+Please check the backend registration/signup API endpoint that handles this onboarding form (NOM DU TITULAIRE, NOM DE L'AGENCE, TÉLÉPHONE, VILLE, EMAIL PROFESSIONNEL, MOT DE PASSE).
+When a user submits this form, the backend must:
+
+Insert a new record into the agencies table using the agency name and city, and retrieve the generated agency_id.
+
+Insert a new record into the users table using the owner's full name, email, hashed password, and link it to that exact agency_id.
+Make sure this transaction is seamless so that registering a new agency instantly populates both tables correctly!"
