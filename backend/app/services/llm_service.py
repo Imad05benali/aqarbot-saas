@@ -13,6 +13,20 @@ from app.core.supabase import supabase
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
+# --- GEMINI MODEL CHAIN ---------------------------------------------------
+# Ordered fallback chain for every Gemini call: the first entry is the primary
+# model; the rest are tried when it is overloaded (HTTP 429/5xx). Override in
+# the deployed environment with GEMINI_MODEL_CHAIN (comma-separated list).
+DEFAULT_MODEL = "gemini-3.5-flash-lite"
+FALLBACK_MODELS = ["gemini-3-flash", "gemini-2.5-flash"]
+
+
+def _model_chain(preferred: str) -> list:
+    env_chain = os.getenv("GEMINI_MODEL_CHAIN")
+    if env_chain and env_chain.strip():
+        return [m.strip() for m in env_chain.split(",") if m.strip()]
+    return [preferred] + [m for m in FALLBACK_MODELS if m != preferred]
+
 AQARBOT_SYSTEM_PROMPT = """
 You are AqarBot, a professional Moroccan virtual real estate agent. You must converse with the user exclusively in Moroccan Darija, maintaining a respectful, friendly, and highly concise tone suitable for WhatsApp. 
 Your primary goal is to guide the client step-by-step to find the perfect match from the `morocco_properties` database and successfully book a viewing appointment.
@@ -61,24 +75,38 @@ class LLMService:
     @staticmethod
     def _call_gemini_with_retry(model: str, contents: str, config=None, max_retries: int = 3):
         """
-        Internal helper to execute Gemini calls with exponential backoff for 429/503 errors.
+        Internal helper to execute Gemini calls with exponential backoff for
+        429/5xx errors, falling back across the model chain when the primary
+        model is overloaded (e.g. HTTP 503 high demand).
         """
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
-        for attempt in range(max_retries):
-            try:
-                if config:
-                    return client.models.generate_content(model=model, contents=contents, config=config)
-                return client.models.generate_content(model=model, contents=contents)
-            except Exception as e:
-                err_msg = str(e).upper()
-                is_retryable = "429" in err_msg or "RESOURCE_EXHAUSTED" in err_msg or "503" in err_msg or "OVERLOADED" in err_msg
-                
-                if is_retryable and attempt < max_retries - 1:
-                    wait_time = (2 ** attempt) + random.uniform(0, 1)
-                    print(f"\n⚠️  QUOTA HIT (Attempt {attempt+1}). Retrying in {wait_time:.2f}s...")
-                    time.sleep(wait_time)
-                    continue
-                raise e
+        chain = _model_chain(model)
+        last_error: Exception | None = None
+
+        for m in chain:
+            for attempt in range(max_retries):
+                try:
+                    if config:
+                        return client.models.generate_content(model=m, contents=contents, config=config)
+                    return client.models.generate_content(model=m, contents=contents)
+                except Exception as e:
+                    err_msg = str(e).upper()
+                    is_retryable = any(
+                        t in err_msg for t in ("429", "RESOURCE_EXHAUSTED", "503", "OVERLOADED", "UNAVAILABLE", "500", "INTERNAL")
+                    )
+                    last_error = e
+                    if is_retryable and attempt < max_retries - 1:
+                        wait_time = (2 ** attempt) + random.uniform(0, 1)
+                        print(f"\n⚠️  QUOTA HIT on {m} (Attempt {attempt + 1}). Retrying in {wait_time:.2f}s...")
+                        time.sleep(wait_time)
+                        continue
+                    # Exhausted this model — try the next one in the chain.
+                    if m != chain[-1]:
+                        print(f"\n⚠️  MODEL {m} FAILED. Switching fallback -> {chain[chain.index(m) + 1]}")
+                        break
+                    raise last_error
+
+        raise last_error if last_error else RuntimeError("Gemini call failed: empty model chain")
 
     @staticmethod
     def chat_with_agent(phone_number: str, user_message: str, agency_id: str) -> str:
