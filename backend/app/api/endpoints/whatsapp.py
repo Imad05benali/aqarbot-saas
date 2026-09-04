@@ -29,11 +29,46 @@ def _normalize_phone(raw: str) -> str:
     return re.sub(r"\D", "", raw or "")
 
 
-def _resolve_or_create_lead(phone_number: str = None, client_name: str = "Prospect") -> tuple:
+def _resolve_agency_id(receiving_phone_number_id: str = None) -> str:
     """
-    Resolve (agency_id, is_ai_paused, full_name) for a phone number.
+    Deterministic agency resolution for an inbound message.
+
+    Order of preference:
+      1. The WhatsApp number that RECEIVED the message, if any agency has
+         registered it (agencies.whatsapp_phone_number_id). This is the only
+         signal that stays correct when several agencies exist.
+      2. The explicitly-marked default agency (agencies.is_default).
+      3. The oldest agency (stable fallback; never NULL).
+    """
+    try:
+        if receiving_phone_number_id:
+            res = supabase.table("agencies").select("id") \
+                .eq("whatsapp_phone_number_id", receiving_phone_number_id).limit(1).execute()
+            if res.data:
+                return res.data[0]["id"]
+        res = supabase.table("agencies").select("id") \
+            .eq("is_default", True).order("created_at", desc=False).limit(1).execute()
+        if res.data:
+            return res.data[0]["id"]
+        res = supabase.table("agencies").select("id") \
+            .order("created_at", desc=False).limit(1).execute()
+        if res.data:
+            return res.data[0]["id"]
+    except Exception as e:
+        logger.error(f"Error resolving agency: {e}")
+    return None
+
+
+def _resolve_or_create_lead(phone_number: str = None, client_name: str = "Prospect",
+                            receiving_phone_number_id: str = None) -> tuple:
+    """
+    Resolve (agency_id, is_ai_paused, full_name) for an inbound phone number.
+
     - Existing lead: reuse it (back-filling agency_id instead of duplicating).
-    - New number: auto-create the lead with the phone_number column populated.
+    - New number: auto-create the lead under the agency resolved from the
+      receiving WhatsApp number, or the default agency.
+    Every returned agency_id is a real agencies.id - never null/mismatched -
+    so the CRM / Hub / Dashboard and the LLM memory all agree on the tenant.
     """
     if not phone_number:
         return None, False, None
@@ -47,30 +82,23 @@ def _resolve_or_create_lead(phone_number: str = None, client_name: str = "Prospe
     except Exception:
         pass
 
-    agency_id = lead.get("agency_id") if lead else None
     if lead:
-        # Lead exists but is unattached: link it instead of inserting a duplicate.
+        agency_id = lead.get("agency_id")
+        # Lead exists but is unattached: resolve + link instead of duplicating.
         if not agency_id:
-            try:
-                agency_res = supabase.table("agencies").select("id").order("created_at", desc=True).limit(1).execute()
-                if agency_res.data:
-                    agency_id = agency_res.data[0]["id"]
+            agency_id = _resolve_agency_id(receiving_phone_number_id)
+            if agency_id:
+                try:
                     supabase.table("leads").update({"agency_id": agency_id}).eq("id", lead["id"]).execute()
-            except Exception as e:
-                logger.error(f"Error back-filling lead agency_id: {e}")
+                except Exception as e:
+                    logger.error(f"Error back-filling lead agency_id: {e}")
         return agency_id, bool(lead.get("is_ai_paused")), lead.get("full_name")
 
-    # New client: attach to the newest registered agency and create the lead.
-    try:
-        agency_res = supabase.table("agencies").select("id").order("created_at", desc=True).limit(1).execute()
-        if agency_res.data:
-            agency_id = agency_res.data[0]["id"]
-    except Exception:
-        pass
-
+    # New client: attach to the receiving number's agency (or the default).
+    agency_id = _resolve_agency_id(receiving_phone_number_id)
     if agency_id:
         try:
-            res = supabase.table("leads").insert({
+            supabase.table("leads").insert({
                 "phone_number": phone_number,
                 "agency_id": agency_id,
                 "full_name": client_name or "Prospect",
@@ -78,7 +106,7 @@ def _resolve_or_create_lead(phone_number: str = None, client_name: str = "Prospe
                 "sector": "Unknown",
                 "status": "new"
             }).execute()
-            logger.info(f"Auto-created lead: {res.data}")
+            logger.info(f"Auto-created lead: {phone_number} under agency {agency_id}")
         except Exception as e:
             logger.error(f"CRITICAL Error auto-creating lead. Exception: {e}", exc_info=True)
 
@@ -247,11 +275,16 @@ async def _process_webhook_payload(payload: dict):
                     client_text = message_obj.get("text", {}).get("body", "").strip()
                     print(f"MESSAGE: From {client_name} ({client_phone}): '{client_text}'")
 
-                    # 2.5 MULTI-TENANT: Resolve/create the lead in ONE query.
-                    # Every inbound message is guaranteed to have a lead row with
-                    # its phone_number stored; the client's name is captured below.
-                    agency_id, ai_paused, lead_full_name = _resolve_or_create_lead(client_phone, client_name)
-                    print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone}")
+                    # 2.5 MULTI-TENANT: resolve the tenant from the WhatsApp
+                    # number that RECEIVED this message (value.metadata.
+                    # phone_number_id), falling back to the lead's existing
+                    # agency / the default agency. Every inbound message is
+                    # guaranteed a lead row with phone_number + agency_id set.
+                    receiving_number_id = (value.get("metadata", {}) or {}).get("phone_number_id")
+                    agency_id, ai_paused, lead_full_name = _resolve_or_create_lead(
+                        client_phone, client_name, receiving_number_id
+                    )
+                    print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone} (received on {receiving_number_id})")
 
                     if agency_id:
                         try:
