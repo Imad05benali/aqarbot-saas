@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Pause, Play } from 'lucide-react';
 import { toggleAIPause } from '../services/api';
 
@@ -11,6 +11,11 @@ interface TakeoverToggleProps {
 export default function TakeoverToggle({ phone, initialPaused = false, onStatusChange }: TakeoverToggleProps) {
   const [isPaused, setIsPaused] = useState(initialPaused);
   const [isUpdating, setIsUpdating] = useState(false);
+
+  // Keep in sync when the session refreshes with a new paused state
+  useEffect(() => {
+    setIsPaused(initialPaused);
+  }, [initialPaused]);
 
   const handleToggle = async () => {
     setIsUpdating(true);

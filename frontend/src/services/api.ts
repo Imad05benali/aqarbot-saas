@@ -1,4 +1,5 @@
 import api from '../api/axios';
+import { supabase } from '../lib/supabase';
 
 export const getDashboardData = async () => {
   const response = await api.get('/api/agency/dashboard');
@@ -51,8 +52,20 @@ export const ingestCSV = async (file: File) => {
 
 // AI Session Management
 export const toggleAIPause = async (phone: string, paused: boolean) => {
-  const response = await api.post('/api/session/takeover', { phone, paused });
-  return response.data;
+  try {
+    const response = await api.post('/api/session/takeover', { phone, paused });
+    return response.data;
+  } catch (err) {
+    // Backend may be unreachable (e.g. VITE_API_URL unset in this build) —
+    // update the lead directly through Supabase so takeover still works.
+    console.warn('Backend takeover unreachable — updating lead via Supabase directly', err);
+    const { error } = await supabase
+      .from('leads')
+      .update({ is_ai_paused: paused })
+      .eq('phone_number', phone);
+    if (error) throw error;
+    return { status: 'success', phone, ai_paused: paused, source: 'direct' };
+  }
 };
 
 // Configuration API

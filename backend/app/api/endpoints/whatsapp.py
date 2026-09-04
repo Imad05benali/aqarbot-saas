@@ -126,6 +126,16 @@ async def whatsapp_webhook(request: Request):
                     except Exception as e:
                         logger.error(f"Error saving client message to conversations: {e}")
 
+                # 2.6 MANUAL TAKEOVER: if the lead is paused (AI off), record the
+                # message but do NOT auto-reply — the agent answers from the Hub.
+                try:
+                    pause_res = supabase.table("leads").select("is_ai_paused").eq("phone_number", client_phone).limit(1).execute()
+                    if pause_res.data and pause_res.data[0].get("is_ai_paused"):
+                        print(f"MANUAL MODE: AI paused for {client_phone}; skipping auto-reply.")
+                        continue
+                except Exception as e:
+                    logger.error(f"Error checking lead pause state: {e}")
+
                 # 3. LLM State Machine Routing
                 try:
                     import re
