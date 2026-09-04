@@ -3,7 +3,8 @@ import { Database, Zap, Activity, Users, Home } from 'lucide-react';
 import LeadsTable from '../components/LeadsTable';
 import CRMDataTable from '../components/CRMDataTable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getProperties, getLeads, toggleAIPause, deleteProperty, ingestCSV } from '../services/api';
+import { toggleAIPause, deleteProperty, ingestCSV } from '../services/api';
+import { supabase } from '../lib/supabase';
 
 type CRMTab = 'leads' | 'inventory';
 
@@ -17,20 +18,16 @@ export default function CRM() {
     try {
       setIsLoading(true);
       
-      const [leadsResult, propsResult] = await Promise.allSettled([
-        getLeads(),
-        getProperties()
+      const [leadsRes, propsRes] = await Promise.all([
+        supabase.from('leads').select('*').order('created_at', { ascending: false }),
+        supabase.from('morocco_properties').select('*').limit(100)
       ]);
       
-      if (leadsResult.status === 'fulfilled') {
-        setLeads(leadsResult.value || []);
-      }
+      setLeads(leadsRes.data || []);
+      setProperties(propsRes.data || []);
       
-      if (propsResult.status === 'fulfilled') {
-        setProperties(propsResult.value || []);
-      }
     } catch (err) {
-      console.error(`❌ [CRM Sync Failure]: ${err}`);
+      console.error(`❌ [CRM Sync Failure]:`, err);
     } finally {
       setIsLoading(false);
     }

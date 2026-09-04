@@ -28,7 +28,7 @@ interface LeadsTableProps {
 export default function LeadsTable({ data, onToggleBot }: LeadsTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
 
-  if (!data || data.length === 0) {
+  if (!data || data.length === 0 || !Array.isArray(data)) {
     return <EmptyStateComponent type="leads" />;
   }
 
