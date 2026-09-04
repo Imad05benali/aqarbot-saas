@@ -5,8 +5,10 @@ import { useAuth } from './AuthContext';
 export interface UserProfile {
   id: string;
   full_name: string;
-  agency_name: string;
+  email?: string | null;
+  agency_name: string | null;
   agency_logo: string | null;
+  agency_id: string | null;
   role: string;
 }
 
@@ -34,48 +36,80 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const { data, error } = await supabase
+      // 1. Own row in public.users (strict rebuilt schema:
+      //    id, agency_id, full_name, email, role)
+      const { data: userRow, error } = await supabase
         .from('users')
-        .select('id, full_name, role')
+        .select('id, agency_id, full_name, email, role')
         .eq('id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) {
-        // Strict error tracking — visible in DevTools Inspector
         console.error('Supabase Profile Sync Error:', error);
-
-        // Profile might not exist yet – create it lazily from Auth metadata
-        if (error.code === 'PGRST116' || !data) {
-          const meta = user.user_metadata || {};
-          const fallback: UserProfile = {
-            id: user.id,
-            full_name: meta.full_name || user.email || 'Utilisateur AqarBot',
-            agency_name: meta.agency_name || 'Agence Immobilière',
-            agency_logo: null,
-            role: 'Owner',
-          };
-
-          // Lazy insert
-          const { error: upsertError } = await supabase
-            .from('users')
-            .insert([{
-              id: user.id,
-              full_name: fallback.full_name,
-              role: fallback.role,
-            }]);
-            
-          if (upsertError) {
-            console.error('Supabase Profile Sync Error (insert):', upsertError);
-          } else {
-            setProfile(fallback);
-          }
-        }
-      } else if (data) {
-        setProfile(data as UserProfile);
+        setProfile(null);
+        return;
       }
+
+      // 2. Profile does not exist yet — create it lazily from Auth metadata
+      if (!userRow) {
+        const meta = user.user_metadata || {};
+        const email = user.email || `${user.id}@auth.local`;
+        const fallback: UserProfile = {
+          id: user.id,
+          full_name: meta.full_name || user.email || 'Utilisateur AqarBot',
+          email,
+          agency_name: null,
+          agency_logo: null,
+          agency_id: null,
+          role: meta.role || 'Owner',
+        };
+
+        const { error: upsertError } = await supabase
+          .from('users')
+          .upsert({
+            id: user.id,
+            full_name: fallback.full_name,
+            email,
+            role: fallback.role,
+          }, { onConflict: 'id' });
+
+        if (upsertError) {
+          console.error('Supabase Profile Sync Error (insert):', upsertError);
+        }
+        setProfile(fallback);
+        return;
+      }
+
+      // 3. Existing user — enrich with agency branding when linked
+      const base: UserProfile = {
+        id: userRow.id,
+        full_name: userRow.full_name || user.email || 'Utilisateur AqarBot',
+        email: userRow.email,
+        agency_name: null,
+        agency_logo: null,
+        agency_id: userRow.agency_id || null,
+        role: userRow.role || 'Agent',
+      };
+
+      if (userRow.agency_id) {
+        const { data: agency, error: agencyError } = await supabase
+          .from('agencies')
+          .select('id, agency_name, agency_logo')
+          .eq('id', userRow.agency_id)
+          .maybeSingle();
+
+        if (agencyError) {
+          console.error('Supabase Agency Sync Error:', agencyError);
+        } else if (agency) {
+          base.agency_name = agency.agency_name || null;
+          base.agency_logo = agency.agency_logo || null;
+        }
+      }
+
+      setProfile(base);
     } catch (err) {
-      // Catch unexpected runtime / network failures
       console.error('Supabase Profile Sync Error:', err);
+      setProfile(null);
     } finally {
       setIsLoadingProfile(false);
     }
@@ -85,6 +119,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     if (isAuthenticated && user?.id) {
       fetchProfile();
     } else {
+      setProfile(null);
       setIsLoadingProfile(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -97,7 +132,18 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
 
   const updateAgencyLogo = async (url: string) => {
     if (!user?.id) return;
-    await supabase.from('users').update({ agency_logo: url }).eq('id', user.id);
+    // agency_logo lives on the agencies row, not users
+    const agencyId = profile?.agency_id;
+    if (!agencyId) return;
+
+    const { error } = await supabase
+      .from('agencies')
+      .update({ agency_logo: url })
+      .eq('id', agencyId);
+    if (error) {
+      console.error('Agency logo update failed:', error);
+      return;
+    }
     setProfile((prev) => prev ? { ...prev, agency_logo: url } : prev);
   };
 

@@ -4,9 +4,12 @@ import { MessageSquare, User, Send, Bot, Shield, Search, Terminal, Info, Zap } f
 import { motion } from 'framer-motion';
 import TakeoverToggle from '../components/TakeoverToggle';
 import { supabase } from '../lib/supabase';
+import { useProfile } from '../context/ProfileContext';
 import api from '../api/axios';
 
 export default function Chat() {
+  const { profile } = useProfile();
+  const agencyId = profile?.agency_id ?? null;
   const [sessions, setSessions] = useState<any[]>([]);
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -17,23 +20,22 @@ export default function Chat() {
   useEffect(() => {
     if (!selectedPhone) return;
     const loadMessages = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      
+      if (!agencyId) return;
+
       const { data } = await supabase
         .from('conversations')
         .select('*')
         .eq('phone', selectedPhone)
-        .eq('agency_id', user.id)
+        .eq('agency_id', agencyId)
         .order('created_at', { ascending: true });
       if (data) setMessages(data);
     };
     loadMessages();
-    
+
     // Quick polling for realtime experience during demos
     const timer = setInterval(loadMessages, 3000);
     return () => clearInterval(timer);
-  }, [selectedPhone]);
+  }, [selectedPhone, agencyId]);
 
   const handleSendMessage = async (e?: FormEvent) => {
     if (e) e.preventDefault();
@@ -42,30 +44,29 @@ export default function Chat() {
     setIsSending(true);
     const currentMessage = messageText;
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        console.error("Authentication missing for lead dispatch.");
+      if (!agencyId) {
+        console.error("Agency not configured for lead dispatch.");
         return;
       }
 
       // 1. Persist to backend via /api/chatbot/simulate (ensures lead + conversation + agency_id binding)
       try {
         await api.post('/api/chatbot/simulate', {
-          agency_id: user.id,
+          agency_id: agencyId,
           phone: activeSession.phone,
           message: currentMessage,
           sender: 'agency',
           name: activeSession.name || 'Prospect'
         }, {
           headers: {
-            'X-Agency-Id': user.id
+            'X-Agency-Id': agencyId
           }
         });
       } catch (syncErr) {
         console.error("Backend sync error (falling back to direct insert):", syncErr);
         // Fallback: direct Supabase insert if backend is unreachable
         await supabase.from('conversations').insert([{
-          agency_id: user.id,
+          agency_id: agencyId,
           phone: activeSession.phone,
           message: currentMessage,
           sender: 'agency',
@@ -104,19 +105,21 @@ export default function Chat() {
   useEffect(() => {
     const loadSessions = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        
+        if (!agencyId) {
+          setIsLoading(false);
+          return;
+        }
+
         const { data: leadsData } = await supabase
           .from('leads')
           .select('*')
-          .eq('agency_id', user.id)
+          .eq('agency_id', agencyId)
           .order('created_at', { ascending: false });
 
         const mapped = (leadsData || []).map((l: any) => ({
-          phone: l.phone || l.phone_number,
-          name: l.name || l.full_name || 'Prospect',
-          city: l.sector || l.Nighberd || 'Casablanca',
+          phone: l.phone_number || l.phone,
+          name: l.full_name || l.name || 'Prospect',
+          city: l.sector || l.city || 'Casablanca',
           is_ai_paused: l.is_ai_paused || false
         }));
         setSessions(mapped);
@@ -126,7 +129,7 @@ export default function Chat() {
       }
     };
     loadSessions();
-  }, []);
+  }, [agencyId]);
 
   const activeSession = sessions.find(s => s.phone === selectedPhone);
 

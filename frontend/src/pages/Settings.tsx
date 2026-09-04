@@ -15,7 +15,7 @@ type TabType = 'profile' | 'ai' | 'api';
 // ──────────────────────────────────────────────────────────────
 // TEAM MANAGEMENT TABLE
 // ──────────────────────────────────────────────────────────────
-function TeamManagement() {
+function TeamManagement({ agencyId }: { agencyId: string | null }) {
   const { user } = useAuth();
   const [inviteName, setInviteName] = React.useState('');
   const [inviteRole, setInviteRole] = React.useState('Agent');
@@ -26,7 +26,7 @@ function TeamManagement() {
   useEffect(() => {
     if (!user?.id) return;
     const fetchTeam = async () => {
-      // Schema: id, full_name, agency_name, role — email column was removed
+      // Strict rebuilt schema: users(id, agency_id, full_name, email, role)
       const { data, error } = await supabase
         .from('users')
         .select('id, full_name, role')
@@ -46,9 +46,13 @@ function TeamManagement() {
     try {
       // Note: A real multi-tenant invite would use supabase.auth.admin.inviteUserByEmail().
       // For demo purposes we insert a placeholder profile row with the valid schema columns.
+      const inviteId = crypto.randomUUID();
       const { error } = await supabase.from('users').insert([{
+        id: inviteId,
         full_name: inviteName,
+        email: `${inviteId}@invite.aqarbot`,
         role: inviteRole,
+        agency_id: agencyId,
       }]);
 
       if (error) throw error;
@@ -226,12 +230,36 @@ export default function Settings() {
     setMessage({ text: '', type: '' });
     try {
       await updateAIConfig(config);
-      // Also update Supabase profile name/agency
+      // Also update Supabase profile name/agency (full_name on users,
+      // agency_name on agencies, linked through users.agency_id)
       if (user?.id) {
-        await supabase.from('users').update({
+        const { error: userError } = await supabase.from('users').update({
           full_name: config.full_name,
-          agency_name: config.org_title,
         }).eq('id', user.id);
+        if (userError) throw userError;
+
+        const agencyId = profile?.agency_id ?? null;
+        if (agencyId) {
+          const { error: agencyError } = await supabase.from('agencies').update({
+            agency_name: config.org_title,
+          }).eq('id', agencyId);
+          if (agencyError) throw agencyError;
+        } else if (config.org_title.trim()) {
+          // Bootstrap: no agency yet — create one and link the owner
+          const { data: created, error: createError } = await supabase
+            .from('agencies')
+            .insert({ agency_name: config.org_title.trim(), email: user.email || null })
+            .select('id')
+            .single();
+          if (createError) throw createError;
+          if (created?.id) {
+            const { error: linkError } = await supabase
+              .from('users')
+              .update({ agency_id: created.id })
+              .eq('id', user.id);
+            if (linkError) throw linkError;
+          }
+        }
         await refreshProfile();
       }
       setMessage({ text: 'ARCHITECTURES SYNCHRONISÉES', type: 'success' });
@@ -247,6 +275,11 @@ export default function Settings() {
   const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user?.id) return;
+
+    if (!profile?.agency_id) {
+      setMessage({ text: "Enregistrez d'abord le nom de l'agence (Profil & Admin).", type: 'error' });
+      return;
+    }
 
     setIsUploadingLogo(true);
     setMessage({ text: '', type: '' });
@@ -465,7 +498,7 @@ export default function Settings() {
                 {/* ── Team Management (Owner only) ─────────── */}
                 {(profile?.role === 'Owner' || !profile) && (
                   <div className="mt-12 pt-12 border-t border-white/10">
-                    <TeamManagement />
+                    <TeamManagement agencyId={profile?.agency_id ?? null} />
                   </div>
                 )}
               </div>

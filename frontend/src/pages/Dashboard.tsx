@@ -29,14 +29,17 @@ export default function Dashboard() {
   useEffect(() => {
     const loadSessionData = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-        
-        // 1. Fetch real agency mapping and user identity
-        const { data: agencyData } = await supabase.from('agencies').select('id, agency_name').limit(1).single();
-        const { data: userData } = await supabase.from('users').select('full_name, role').eq('id', user.id).single();
-        
-        const strictAgencyId = agencyData?.id || user.id;
+        // 1. Tenant id comes from the resolved profile (users.agency_id -> agencies.id)
+        const strictAgencyId = profile?.agency_id ?? null;
+
+        if (!strictAgencyId) {
+          setDisplayInfo({
+            name: profile?.full_name || 'Partenaire',
+            agency: profile?.agency_name || 'Vôtre Agence',
+          });
+          setIsLoading(false);
+          return;
+        }
 
         // Fetch strict isolated tenant stats using valid foreign key pointer
         const { count: totalLeads } = await supabase
@@ -72,10 +75,9 @@ export default function Dashboard() {
           
         setLeads(filteredLeads || []);
         
-        // In case ProfileContext crashed on missing columns during DB WIPE, we inject the live fetched metadata here directly
         setDisplayInfo({
-           name: userData?.full_name || user.user_metadata?.full_name || profile?.full_name || 'Partenaire',
-           agency: agencyData?.agency_name || profile?.agency_name || 'Vôtre Agence'
+           name: profile?.full_name || 'Partenaire',
+           agency: profile?.agency_name || 'Vôtre Agence'
         });
         
       } catch (err) {
@@ -96,7 +98,7 @@ export default function Dashboard() {
 
     loadSessionData();
     loadForecast();
-  }, []);
+  }, [profile?.agency_id, profile?.full_name, profile?.agency_name]);
 
   const kpis = [
     { label: 'Total Clients / Leads', value: stats.total_leads, icon: Users, color: 'from-blue-500 to-cyan-400' },

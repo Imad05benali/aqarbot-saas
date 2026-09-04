@@ -32,20 +32,18 @@ export default function Layout() {
 
   const handleSimulateLead = async () => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return;
-      
+      // Strict rebuilt schema: leads(id, agency_id, phone_number, full_name,
+      // city, sector, status, is_ai_paused) — agency_id = profile.agency_id
+      if (!profile?.agency_id) return;
+
       await supabase.from('leads').insert({
         full_name: 'Client Test',
         phone_number: '+212600000001',
-        budget: '500,000 DH',
-        status: 'Nouveau',
         city: 'Casablanca',
-        City: 'Casablanca',
-        Nighberd: 'Maarif',
-        Type: 'Appartement',
+        sector: 'Maarif',
+        status: 'new',
         is_ai_paused: false,
-        agency_id: userData.user.id
+        agency_id: profile.agency_id
       });
       
       window.location.reload();

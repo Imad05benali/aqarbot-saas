@@ -26,39 +26,41 @@ class LeadService:
                     agency_id = existing.data[0]["agency_id"]
                     print(f"DB DEBUG: Reusing existing agency_id from lead record: {agency_id}")
                 else:
-                    # Fallback: most recently registered user
-                    agencies_resp = supabase.table("users").select("id, agency_name").order("created_at", desc=True).limit(1).execute()
+                    # Fallback: most recently registered agency (strict rebuilt schema:
+                    # agency_name lives on 'agencies', users link to it via agency_id)
+                    agencies_resp = supabase.table("agencies").select("id, agency_name").order("created_at", desc=True).limit(1).execute()
                     if agencies_resp.data:
                         agency_id = agencies_resp.data[0]["id"]
                         agency_name = agencies_resp.data[0].get("agency_name")
                         print(f"DB DEBUG: Fallback Agency ID: {agency_id} | Agency Name: {agency_name}")
                     else:
-                        print("WARNING: No agency found in 'users' table. Insertion may fail.")
+                        print("WARNING: No agency found in 'agencies' table. Insertion may fail.")
             except Exception as e:
                 print(f"ERROR fetching agency: {str(e)}")
         else:
             print(f"DB DEBUG: Using explicitly provided agency_id: {agency_id}")
 
-        # Attempt 1: Full structure mapping payload
+        # Strict rebuilt leads schema: id, agency_id, phone_number, full_name,
+        # city, sector, status, is_ai_paused (budget/name columns no longer exist)
         try:
             data = {
-                "name": name_clean,
+                "full_name": name_clean,
                 "phone_number": phone_clean,
                 "agency_id": agency_id,
                 "city": city,
                 "sector": sector,
-                "budget": budget,
+                "status": "new",
             }
             # Remove None values to avoid inserting nulls for optional fields
             data = {k: v for k, v in data.items() if v is not None}
-            
+
             print(f"DB DEBUG: Pushing payload to 'leads' -> {json.dumps(data)}")
             response = supabase.table("leads").insert(data).execute()
-            
+
             if response.data:
-                print(f"SUCCESS: Lead registered in Supabase! (City={city}, Sector={sector}, Budget={budget}, Agency={agency_id})")
+                print(f"SUCCESS: Lead registered in Supabase! (City={city}, Sector={sector}, Agency={agency_id})")
                 return True
-                
+
         except Exception as e:
             print(f"FIRST ATTEMPT VIOLATION: {str(e)}")
 
@@ -66,17 +68,18 @@ class LeadService:
         print("FALLBACK: Retrying insertion...")
         try:
             fallback_data = {
-                "name": name_clean,
+                "full_name": name_clean,
                 "phone_number": phone_clean,
                 "agency_id": agency_id,
-                "city": city or "Inconnu"
+                "city": city or "Inconnu",
+                "status": "new",
             }
             response_fallback = supabase.table("leads").insert(fallback_data).execute()
-            
+
             if response_fallback.data:
                 print(f"SUCCESS VIA FALLBACK: Lead registered safely!")
                 return True
-                
+
         except Exception as fallback_error:
             print(f"CRITICAL BOTH PATHWAYS CRASHED. SUPABASE REJECTION ERROR DETAILED:")
             print(traceback.format_exc())
