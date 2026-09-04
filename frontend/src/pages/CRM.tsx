@@ -3,8 +3,7 @@ import { Database, Zap, Activity, Users, Home } from 'lucide-react';
 import LeadsTable from '../components/LeadsTable';
 import CRMDataTable from '../components/CRMDataTable';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getProperties, toggleAIPause, deleteProperty, ingestCSV } from '../services/api';
-import { supabase } from '../lib/supabase';
+import { getProperties, getLeads, toggleAIPause, deleteProperty, ingestCSV } from '../services/api';
 
 type CRMTab = 'leads' | 'inventory';
 
@@ -17,26 +16,18 @@ export default function CRM() {
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
       
-      let leadsResult = [];
-      if (user) {
-        const { data } = await supabase
-          .from('leads')
-          .select('*')
-          .eq('agency_id', user.id)
-          .order('created_at', { ascending: false });
-        leadsResult = data || [];
-      }
-      
-      const [propsResult] = await Promise.allSettled([
+      const [leadsResult, propsResult] = await Promise.allSettled([
+        getLeads(),
         getProperties()
       ]);
       
-      setLeads(leadsResult as any);
+      if (leadsResult.status === 'fulfilled') {
+        setLeads(leadsResult.value || []);
+      }
       
       if (propsResult.status === 'fulfilled') {
-        setProperties(propsResult.value);
+        setProperties(propsResult.value || []);
       }
     } catch (err) {
       console.error(`❌ [CRM Sync Failure]: ${err}`);
