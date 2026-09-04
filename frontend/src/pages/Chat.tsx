@@ -22,13 +22,41 @@ export default function Chat() {
     const loadMessages = async () => {
       if (!agencyId) return;
 
+      // Primary source: conversations (client / ai / agency bubbles)
       const { data } = await supabase
         .from('conversations')
         .select('*')
         .eq('phone', selectedPhone)
         .eq('agency_id', agencyId)
         .order('created_at', { ascending: true });
-      if (data) setMessages(data);
+      const conv = (data || []).map((c: any) => ({
+        id: c.id,
+        phone: c.phone,
+        message: c.message,
+        sender: c.sender,
+        created_at: c.created_at,
+      }));
+
+      // Backfill from conversation_history (user/model roles) for exchanges
+      // that predate the lead/conversation rows (e.g. before agency existed).
+      const { data: hist } = await supabase
+        .from('conversation_history')
+        .select('*')
+        .eq('phone_number', selectedPhone)
+        .order('created_at', { ascending: true });
+      const seen = new Set(conv.map((c: any) => (c.message || '').trim()));
+      const fromHist = (hist || [])
+        .filter((h: any) => !seen.has((h.content || '').trim()))
+        .map((h: any) => ({
+          id: h.id,
+          phone: selectedPhone,
+          message: h.content,
+          sender: h.role === 'model' ? 'ai' : 'client',
+          created_at: h.created_at,
+        }));
+
+      setMessages([...conv, ...fromHist].sort((a: any, b: any) =>
+        String(a.created_at).localeCompare(String(b.created_at))));
     };
     loadMessages();
 
@@ -123,12 +151,20 @@ export default function Chat() {
           is_ai_paused: l.is_ai_paused || false
         }));
         setSessions(mapped);
-        if (mapped.length > 0) setSelectedPhone(mapped[0].phone);
+        if (mapped.length > 0) {
+          setSelectedPhone(prev => prev && mapped.some(s => s.phone === prev) ? prev : mapped[0].phone);
+        } else {
+          setSelectedPhone(null);
+        }
       } finally {
         setIsLoading(false);
       }
     };
     loadSessions();
+
+    // Live refresh: surface new inbound clients without a page reload
+    const timer = setInterval(loadSessions, 5000);
+    return () => clearInterval(timer);
   }, [agencyId]);
 
   const activeSession = sessions.find(s => s.phone === selectedPhone);
