@@ -302,16 +302,25 @@ async def ingest_csv(file: UploadFile = File(...)):
         
         properties = []
         for row in reader:
-            # Map common CSV header variations
+            raw_title = row.get("title") or row.get("Title") or ""
+            raw_type = row.get("Type") or row.get("type") or "Apartment"
+            raw_city = row.get("City") or row.get("city") or "Casablanca"
+            
+            # Defensive Price Processing
+            raw_price = str(row.get("new_price") or row.get("Price") or row.get("price") or "0")
+            clean_price = "".join(c for c in raw_price if c.isdigit() or c == '.')
+            price_val = float(clean_price) if clean_price else 0.0
+
             properties.append({
-                "title": row.get("title") or f"{row.get('Type')} in {row.get('City')}",
-                "new_price": row.get("new_price") or row.get("Price"),
-                "Nighberd": row.get("Nighberd") or row.get("Sector") or row.get("Neighborhood"),
-                "City": row.get("City"),
-                "Type": row.get("Type") or "Apartment"
+                "title": raw_title or f"{raw_type} in {raw_city}",
+                "new_price": price_val,
+                "Nighberd": row.get("Nighberd") or row.get("Sector") or row.get("Neighborhood") or "Unknown",
+                "City": raw_city,
+                "Type": raw_type
             })
             
         if properties:
+            # Batch inserts to avoid payload limit crashing
             res = supabase.table("morocco_properties").insert(properties).execute()
             return {"status": "success", "count": len(properties), "data": res.data}
         
