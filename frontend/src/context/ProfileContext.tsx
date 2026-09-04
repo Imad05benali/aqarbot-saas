@@ -36,7 +36,7 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     try {
       const { data, error } = await supabase
         .from('users')
-        .select('id, full_name, agency_name, agency_logo, role')
+        .select('id, full_name, role')
         .eq('id', user.id)
         .single();
 
@@ -61,7 +61,6 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
             .insert([{
               id: user.id,
               full_name: fallback.full_name,
-              agency_name: fallback.agency_name,
               role: fallback.role,
             }]);
             

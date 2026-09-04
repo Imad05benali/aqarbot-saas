@@ -18,6 +18,7 @@ const chartData = [
 
 export default function Dashboard() {
   const { profile } = useProfile();
+  const [displayInfo, setDisplayInfo] = useState({ name: 'Partenaire', agency: 'Vôtre Agence' });
   const [stats, setStats] = useState({ total_leads: 0, hot_leads: 0, ai_conversations: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [forecast, setForecast] = useState({ percentage: 24.5, sector: 'Al-Maarif', trend: 'uptick' });
@@ -31,39 +32,51 @@ export default function Dashboard() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         
-        // Fetch strict isolated tenant stats
+        // 1. Fetch real agency mapping and user identity
+        const { data: agencyData } = await supabase.from('agencies').select('id, agency_name').limit(1).single();
+        const { data: userData } = await supabase.from('users').select('full_name, role').eq('id', user.id).single();
+        
+        const strictAgencyId = agencyData?.id || user.id;
+
+        // Fetch strict isolated tenant stats using valid foreign key pointer
         const { count: totalLeads } = await supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
-          .eq('agency_id', user.id);
+          .eq('agency_id', strictAgencyId);
           
         const { count: manualInteractions } = await supabase
           .from('leads')
           .select('*', { count: 'exact', head: true })
-          .eq('agency_id', user.id)
+          .eq('agency_id', strictAgencyId)
           .eq('is_ai_paused', true);
 
         const { count: aiMessageCount } = await supabase
           .from('conversations')
           .select('*', { count: 'exact', head: true })
-          .eq('agency_id', user.id)
+          .eq('agency_id', strictAgencyId)
           .eq('sender', 'ai');
 
         setStats({
           total_leads: totalLeads || 0,
-          hot_leads: Math.max(0, (totalLeads || 0) - (manualInteractions || 0)), // Leads NOT paused
-          ai_conversations: aiMessageCount || 0 // Accurate real-world messaging output
+          hot_leads: Math.max(0, (totalLeads || 0) - (manualInteractions || 0)), 
+          ai_conversations: aiMessageCount || 0 
         });
         
         // Ensure recent leads are strictly filtered as well
         const { data: filteredLeads } = await supabase
           .from('leads')
           .select('*')
-          .eq('agency_id', user.id)
+          .eq('agency_id', strictAgencyId)
           .order('created_at', { ascending: false })
           .limit(10);
           
         setLeads(filteredLeads || []);
+        
+        // In case ProfileContext crashed on missing columns during DB WIPE, we inject the live fetched metadata here directly
+        setDisplayInfo({
+           name: userData?.full_name || user.user_metadata?.full_name || profile?.full_name || 'Partenaire',
+           agency: agencyData?.agency_name || profile?.agency_name || 'Vôtre Agence'
+        });
         
       } catch (err) {
         console.error("Dashboard multi-tenancy sync error", err);
@@ -106,10 +119,10 @@ export default function Dashboard() {
       {/* Dynamic Profile Greeting */}
       <div className="flex flex-col gap-1 px-1 md:px-4">
         <h1 className="text-2xl md:text-4xl font-black tracking-tighter text-slate-900 dark:text-white">
-          Bienvenue, <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400">{profile?.full_name?.split(' ')[0] || 'Partenaire'}</span> 👋
+          Bienvenue, <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-500 to-teal-400">{displayInfo.name.split(' ')[0]}</span> 👋
         </h1>
         <p className="text-xs md:text-sm text-slate-500 font-medium tracking-wide">
-          Voici un aperçu en temps réel des performances de l'agence <span className="text-emerald-500 font-bold">{profile?.agency_name || 'Vôtre Agence'}</span>.
+          Voici un aperçu en temps réel des performances de l'agence <span className="text-emerald-500 font-bold">{displayInfo.agency}</span>.
         </p>
       </div>
 
