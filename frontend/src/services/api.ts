@@ -44,11 +44,8 @@ export const deleteProperty = async (id: number) => {
 export const ingestCSV = async (file: File) => {
   const formData = new FormData();
   formData.append('file', file);
-  const response = await api.post('/api/properties/ingest-csv', formData, {
-    headers: {
-      'Content-Type': 'multipart/form-data',
-    },
-  });
+  // Important: Let the browser automatically set the Content-Type boundary for multipart forms
+  const response = await api.post('/api/properties/ingest-csv', formData);
   return response.data;
 };
 

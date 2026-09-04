@@ -37,10 +37,7 @@ app.include_router(whatsapp_router, prefix="/api/whatsapp")
 # --- CORS POLICY (Structured for Cross-Origin SaaS Sync) ---
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", # Next.js Landing Page
-        "http://localhost:5173", # Vite React Dashboard
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
