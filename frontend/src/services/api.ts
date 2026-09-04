@@ -68,6 +68,19 @@ export const toggleAIPause = async (phone: string, paused: boolean) => {
   }
 };
 
+export const sendManualChat = async (phone: string, message: string) => {
+  try {
+    const response = await api.post('/api/chat/send', { phone, message });
+    return response.data;
+  } catch (err) {
+    throw new Error(
+      `Backend /api/chat/send unreachable (VITE_API_URL=${import.meta.env.VITE_API_URL || 'localhost?}). ` +
+      `Hub messages cannot be sent without a live backend. ` +
+      `Details: ${err instanceof Error ? err.message : String(err)}`
+    );
+  }
+};
+
 // Configuration API
 export const getAIConfig = async () => {
   const response = await api.get('/api/agency/config');

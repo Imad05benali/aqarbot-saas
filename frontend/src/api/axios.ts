@@ -1,7 +1,6 @@
-import axios from 'axios';
-
-// The base URL will point to our FastAPI backend. 
-// Uses dynamic environment variable or fallback to localhost port 8000
+import axios from 'axios';// The base URL points to our FastAPI backend.
+// `VITE_API_URL` is set at build time in CI so deployed builds use the
+// real host; during local dev it falls back to localhost.
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const api = axios.create({

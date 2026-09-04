@@ -104,14 +104,15 @@ export default function Chat() {
 
       setMessageText('');
 
-      // 2. Dispatch the message out to the actual Meta Graph API
+      // 2. Dispatch the message out to the actual Meta Graph API via the backend
       try {
-        await api.post('/api/chat/send', {
-          phone: activeSession.phone,
-          message: currentMessage
-        });
+        await sendManualChat(activeSession.phone, currentMessage);
       } catch (err) {
         console.error("Meta API transmission error:", err);
+        // Surface it to the user so they know why the reply didn't go out.
+        setMessage((m) => m + `
+
+[Erreur d'envoi: ${err instanceof Error ? err.message : 'backend unreachable'}]`);
       }
 
       // 3. Instantly append to UI for responsive feel
