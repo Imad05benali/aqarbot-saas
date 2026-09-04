@@ -1,7 +1,13 @@
-import axios from 'axios';// The base URL points to our FastAPI backend.
+import axios from 'axios';
+
+// The base URL points to our FastAPI backend.
 // `VITE_API_URL` is set at build time in CI so deployed builds use the
 // real host; during local dev it falls back to localhost.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Normalize a scheme-less value (e.g. "aqarbot-saas-t2w5.vercel.app")
+// so axios doesn't resolve it as a relative path against the dashboard
+// origin — that previously produced 405 Method Not Allowed on every call.
+const rawApiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_URL = /^https?:\/\//i.test(rawApiUrl) ? rawApiUrl : `https://${rawApiUrl}`;
 
 const api = axios.create({
   baseURL: API_URL,

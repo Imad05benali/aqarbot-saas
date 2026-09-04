@@ -1,4 +1,4 @@
-import api from '../api/axios';
+import api, { API_URL } from '../api/axios';
 import { supabase } from '../lib/supabase';
 
 export const getDashboardData = async () => {
@@ -73,10 +73,9 @@ export const sendManualChat = async (phone: string, message: string) => {
     const response = await api.post('/api/chat/send', { phone, message });
     return response.data;
   } catch (err) {
-    const viteUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
     const detail = err instanceof Error ? err.message : String(err);
     throw new Error(
-      'Backend /api/chat/send unreachable (VITE_API_URL=' + viteUrl + '). ' +
+      'Backend /api/chat/send unreachable (VITE_API_URL=' + API_URL + '). ' +
       'Hub messages cannot be sent without a live backend. Details: ' + detail
     );
   }
