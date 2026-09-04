@@ -24,25 +24,43 @@ sessions = {}
 processed_messages = set()
 
 
-def _resolve_agency_and_pause(phone_number: str = None, client_name: str = "Prospect") -> tuple:
+def _normalize_phone(raw: str) -> str:
+    """Extract digits from Meta's `from`/`wa_id` field (always 2126XXXXXXXX)."""
+    return re.sub(r"\D", "", raw or "")
+
+
+def _resolve_or_create_lead(phone_number: str = None, client_name: str = "Prospect") -> tuple:
     """
-    Resolve (agency_id, is_ai_paused) for a phone number in ONE leads round trip,
-    falling back to the newest agency (and auto-creating the lead) when unknown.
+    Resolve (agency_id, is_ai_paused, full_name) for a phone number.
+    - Existing lead: reuse it (back-filling agency_id instead of duplicating).
+    - New number: auto-create the lead with the phone_number column populated.
     """
     if not phone_number:
-        return None, False
+        return None, False, None
 
-    # Single lookup: existing lead carries both the agency and its pause flag.
+    lead = None
     try:
-        existing = supabase.table("leads").select("agency_id,is_ai_paused").eq("phone_number", phone_number).limit(1).execute()
-        if existing.data and existing.data[0].get("agency_id"):
-            row = existing.data[0]
-            return row.get("agency_id"), bool(row.get("is_ai_paused"))
+        existing = supabase.table("leads").select("id,agency_id,is_ai_paused,full_name") \
+            .eq("phone_number", phone_number).order("created_at", desc=False).limit(1).execute()
+        if existing.data:
+            lead = existing.data[0]
     except Exception:
         pass
 
-    # Unknown client: fall back to the newest registered agency and create the lead.
-    agency_id = None
+    agency_id = lead.get("agency_id") if lead else None
+    if lead:
+        # Lead exists but is unattached: link it instead of inserting a duplicate.
+        if not agency_id:
+            try:
+                agency_res = supabase.table("agencies").select("id").order("created_at", desc=True).limit(1).execute()
+                if agency_res.data:
+                    agency_id = agency_res.data[0]["id"]
+                    supabase.table("leads").update({"agency_id": agency_id}).eq("id", lead["id"]).execute()
+            except Exception as e:
+                logger.error(f"Error back-filling lead agency_id: {e}")
+        return agency_id, bool(lead.get("is_ai_paused")), lead.get("full_name")
+
+    # New client: attach to the newest registered agency and create the lead.
     try:
         agency_res = supabase.table("agencies").select("id").order("created_at", desc=True).limit(1).execute()
         if agency_res.data:
@@ -55,7 +73,7 @@ def _resolve_agency_and_pause(phone_number: str = None, client_name: str = "Pros
             res = supabase.table("leads").insert({
                 "phone_number": phone_number,
                 "agency_id": agency_id,
-                "full_name": client_name,
+                "full_name": client_name or "Prospect",
                 "city": "Unknown",
                 "sector": "Unknown",
                 "status": "new"
@@ -64,7 +82,80 @@ def _resolve_agency_and_pause(phone_number: str = None, client_name: str = "Pros
         except Exception as e:
             logger.error(f"CRITICAL Error auto-creating lead. Exception: {e}", exc_info=True)
 
-    return agency_id, False
+    return agency_id, False, client_name or "Prospect"
+
+
+# ── Client name capture ───────────────────────────────────────────────────
+GENERIC_NAMES = {"prospect", "unknown", "n/a", "null", "none", "client", "undefined"}
+NOISE_ANSWERS = {
+    "salam", "salut", "bonjour", "bonsoir", "hello", "hi", "hey", "slt",
+    "wesh", "hllo", "ok", "okay", "wakha", "mzyan", "mzyana", "safi", "la",
+    "no", "yes", "aha", "nam", "fine", "merci", "chokran", "shukran",
+}
+# Tokens the bot's own question uses, so we know the previous reply asked for the name.
+NAME_ASK_MARKERS = ("smiytek", "smiya", "ismek", "ismk", "nom", "name", "t9ol", "t-9ol", "اسمك", "الاسم")
+# Client messages that explicitly introduce a name (Darija / Arabic / French / English).
+NAME_INTRO_PATTERNS = (
+    r"\b(?:ana|ismi|smiyti|smiyeti|smiya dyali|smiya dyal|je m'appelle|je suis|my name is|i am|i'm)\b",
+    r"(?:اسمي|انا)",
+)
+
+
+def _name_is_missing(full_name, profile_name: str = "") -> bool:
+    """Blank/generic names, or a name that is only today's WhatsApp display name."""
+    if not full_name or not str(full_name).strip():
+        return True
+    v = str(full_name).strip().lower()
+    if v in GENERIC_NAMES:
+        return True
+    if profile_name and v == str(profile_name).strip().lower():
+        return True
+    return False
+
+
+def _last_bot_message_asked_name(phone_number: str) -> bool:
+    """True when the bot's previous reply asked the client for their name."""
+    try:
+        res = supabase.table("conversation_history").select("content") \
+            .eq("phone_number", phone_number).eq("role", "model") \
+            .order("created_at", desc=True).limit(1).execute()
+        if res.data and res.data[0].get("content"):
+            last = res.data[0]["content"].lower()
+            return any(m in last for m in NAME_ASK_MARKERS)
+    except Exception:
+        pass
+    return False
+
+
+def _try_capture_client_name(phone_number: str, client_text: str, profile_name: str, stored_name) -> str:
+    """
+    Returns the client's name (or None) when this message answers the bot's
+    name question — either the previous bot message asked for it, or the
+    client used an explicit "my name is ..." phrasing. Persisting happens
+    in the caller.
+    """
+    if not _name_is_missing(stored_name, profile_name):
+        return None
+    text = (client_text or "").strip()
+    letters = re.sub(r"[^a-zA-Z\u0600-\u06FF]", "", text).lower()
+    if not letters or letters in NOISE_ANSWERS:
+        return None
+    asked = _last_bot_message_asked_name(phone_number)
+    explicit = any(re.search(p, text, re.IGNORECASE) for p in NAME_INTRO_PATTERNS)
+    if not (asked or explicit):
+        return None
+    try:
+        name = LLMService.extract_client_name(text)
+    except Exception as e:
+        logger.error(f"Name extraction failed: {e}")
+        return None
+    if not name:
+        return None
+    name = str(name).strip()
+    low = name.lower()
+    if low in GENERIC_NAMES or low in NOISE_ANSWERS or len(low) < 2:
+        return None
+    return name[:80]
 
 
 def _collect_message_ids(payload: dict) -> list:
@@ -131,7 +222,8 @@ async def _process_webhook_payload(payload: dict):
                 if "messages" in value and value["messages"]:
                     message_obj = value["messages"][0]
                     contact_info = value.get("contacts", [{}])[0]
-                    client_phone = contact_info.get("wa_id", message_obj.get("from"))
+                    # Phone always comes from Meta's `from` field (wa_id as a fallback).
+                    client_phone = _normalize_phone(message_obj.get("from") or contact_info.get("wa_id"))
                     client_name = contact_info.get("profile", {}).get("name", "Prospect")
                     msg_id = message_obj.get("id")
 
@@ -148,9 +240,10 @@ async def _process_webhook_payload(payload: dict):
                     client_text = message_obj.get("text", {}).get("body", "").strip()
                     print(f"MESSAGE: From {client_name} ({client_phone}): '{client_text}'")
 
-                    # 2.5 MULTI-TENANT: Resolve agency_id & pause flag in ONE query
-                    # (auto-creates the lead for unknown clients).
-                    agency_id, ai_paused = _resolve_agency_and_pause(client_phone, client_name)
+                    # 2.5 MULTI-TENANT: Resolve/create the lead in ONE query.
+                    # Every inbound message is guaranteed to have a lead row with
+                    # its phone_number stored; the client's name is captured below.
+                    agency_id, ai_paused, lead_full_name = _resolve_or_create_lead(client_phone, client_name)
                     print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone}")
 
                     if agency_id:
@@ -171,9 +264,27 @@ async def _process_webhook_payload(payload: dict):
                         print(f"MANUAL MODE: AI paused for {client_phone}; skipping auto-reply.")
                         continue
 
+                    # 2.7 LEAD NAME CAPTURE: if the bot asked for the name and the
+                    # client just answered, persist it on the lead (never blank/generic).
+                    if agency_id:
+                        captured_name = _try_capture_client_name(client_phone, client_text, client_name, lead_full_name)
+                        if captured_name:
+                            try:
+                                supabase.table("leads").update({"full_name": captured_name}) \
+                                    .eq("phone_number", client_phone).execute()
+                                lead_full_name = captured_name
+                                print(f"LEAD NAME: captured '{captured_name}' for {client_phone}")
+                            except Exception as e:
+                                logger.error(f"Error saving lead full_name: {e}")
+                    ask_for_name = _name_is_missing(lead_full_name, client_name)
+
                     # 3. LLM State Machine Routing
                     try:
-                        llm_response = LLMService.chat_with_agent(client_phone, client_text, agency_id)
+                        llm_response = LLMService.chat_with_agent(
+                            client_phone, client_text, agency_id,
+                            client_full_name=lead_full_name,
+                            ask_for_name=ask_for_name,
+                        )
                         print(f"LLM RESPONSE: {llm_response}")
 
                         # Strip markdown JSON backticks if present
@@ -232,7 +343,9 @@ async def _process_webhook_payload(payload: dict):
                                     context += "No properties found matching criteria."
 
                                 # Ask LLM for the presentation message
-                                presentation_msg = LLMService.chat_with_agent(client_phone, context, agency_id)
+                                presentation_msg = LLMService.chat_with_agent(
+                                    client_phone, context, agency_id, client_full_name=lead_full_name
+                                )
                                 if agency_id:
                                     try:
                                         supabase.table("conversations").insert({

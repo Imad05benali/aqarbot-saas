@@ -74,8 +74,11 @@ Your primary goal is to guide the client step-by-step to find the perfect match 
 
 You must strictly adhere to the following State Machine flow:
 
-Stage 1: GREETING & OPERATION TYPE
-- Greet the client and ask ONE direct question to determine their intent: "مرحبا بك! واش كتقلب على عقار للبيع ولا للكراء؟" (Are you looking to buy or rent?).
+Stage 1: GREETING, CLIENT NAME & OPERATION TYPE
+- Greet the client warmly in Moroccan Darija.
+- If the CURRENT CLIENT CONTEXT says the client's full name is NOT yet known, your very first message must politely ask for their full name (ONE question) and nothing else.
+- Once the client tells you their name (or it is already known), thank them by name and ask ONE direct question to determine their intent: "مرحبا بك! واش كتقلب على عقار للبيع ولا للكراء؟" (Are you looking to buy or rent?).
+- If you already asked for the name earlier in this conversation, never ask again — continue politely with the property flow (the backend captures the name from what the client says).
 - Do not ask for any other criteria until the operation type is established.
 
 Stage 2: QUALIFICATION (Sequential Gathering)
@@ -160,9 +163,12 @@ class LLMService:
         raise last_error if last_error else RuntimeError("Gemini call failed: empty model chain")
 
     @staticmethod
-    def chat_with_agent(phone_number: str, user_message: str, agency_id: str) -> str:
+    def chat_with_agent(phone_number: str, user_message: str, agency_id: str = None,
+                        client_full_name: str = None, ask_for_name: bool = False) -> str:
         """
         Manages the conversational state with the LLM via Supabase conversation_history.
+        client_full_name / ask_for_name are the backend's live lead data: they tell
+        the bot whether to politely request the client's full name at greeting time.
         """
         try:
             # 1. Store user message in DB
@@ -189,8 +195,14 @@ class LLMService:
             
             # 4. Call Gemini
             logger.info("Sending prompt and history to Gemini...")
+            known_name = bool((client_full_name or "").strip()) and not ask_for_name
+            dynamic_context = (
+                "\n\nCURRENT CLIENT CONTEXT (authoritative, provided by the backend):\n"
+                f"- Full name: {str(client_full_name).strip() if known_name else 'NOT YET PROVIDED'}\n"
+                f"- Client name required: {'yes' if ask_for_name and not known_name else 'no'}\n"
+            )
             config = types.GenerateContentConfig(
-                system_instruction=AQARBOT_SYSTEM_PROMPT,
+                system_instruction=AQARBOT_SYSTEM_PROMPT + dynamic_context,
                 temperature=0.7
             )
             response = LLMService._call_gemini_with_retry(
