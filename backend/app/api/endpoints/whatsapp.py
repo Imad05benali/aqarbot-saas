@@ -113,12 +113,19 @@ def _name_is_missing(full_name, profile_name: str = "") -> bool:
     return False
 
 
-def _last_bot_message_asked_name(phone_number: str) -> bool:
-    """True when the bot's previous reply asked the client for their name."""
+def _last_bot_message_asked_name(phone_number: str, agency_id: str = None) -> bool:
+    """True when the bot's previous reply asked the client for their name.
+
+    Agency-scoped when an agency_id is available, so one agency's turn logic
+    can never be influenced by another agency's history.
+    """
     try:
-        res = supabase.table("conversation_history").select("content") \
+        query = supabase.table("conversation_history").select("content") \
             .eq("phone_number", phone_number).eq("role", "model") \
-            .order("created_at", desc=True).limit(1).execute()
+            .order("created_at", desc=True).limit(1)
+        if agency_id:
+            query = query.eq("agency_id", agency_id)
+        res = query.execute()
         if res.data and res.data[0].get("content"):
             last = res.data[0]["content"].lower()
             return any(m in last for m in NAME_ASK_MARKERS)
@@ -265,8 +272,7 @@ async def _process_webhook_payload(payload: dict):
                         continue
 
                     # 2.7 LEAD NAME CAPTURE: if the bot asked for the name and the
-                    # client just answered, persist it on the lead (never blank/generic).
-                    if agency_id:
+                    # client just answered, persist it on the lead (never blank/generic).                    if agency_id:
                         captured_name = _try_capture_client_name(client_phone, client_text, client_name, lead_full_name)
                         if captured_name:
                             try:

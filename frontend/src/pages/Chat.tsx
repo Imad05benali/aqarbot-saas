@@ -6,6 +6,7 @@ import TakeoverToggle from '../components/TakeoverToggle';
 import { supabase } from '../lib/supabase';
 import { useProfile } from '../context/ProfileContext';
 import api from '../api/axios';
+import { sendManualChat } from '../services/api';
 
 export default function Chat() {
   const { profile } = useProfile();
@@ -102,7 +103,8 @@ export default function Chat() {
         }]);
       }
 
-      setMessageText('');
+      // Keep the draft in the box so the agent can retry after seeing the error.
+      // (don't clear the input on a failed send)
 
       // 2. Dispatch the message out to the actual Meta Graph API via the backend
       try {
@@ -110,9 +112,7 @@ export default function Chat() {
       } catch (err) {
         console.error("Meta API transmission error:", err);
         // Surface it to the user so they know why the reply didn't go out.
-        setMessage((m) => m + `
-
-[Erreur d'envoi: ${err instanceof Error ? err.message : 'backend unreachable'}]`);
+        setMessageText((m) => m + "\n\n[Erreur d'envoi: " + (err instanceof Error ? err.message : 'backend unreachable') + "]");
       }
 
       // 3. Instantly append to UI for responsive feel

@@ -169,6 +169,9 @@ class LLMService:
         Manages the conversational state with the LLM via Supabase conversation_history.
         client_full_name / ask_for_name are the backend's live lead data: they tell
         the bot whether to politely request the client's full name at greeting time.
+
+        agency_id is threaded onto every conversation_history row so the history is
+        isolated per agency (not just per phone).
         """
         try:
             # 1. Store user message in DB
@@ -176,7 +179,8 @@ class LLMService:
             db_save_user = supabase.table("conversation_history").insert({
                 "phone_number": phone_number,
                 "role": "user",
-                "content": user_message
+                "content": user_message,
+                "agency_id": agency_id,
             }).execute()
 
             # 2. Fetch history (Last 24 hours)
@@ -184,6 +188,9 @@ class LLMService:
             time_threshold = (datetime.now(timezone.utc) - timedelta(hours=24)).isoformat()
             history_req = supabase.table("conversation_history").select("*").eq("phone_number", phone_number).gte("created_at", time_threshold).order("created_at", desc=False).execute()
             history_records = history_req.data if history_req.data else []
+            # If agency_id is available, only the agent's own history feeds the LLM.
+            if agency_id:
+                history_records = [r for r in history_records if r.get("agency_id") == agency_id]
             logger.info(f"Successfully fetched {len(history_records)} history records.")
 
             # 3. Format history for Gemini API
@@ -219,7 +226,8 @@ class LLMService:
             db_save_model = supabase.table("conversation_history").insert({
                 "phone_number": phone_number,
                 "role": "model",
-                "content": model_text
+                "content": model_text,
+                "agency_id": agency_id,
             }).execute()
 
             return model_text
