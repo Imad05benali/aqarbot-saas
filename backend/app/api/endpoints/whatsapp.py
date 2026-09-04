@@ -35,7 +35,7 @@ def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Pro
     # Fallback to the newest registered agency owner
     agency_id = None
     try:
-        agency_res = supabase.table("users").select("id").order("created_at", desc=True).limit(1).execute()
+        agency_res = supabase.table("agencies").select("id").order("created_at", desc=True).limit(1).execute()
         if agency_res.data:
             agency_id = agency_res.data[0]["id"]
     except Exception:
