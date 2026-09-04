@@ -123,29 +123,42 @@ Required Format:
 """
 
 class LLMService:
+    # Per-attempt timeout + hard wall-clock budget: an overloaded/hanging model
+    # must never stall a WhatsApp reply for a minute+ (observed ~60-90s delays).
+    _ATTEMPT_TIMEOUT_S = 12.0
+    _TOTAL_BUDGET_S = 30.0
+
     @staticmethod
     def _call_gemini_with_retry(model: str, contents: str, config=None, max_retries: int = 3):
         """
-        Internal helper to execute Gemini calls with exponential backoff for
-        429/5xx errors, falling back across the model chain when the primary
-        model is overloaded (e.g. HTTP 503 high demand).
+        Internal helper to execute Gemini calls with short, bounded retries and
+        per-attempt timeouts, falling back across the model chain when the
+        preferred model is overloaded (e.g. HTTP 503 high demand).
+
+        Each generate_content request is hard-capped at ~12s via the client
+        http timeout, and the whole call aborts after a ~30s budget, so the
+        pipeline can never block on a hung model.
         """
-        client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
+        timeout_ms = int(LLMService._ATTEMPT_TIMEOUT_S * 1000)
+        client = genai.Client(
+            api_key=os.getenv("GOOGLE_API_KEY"),
+            http_options=types.HttpOptions(timeout=timeout_ms),
+        )
         chain = _model_chain(model)
         last_error: Exception | None = None
-        # Small total budget: an overloaded model is usually still overloaded a
-        # second later, so we retry briefly and move DOWN the chain fast instead
-        # of burning ~7s of exponential backoff on the primary model alone.
-        max_total_attempts = 6
+        deadline = time.monotonic() + LLMService._TOTAL_BUDGET_S
+        max_total_attempts = 4
         total_attempts = 0
 
         for idx, m in enumerate(chain):
-            if total_attempts >= max_total_attempts:
+            if total_attempts >= max_total_attempts or time.monotonic() >= deadline:
                 break
-            # One quick retry on the first two models, one shot on the rest.
-            attempts = min(2 if idx <= 1 else 1, max_total_attempts - total_attempts)
+            # One quick retry on the preferred model, one shot on the rest.
+            attempts = min(2 if idx == 0 else 1, max_total_attempts - total_attempts)
             for attempt in range(attempts):
                 total_attempts += 1
+                if time.monotonic() >= deadline:
+                    break
                 try:
                     if config:
                         return client.models.generate_content(model=m, contents=contents, config=config)
@@ -153,13 +166,18 @@ class LLMService:
                 except Exception as e:
                     err_msg = str(e).upper()
                     is_retryable = any(
-                        t in err_msg for t in ("429", "RESOURCE_EXHAUSTED", "503", "OVERLOADED", "UNAVAILABLE", "500", "INTERNAL")
+                        t in err_msg
+                        for t in ("429", "RESOURCE_EXHAUSTED", "503", "OVERLOADED",
+                                  "UNAVAILABLE", "500", "INTERNAL", "TIMEOUT", "TIMED OUT",
+                                  "DEADLINE", "CONNECTION")
                     )
                     last_error = e
-                    # Short, capped retry only for transient overload errors.
-                    if is_retryable and attempt < attempts - 1 and total_attempts < max_total_attempts:
-                        wait_time = 0.8 + random.uniform(0, 0.7)
-                        print(f"\n[Gemini] QUOTA HIT on {m} (Attempt {attempt + 1}). Retrying in {wait_time:.2f}s...")
+                    # Short, capped retry only for transient overload/timeout errors.
+                    if (is_retryable and attempt < attempts - 1
+                            and total_attempts < max_total_attempts
+                            and time.monotonic() < deadline):
+                        wait_time = 0.4 + random.uniform(0, 0.4)
+                        print(f"\n[Gemini] QUOTA/TIMEOUT on {m} (Attempt {attempt + 1}). Retrying in {wait_time:.2f}s...")
                         time.sleep(wait_time)
                         continue
                     if m != chain[-1] and total_attempts < max_total_attempts:
@@ -198,6 +216,10 @@ class LLMService:
             # If agency_id is available, only the agent's own history feeds the LLM.
             if agency_id:
                 history_records = [r for r in history_records if r.get("agency_id") == agency_id]
+            # Keep the prompt small so generation stays fast: only the most recent
+            # ~14 rows (7 exchanges) matter; the fresh user message is included.
+            if len(history_records) > 14:
+                history_records = history_records[-14:]
             logger.info(f"Successfully fetched {len(history_records)} history records.")
 
             # 3. Format history for Gemini API
