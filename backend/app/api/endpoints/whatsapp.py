@@ -134,7 +134,7 @@ def _last_bot_message_asked_name(phone_number: str, agency_id: str = None) -> bo
     return False
 
 
-def _try_capture_client_name(phone_number: str, client_text: str, profile_name: str, stored_name) -> str:
+def _try_capture_client_name(phone_number: str, client_text: str, profile_name: str, stored_name, agency_id: str = None) -> str:
     """
     Returns the client's name (or None) when this message answers the bot's
     name question — either the previous bot message asked for it, or the
@@ -147,7 +147,7 @@ def _try_capture_client_name(phone_number: str, client_text: str, profile_name: 
     letters = re.sub(r"[^a-zA-Z\u0600-\u06FF]", "", text).lower()
     if not letters or letters in NOISE_ANSWERS:
         return None
-    asked = _last_bot_message_asked_name(phone_number)
+    asked = _last_bot_message_asked_name(phone_number, agency_id)
     explicit = any(re.search(p, text, re.IGNORECASE) for p in NAME_INTRO_PATTERNS)
     if not (asked or explicit):
         return None
@@ -271,9 +271,13 @@ async def _process_webhook_payload(payload: dict):
                         print(f"MANUAL MODE: AI paused for {client_phone}; skipping auto-reply.")
                         continue
 
-                    # 2.7 LEAD NAME CAPTURE: if the bot asked for the name and the
-                    # client just answered, persist it on the lead (never blank/generic).                    if agency_id:
-                        captured_name = _try_capture_client_name(client_phone, client_text, client_name, lead_full_name)
+                    # 2.7 LEAD NAME CAPTURE: when the bot asked for the client's
+                    # full name and this message answers it, persist the name on
+                    # the lead so the dashboard + every future turn use it.
+                    if agency_id:
+                        captured_name = _try_capture_client_name(
+                            client_phone, client_text, client_name, lead_full_name, agency_id
+                        )
                         if captured_name:
                             try:
                                 supabase.table("leads").update({"full_name": captured_name}) \
@@ -281,7 +285,7 @@ async def _process_webhook_payload(payload: dict):
                                 lead_full_name = captured_name
                                 print(f"LEAD NAME: captured '{captured_name}' for {client_phone}")
                             except Exception as e:
-                                logger.error(f"Error saving lead full_name: {e}")
+                                logger.error(f"Error saving lead full_name for {client_phone}: {e}")
                     ask_for_name = _name_is_missing(lead_full_name, client_name)
 
                     # 3. LLM State Machine Routing

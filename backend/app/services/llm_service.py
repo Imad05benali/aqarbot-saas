@@ -24,6 +24,13 @@ FALLBACK_MODELS = ["gemini-3-flash", "gemini-2.5-flash"]
 # 10-minute cache of the models reported by the Gemini API for this key.
 _MODEL_CACHE = {"ts": 0.0, "names": []}
 
+# Leading name-introducer phrases to strip before extraction
+# ("ana imad" -> "imad", "je m'appelle imad" -> "imad", "\u0627\u0633\u0645\u064a \u0645\u062d\u0645\u062f" -> "\u0645\u062d\u0645\u062f", ...).
+_NAME_INTRO_RE = re.compile(
+    r"^\s*(?:ana|ismi|smiyti|smiyeti|smiya dyali|smiya dyal|je m'appelle|je suis|my name is|i am|i'm|mon nom est|\u0627\u0633\u0645\u064a|\u0627\u0646\u0627)\b[\s:,-]*",
+    re.IGNORECASE,
+)
+
 
 def _fetch_available_models() -> list:
     """List the Gemini models actually available to the runtime API key."""
@@ -447,22 +454,33 @@ class LLMService:
     @staticmethod
     def extract_client_name(message_text: str) -> str:
         """
-        Optimized name extraction: Bypasses LLM for simple one-word answers.
+        Deterministic name extraction - no LLM call for the common case.
+
+        Strips a leading introducer ("ana", "ismi", "je m'appelle", "\u0627\u0633\u0645\u064a" ...)
+        and, when what remains is a short name-like phrase, returns it directly.
+        The LLM is only consulted for long/complex replies.
         """
-        text_clean = message_text.strip()
-        words = text_clean.split()
-        
-        if len(words) == 1:
-            name = words[0].capitalize()
-            print(f"DEBUG: Fast-path name extraction (No LLM): {name}")
-            return name
+        text = (message_text or "").strip()
+        if not text:
+            return None
+        # Remove a leading introducer so "ana imad" / "je m'appelle imad" yield the name.
+        cleaned = _NAME_INTRO_RE.sub("", text).strip() or text
+        words = cleaned.split()
+        if not words:
+            return None
+
+        latin_only = bool(re.fullmatch(r"[a-zA-Z]+(?:[ '-][a-zA-Z]+)*", cleaned))
+        meaningful = re.sub(r"[^a-zA-Z\u0600-\u06FF]", "", cleaned)
+        if len(words) <= 4 and len(meaningful) >= 2:
+            if latin_only:
+                return " ".join(w.capitalize() for w in words)[:80]
+            return cleaned[:80]
 
         prompt = f"""Extract the personal name from: "{message_text}"\nReturn ONLY the name. If none, return "Unknown"."""
-        
         try:
             config = types.GenerateContentConfig(temperature=0.0)
             response = LLMService._call_gemini_with_retry(
-                model='gemini-3.5-flash-lite',
+                model=DEFAULT_MODEL,
                 contents=prompt,
                 config=config
             )
@@ -470,7 +488,7 @@ class LLMService:
             return name if name.lower() != "unknown" else None
         except Exception:
             print(f"ERROR: Extraction failed: {traceback.format_exc()}")
-            return words[0].capitalize() if words else None
+            return None
 
     @staticmethod
     def parse_property_intent(message_text: str) -> dict:
