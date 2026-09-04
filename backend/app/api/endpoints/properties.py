@@ -108,7 +108,7 @@ async def _execute_fuzzy_search(fuzzy_tokens: list, limit: int) -> list:
         or_conditions.append(f"City.ilike.{pattern}")
         or_conditions.append(f"Nighberd.ilike.{pattern}")
         or_conditions.append(f"title.ilike.{pattern}")
-        or_conditions.append(f"description.ilike.{pattern}")
+        or_conditions.append(f"desc.ilike.{pattern}")
     
     db_query = db_query.or_(",".join(or_conditions))
     supabase_req = db_query.limit(limit).execute()
@@ -126,7 +126,9 @@ def _format_final_results(results: list) -> list:
             "Nighberd": row.get("Nighberd"),
             "City": row.get("City"),
             "Type": row.get("Type"),
-            "image_url": row.get("image_url"),
+            # desc holds the per-Type Supabase Storage image URL; prefer a real
+            # image_url column when one exists, otherwise fall back to desc.
+            "image_url": row.get("image_url") or row.get("desc"),
             "agency": {
                 "id": 0,
                 "name": "General Listing",
