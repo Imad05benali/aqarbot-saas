@@ -123,11 +123,19 @@ class LLMService:
         client = genai.Client(api_key=os.getenv("GOOGLE_API_KEY"))
         chain = _model_chain(model)
         last_error: Exception | None = None
+        # Small total budget: an overloaded model is usually still overloaded a
+        # second later, so we retry briefly and move DOWN the chain fast instead
+        # of burning ~7s of exponential backoff on the primary model alone.
+        max_total_attempts = 6
+        total_attempts = 0
 
         for idx, m in enumerate(chain):
-            # Retry the preferred model with backoff; try alternates once each.
-            attempts = max_retries if idx == 0 else 1
+            if total_attempts >= max_total_attempts:
+                break
+            # One quick retry on the first two models, one shot on the rest.
+            attempts = min(2 if idx <= 1 else 1, max_total_attempts - total_attempts)
             for attempt in range(attempts):
+                total_attempts += 1
                 try:
                     if config:
                         return client.models.generate_content(model=m, contents=contents, config=config)
@@ -138,12 +146,13 @@ class LLMService:
                         t in err_msg for t in ("429", "RESOURCE_EXHAUSTED", "503", "OVERLOADED", "UNAVAILABLE", "500", "INTERNAL")
                     )
                     last_error = e
-                    if is_retryable and attempt < attempts - 1:
-                        wait_time = (2 ** attempt) + random.uniform(0, 1)
+                    # Short, capped retry only for transient overload errors.
+                    if is_retryable and attempt < attempts - 1 and total_attempts < max_total_attempts:
+                        wait_time = 0.8 + random.uniform(0, 0.7)
                         print(f"\n[Gemini] QUOTA HIT on {m} (Attempt {attempt + 1}). Retrying in {wait_time:.2f}s...")
                         time.sleep(wait_time)
                         continue
-                    if m != chain[-1]:
+                    if m != chain[-1] and total_attempts < max_total_attempts:
                         print(f"\n[Gemini] MODEL {m} FAILED ({type(e).__name__}). Next -> {chain[idx + 1]}")
                         break
                     raise last_error

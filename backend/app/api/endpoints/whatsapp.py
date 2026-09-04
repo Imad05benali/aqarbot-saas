@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import asyncio
 import logging
 from fastapi import APIRouter, Request, HTTPException, Query, BackgroundTasks
 from fastapi.responses import PlainTextResponse
@@ -23,17 +24,24 @@ sessions = {}
 processed_messages = set()
 
 
-def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Prospect") -> str:
-    """Resolve agency_id: first from existing lead, then fallback to newest agency."""
-    if phone_number:
-        try:
-            existing = supabase.table("leads").select("agency_id").eq("phone_number", phone_number).limit(1).execute()
-            if existing.data and existing.data[0].get("agency_id"):
-                return existing.data[0]["agency_id"]
-        except Exception:
-            pass
+def _resolve_agency_and_pause(phone_number: str = None, client_name: str = "Prospect") -> tuple:
+    """
+    Resolve (agency_id, is_ai_paused) for a phone number in ONE leads round trip,
+    falling back to the newest agency (and auto-creating the lead) when unknown.
+    """
+    if not phone_number:
+        return None, False
 
-    # Fallback to the newest registered agency
+    # Single lookup: existing lead carries both the agency and its pause flag.
+    try:
+        existing = supabase.table("leads").select("agency_id,is_ai_paused").eq("phone_number", phone_number).limit(1).execute()
+        if existing.data and existing.data[0].get("agency_id"):
+            row = existing.data[0]
+            return row.get("agency_id"), bool(row.get("is_ai_paused"))
+    except Exception:
+        pass
+
+    # Unknown client: fall back to the newest registered agency and create the lead.
     agency_id = None
     try:
         agency_res = supabase.table("agencies").select("id").order("created_at", desc=True).limit(1).execute()
@@ -42,8 +50,7 @@ def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Pro
     except Exception:
         pass
 
-    # Lead didn't exist, so let's automatically create them now!
-    if agency_id and phone_number:
+    if agency_id:
         try:
             res = supabase.table("leads").insert({
                 "phone_number": phone_number,
@@ -57,7 +64,7 @@ def _resolve_agency_for_router(phone_number: str = None, client_name: str = "Pro
         except Exception as e:
             logger.error(f"CRITICAL Error auto-creating lead. Exception: {e}", exc_info=True)
 
-    return agency_id
+    return agency_id, False
 
 
 def _collect_message_ids(payload: dict) -> list:
@@ -141,8 +148,9 @@ async def _process_webhook_payload(payload: dict):
                     client_text = message_obj.get("text", {}).get("body", "").strip()
                     print(f"MESSAGE: From {client_name} ({client_phone}): '{client_text}'")
 
-                    # 2.5 MULTI-TENANT: Resolve agency_id & Auto-create lead
-                    agency_id = _resolve_agency_for_router(client_phone, client_name)
+                    # 2.5 MULTI-TENANT: Resolve agency_id & pause flag in ONE query
+                    # (auto-creates the lead for unknown clients).
+                    agency_id, ai_paused = _resolve_agency_and_pause(client_phone, client_name)
                     print(f"AGENCY: Resolved agency_id={agency_id} for phone={client_phone}")
 
                     if agency_id:
@@ -159,13 +167,9 @@ async def _process_webhook_payload(payload: dict):
                     # 2.6 MANUAL TAKEOVER: if the lead is paused (AI off), record
                     # the message but do NOT auto-reply — the agent answers from
                     # the Hub.
-                    try:
-                        pause_res = supabase.table("leads").select("is_ai_paused").eq("phone_number", client_phone).limit(1).execute()
-                        if pause_res.data and pause_res.data[0].get("is_ai_paused"):
-                            print(f"MANUAL MODE: AI paused for {client_phone}; skipping auto-reply.")
-                            continue
-                    except Exception as e:
-                        logger.error(f"Error checking lead pause state: {e}")
+                    if ai_paused:
+                        print(f"MANUAL MODE: AI paused for {client_phone}; skipping auto-reply.")
+                        continue
 
                     # 3. LLM State Machine Routing
                     try:
@@ -282,15 +286,27 @@ async def whatsapp_verify(
     raise HTTPException(status_code=403, detail="Verification token mismatch")
 
 
+def _process_webhook_payload_task(payload: dict):
+    """
+    Sync bridge for the heavy async pipeline. FastAPI runs sync background
+    tasks in a WORKER THREAD, so long Gemini calls / retry sleeps never block
+    the event loop — a slow message can no longer stall other inbound
+    messages (or other endpoints) on the same instance.
+    """
+    try:
+        asyncio.run(_process_webhook_payload(payload))
+    except Exception as e:
+        logger.error(f"CRITICAL WEBHOOK BACKGROUND ERROR: {str(e)}", exc_info=True)
+
+
 @router.post("/webhook")
 async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     """
-    PRODUCTION WEBHOOK (loop-safe):
-    - Replies 200 OK to Meta IMMEDIATELY, before any DB/Gemini/WhatsApp work.
-      A slow handler used to make Meta time out and re-deliver the same
-      message, which triggered duplicate replies and repeated images.
-    - All processing runs once per message id (durable dedup table), so even
-      a forced redelivery can never produce a second answer.
+    PRODUCTION WEBHOOK (loop-safe, low-latency):
+    - Replies 200 OK to Meta IMMEDIATELY, before any DB/Gemini/WhatsApp work,
+      so Meta never times out or re-delivers (the source of duplicate replies).
+    - All processing runs ONCE per message id (durable dedup table) in a
+      background worker thread — never on the event loop.
     """
     print("\n--- INCOMING WHATSAPP WEBHOOK START ---")
     try:
@@ -302,6 +318,6 @@ async def whatsapp_webhook(request: Request, background_tasks: BackgroundTasks):
     if "entry" not in payload:
         return {"status": "no entry"}
 
-    # Acknowledge Meta first; heavy work continues in the background task.
-    background_tasks.add_task(_process_webhook_payload, payload)
+    # Acknowledge Meta first; heavy work continues in a background worker thread.
+    background_tasks.add_task(_process_webhook_payload_task, payload)
     return {"status": "received"}
