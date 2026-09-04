@@ -119,7 +119,17 @@ TO authenticated
 USING (agency_id = public.get_my_agency_id());
 
 -- ---------------------------------------------------------------
--- 3. SEED (optional — uncomment and replace the placeholders)
+-- 3. WEBHOOK DEDUPLICATION (idempotent message processing)
+--    Durable message-id store so a WhatsApp redelivery can never trigger a
+--    second reply. Written by the backend service role only.
+-- ---------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.processed_webhook_messages (
+    message_id text PRIMARY KEY,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- ---------------------------------------------------------------
+-- 4. SEED (optional — uncomment and replace the placeholders)
 --    Run AFTER creating your account in the app (so auth.users has
 --    your email), or skip and let the app bootstrap the agency from
 --    the Settings > Profil page.
