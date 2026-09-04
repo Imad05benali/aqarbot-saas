@@ -26,7 +26,7 @@ import {
   MapPin,
 } from 'lucide-react';
 import ScrollReveal from '@/components/ScrollReveal';
-import { supabase, isSupabaseReachable } from '@/lib/supabase';
+import { isSupabaseReachable } from '@/lib/supabase';
 
 // ──────────────────────────────────────────────────────────────
 // TYPES
@@ -100,54 +100,33 @@ export default function RegisterPage() {
         );
       }
 
-      // 1. Create Supabase Auth user
-      const { data, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { 
-            full_name: fullName.trim(), 
-            agency_name: agencyName.trim(),
-            phone: phone.trim(),
-            city: city.trim()
-          },
-        },
+      // 1. Provision server-side: Auth user + Agency + Owner row in one
+      // atomic call (with rollback), so every signup gets its OWN agency and
+      // users.agency_id is never NULL. Runs with the service role via
+      // /api/auth/register — strict order: auth user -> agency -> owner user.
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fullName: fullName.trim(),
+          agencyName: agencyName.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          password,
+        }),
       });
-
-      if (authError) throw authError;
-
-      const userId = data.user?.id;
-
-      if (userId) {
-        // 2. Insert profile row into public.users — schema: id, full_name, agency_name, role
-        // email, agency_logo, hashed_password, agency_id are not columns in this table.
-        const { error: insertError } = await supabase
-          .from('users')
-          .insert([{
-            id: userId,
-            full_name: fullName.trim(),
-            agency_name: agencyName.trim(),
-            role: 'Owner',
-          }]);
-
-        if (insertError) {
-          console.error('Supabase Profile Sync Error:', insertError);
-          // Non-blocking — auth user was created; profile row will be lazily synced on login
-        }
-      }
-
-      // 3. Persist session cookies for cross-port handshake
-      if (data.session) {
-        document.cookie = `sb-access-token=${data.session.access_token}; path=/; max-age=604800; SameSite=Lax`;
-        document.cookie = `sb-refresh-token=${data.session.refresh_token}; path=/; max-age=604800; SameSite=Lax`;
+      const payload = (await res.json().catch(() => null)) as {
+        ok?: boolean;
+        error?: string;
+      } | null;
+      if (!res.ok || !payload?.ok) {
+        throw new Error(payload?.error || "Erreur lors de la création de l'agence.");
       }
 
       setStep('success');
 
-      // 4. Force a clean-slate log out to clear any old cached sessions 
-      await supabase.auth.signOut();
-
-      // 5. Redirect to login with pre-fill params so the user is authenticated in one click
+      // 2. Redirect to login with pre-fill params so the user is
+      // authenticated in one click (email_confirm is set server-side).
       setTimeout(() => {
         window.location.href = `/auth/login?email=${encodeURIComponent(email)}&prefill=${encodeURIComponent(password)}`;
       }, 2000);
