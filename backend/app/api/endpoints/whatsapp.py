@@ -8,6 +8,7 @@ from fastapi import APIRouter, Request, HTTPException, Query, BackgroundTasks
 from fastapi.responses import PlainTextResponse
 from app.services.llm_service import LLMService
 from app.services.whatsapp_service import WhatsAppService
+from app.services.pexels_service import PexelsService
 from app.api.endpoints.properties import (
     search_properties,
     search_matching_properties,
@@ -110,6 +111,33 @@ def _build_property_caption(p: dict) -> str:
     return "\n".join(lines)
 
 
+async def _ensure_property_image(prop: dict) -> str:
+    """
+    When a matched property carries no usable image, dynamically pull a
+    matching Pexels photo (keywords from the property's Type/City) and persist
+    it into morocco_properties.desc, so this send - and every later bot or
+    dashboard view of that property - has a real image. Returns the URL or ''.
+    """
+    pid = prop.get("id") or prop.get("property_id")
+    query = PexelsService.query_for_property(prop)
+    try:
+        url = await asyncio.to_thread(PexelsService.next_photo_url, query)
+    except Exception as e:
+        logger.error(f"Pexels runtime lookup failed: {e}")
+        return ""
+    if not url:
+        return ""
+    if pid:
+        try:
+            supabase.table("morocco_properties").update({"desc": url}).eq("id", pid).execute()
+            print(f"PEXELS: stored image for property {pid} ({query[:40]}...)")
+        except Exception as e:
+            logger.error(f"Failed persisting Pexels image for property {pid}: {e}")
+    prop["desc"] = url
+    prop["image_url"] = url
+    return url
+
+
 async def _record_ai_message(phone_number: str, text: str, agency_id: str, image: bool = False):
     """Mirror an AI message into the Hub (conversations) + LLM memory
     (conversation_history) exactly like the main chat flow does."""
@@ -175,14 +203,19 @@ async def _deliver_property_results(client_phone: str, agency_id: str, props: li
 
     memory_notes = []
     for i, p in enumerate(props, 1):
-        img = str(p.get("image_url") or p.get("desc") or "").strip()
         caption = _build_property_caption(p)
+        img = str(p.get("image_url") or p.get("desc") or "").strip()
+        if not (img.startswith("http://") or img.startswith("https://")):
+            # Property has no photo yet: fetch one dynamically from Pexels and
+            # persist it (covers brand-new rows imported without an image).
+            img = await _ensure_property_image(p)
         if img.startswith("http://") or img.startswith("https://"):
             ok = await WhatsAppService.send_whatsapp_image(client_phone, img, caption)
             if not ok:
                 logger.error(f"Image send failed for {img}")
         else:
-            # No usable image: send the details as text so the match is not lost.
+            # Still no usable image: send the details as text so the match is
+            # not lost.
             await WhatsAppService.send_whatsapp_message(client_phone, caption)
         await _record_ai_message(client_phone, caption, agency_id, image=True)
         memory_notes.append(

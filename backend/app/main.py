@@ -26,6 +26,7 @@ else:
 from app.database import process_incoming_lead_and_log, get_matching_properties
 from app.services.whatsapp_service import WhatsAppService
 from app.services.llm_service import LLMService
+from app.services.pexels_service import PexelsService
 from app.core.supabase import supabase
 from app.api.endpoints.whatsapp import router as whatsapp_router
 
@@ -104,6 +105,45 @@ MOCK_LEADS = [
 @app.get("/")
 def read_root():
     return {"status": "AqarBot Backend is Running with Search & Robust LLM Service 🚀"}
+
+
+def _enrich_property_images(rows: list, cap: int = 40) -> int:
+    """
+    Fill morocco_properties rows that have no usable image with a matching
+    Pexels photo (persisted into `desc`), so the WhatsApp bot and dashboard
+    always have an image to show.
+
+    The free Pexels tier allows ~200 requests/hour, so each call enriches at
+    most `cap` rows (rows already carrying an http desc are skipped for free).
+    """
+    filled = 0
+    for row in rows or []:
+        if filled >= cap:
+            break
+        try:
+            desc = str(row.get("desc") or row.get("image_url") or "").strip()
+        except Exception:
+            desc = ""
+        if desc.startswith("http"):
+            continue
+        rid = row.get("id")
+        if not rid:
+            continue
+        try:
+            url = PexelsService.url_for_property(row)
+        except Exception as e:
+            logger.error(f"Pexels enrichment error: {e}")
+            url = ""
+        if url and rid:
+            try:
+                supabase.table("morocco_properties").update({"desc": url}).eq("id", rid).execute()
+                row["desc"] = url
+                filled += 1
+            except Exception as e:
+                logger.error(f"Failed saving Pexels image for {rid}: {e}")
+    if filled:
+        logger.info(f"Pexels: enriched {filled} property row(s) with photos.")
+    return filled
 
 # --- AUTH ENDPOINT ---
 
@@ -283,7 +323,10 @@ async def ingest_property(request: Request):
     try:
         data = await request.json()
         res = supabase.table("morocco_properties").insert(data).execute()
-        return {"status": "success", "data": res.data}
+        inserted = res.data or []
+        # Any property submitted without a photo gets a matching Pexels image.
+        _enrich_property_images(inserted, cap=5)
+        return {"status": "success", "data": inserted}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -319,7 +362,14 @@ async def ingest_csv(file: UploadFile = File(...)):
         if properties:
             # Batch inserts to avoid payload limit crashing
             res = supabase.table("morocco_properties").insert(properties).execute()
-            return {"status": "success", "count": len(properties), "data": res.data}
+            inserted = res.data or []
+            # Rows without an image get matching Pexels photos. Capped at 40 per
+            # import (Pexels free tier ~200 req/hr); the rest keep no desc and
+            # get a photo on demand when the WhatsApp bot presents them.
+            filled = _enrich_property_images(inserted, cap=40)
+            if filled:
+                print(f"[CSV Ingest] Enriched {filled} property row(s) with Pexels photos.")
+            return {"status": "success", "count": len(inserted), "enriched_images": filled, "data": inserted}
         
         return {"status": "error", "message": "No valid data found in CSV"}
     except Exception as e:
