@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Settings, LogOut, Sun, Moon, Users, MessageCircle, Building2, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { LayoutDashboard, Settings, LogOut, Sun, Moon, Users, MessageCircle, ChevronLeft, ChevronRight, Star } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useProfile } from '../context/ProfileContext';
 import { useTheme } from '../context/ThemeContext';

@@ -1,5 +1,6 @@
-import { useState, useEffect, FormEvent } from 'react';
-import { MessageSquare, User, Send, Bot, Shield, Search, Terminal, Info, Zap } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import type { FormEvent } from 'react';
+import { MessageSquare, Send, Bot, Shield, Search, Terminal, Info, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TakeoverToggle from '../components/TakeoverToggle';
 import { supabase } from '../lib/supabase';
@@ -33,7 +34,7 @@ export default function Chat() {
     return () => clearInterval(t);
   }, [selectedPhone, agencyId]);
 
-  const send = async (e?: FormEvent) => {
+  const send = async (e?: FormEvent<HTMLFormElement>) => {
     if (e) e.preventDefault();
     if (!msgText.trim() || !activeSession || sending) return;
     setSending(true);

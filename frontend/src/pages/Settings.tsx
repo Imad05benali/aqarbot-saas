@@ -8,6 +8,13 @@ import { useAuth } from '../context/AuthContext';
 
 type Tab = 'profile' | 'ai' | 'api';
 
+interface TabCardProps {
+  id: Tab;
+  label: string;
+  icon: React.ElementType;
+  className?: string;
+}
+
 function TeamManagement({ agencyId }: { agencyId: string | null }) {
   const { user } = useAuth();
   const [inviteName, setInviteName] = useState('');
@@ -182,7 +189,7 @@ export default function Settings() {
     </div>
   );
 
-  const tabs: { id: Tab; label: string; icon: React.ElementType }[] = [
+  const tabs: TabCardProps[] = [
     { id: 'profile', label: 'Profil & Admin', icon: User },
     { id: 'ai', label: 'Identité Digitale IA', icon: Bot },
     { id: 'api', label: 'Passerelles API', icon: Globe },
