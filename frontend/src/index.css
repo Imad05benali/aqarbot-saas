@@ -232,7 +232,15 @@
     @apply text-slate-900;
   }
   .section-header .chip {
-    @apply chip-emerald ml-auto;
+    @apply px-2 py-0.5 rounded-md font-black text-[9px] uppercase tracking-widest ml-auto;
+    background-color: rgba(16,185,129,0.1);
+    color: #34d399;
+    border: 1px solid rgba(16,185,129,0.2);
+  }
+  html.light .section-header .chip {
+    background-color: rgba(16,185,129,0.08);
+    color: #047857;
+    border-color: rgba(16,185,129,0.3);
   }
 
   /* ── Modern Card (dark) ── */
@@ -310,6 +318,90 @@
   html.light .text-subtitle {
     @apply text-slate-500;
   }
+}
+
+/* ─────────────────────────────────────────────────────────────
+   GLOBAL LIGHT-MODE OVERRIDES
+   Pages hardcode dark Tailwind utilities (text-white, bg-[#0B1120],
+   bg-slate-800/40…). These rules flip them when html.light is set,
+   so every component is readable in light mode without TSX edits.
+───────────────────────────────────────────────────────────── */
+html.light .text-white { color: #0f172a; }
+/* Solid brand buttons keep white text */
+html.light .bg-emerald-500.text-white,
+html.light .bg-rose-500.text-white,
+html.light .bg-emerald-400.text-white { color: #ffffff; }
+html.light .text-slate-100 { color: #1e293b; }
+html.light .text-slate-200 { color: #334155; }
+html.light .text-slate-300 { color: #475569; }
+html.light .text-slate-400 { color: #64748b; }
+
+html.light .bg-\[\#0B1120\] { background-color: #f8fafc; }
+html.light .bg-\[\#0d1624\] { background-color: #ffffff; }
+html.light .bg-\[\#0d1624\]\/80 { background-color: rgba(255,255,255,0.85); }
+html.light .bg-\[\#0d1624\]\/60 { background-color: rgba(255,255,255,0.8); }
+html.light .bg-\[\#0d1624\]\/70 { background-color: rgba(255,255,255,0.8); }
+html.light .bg-\[\#0B1120\]\/70 { background-color: rgba(248,250,252,0.8); }
+html.light .bg-\[\#0B1120\]\/80 { background-color: rgba(248,250,252,0.85); }
+html.light .bg-\[\#0B1120\]\/95 { background-color: rgba(248,250,252,0.95); }
+html.light .bg-\[\#0d1624\]\/95 { background-color: rgba(255,255,255,0.95); }
+html.light .bg-\[\#0d1624\] { background-color: #ffffff; }
+
+html.light .bg-slate-800\/30,
+html.light .bg-slate-800\/40,
+html.light .bg-slate-800\/50,
+html.light .bg-slate-800\/70 { background-color: rgba(241,245,249,0.9); }
+html.light .bg-slate-800 { background-color: #e2e8f0; }
+
+html.light .border-slate-800,
+html.light .border-slate-800\/40,
+html.light .border-slate-800\/50,
+html.light .border-slate-800\/60,
+html.light .border-slate-700,
+html.light .border-slate-700\/30,
+html.light .border-slate-700\/40,
+html.light .border-slate-700\/50,
+html.light .border-slate-700\/60 { border-color: #e2e8f0; }
+
+html.light .text-emerald-400 { color: #059669; }
+html.light .text-teal-400 { color: #0d9488; }
+html.light .text-amber-400 { color: #b45309; }
+html.light .text-rose-400 { color: #e11d48; }
+html.light .text-indigo-400 { color: #4f46e5; }
+
+/* Brand gradients need dark text in light mode */
+html.light .text-brand,
+html.light .text-brand-soft,
+html.light .text-glacier {
+  background: none;
+  -webkit-background-clip: initial;
+  background-clip: initial;
+  color: #047857;
+  -webkit-text-fill-color: #047857;
+}
+
+/* Loading states */
+html.light .bg-slate-800.rounded-full { background-color: #e2e8f0; }
+
+/* Modal overlays stay dark-dimmed but lighter in light mode */
+html.light .bg-\[\#0B1120\]\/80.backdrop-blur-sm { background-color: rgba(15,23,42,0.35); }
+
+/* Chat bubbles in light mode */
+html.light .bg-slate-800\/70 { background-color: #f1f5f9; }
+html.light .bg-emerald-500\/10 { background-color: rgba(16,185,129,0.08); }
+html.light .bg-amber-500\/10 { background-color: rgba(245,158,11,0.1); }
+html.light .bg-rose-500\/10 { background-color: rgba(244,63,94,0.08); }
+html.light .bg-blue-500\/10 { background-color: rgba(59,130,246,0.08); }
+
+/* Toast borders */
+html.light .border-emerald-400 { border-color: #34d399; }
+html.light .border-rose-400 { border-color: #fb7185; }
+
+/* Native date/select/readable inputs */
+html.light input,
+html.light select,
+html.light textarea {
+  color-scheme: light;
 }
 
 @keyframes shimmer {

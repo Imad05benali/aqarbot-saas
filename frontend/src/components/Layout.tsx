@@ -56,9 +56,8 @@ export default function Layout() {
   return (
     <div className="h-screen w-full flex font-sans overflow-hidden transition-colors duration-700 bg-transparent">
       {/* ── Desktop Sidebar ──────────────────────────────────────────── */}
-      {/* ── Desktop Sidebar ──────────────────────────────────────────── */}
       <aside 
-        className={`hidden md:flex ${isSidebarOpen ? 'w-[240px]' : 'w-[72px]'} flex-col z-20 relative`
+        className={`hidden md:flex ${isSidebarOpen ? 'w-[240px]' : 'w-[72px]'} flex-col z-20 relative`}
       >
         {/* Persistent background */}
         <div className="absolute inset-0 card-glass rounded-none border-r border-slate-800/50" />
@@ -131,7 +130,7 @@ export default function Layout() {
           <button
             onClick={handleLogout}
             title={!isSidebarOpen ? "Déconnexion" : undefined}
-            className={`sidebar-nav-item group flex items-center justify-center gap-3 ${isSidebarOpen ? 'px-3 py-3' : 'px-0 py-3'} rounded-xl`
+            className={`sidebar-nav-item group flex items-center justify-center gap-3 ${isSidebarOpen ? 'px-3 py-3' : 'px-0 py-3'} rounded-xl`}
           >
             <LogOut className={`w-4 h-4 shrink-0 transition-all duration-300 ${isSidebarOpen ? 'text-slate-500 group-hover:text-rose-400' : 'text-slate-500 group-hover:text-rose-400'}`} />
             {isSidebarOpen && (
@@ -139,7 +138,7 @@ export default function Layout() {
                 Déconnexion
               </span>
             )}
-          </Link>
+          </button>
         </div>
       </aside>
 

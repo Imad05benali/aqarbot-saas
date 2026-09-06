@@ -6,6 +6,7 @@ import EmptyStateComponent from '../components/EmptyStateComponent';
 import { supabase } from '../lib/supabase';
 import { useProfile } from '../context/ProfileContext';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useTheme } from '../context/ThemeContext';
 
 const CHART_DATA = [
   { month: 'Jan', requetes: 40, qualification: 24 },
@@ -20,6 +21,10 @@ const MONTH_SHORT = ['Janv', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun'];
 
 export default function Dashboard() {
   const { profile } = useProfile();
+  const { theme } = useTheme();
+  const isLight = theme === 'light';
+  const axisColor = isLight ? '#94a3b8' : '#334155';
+  const gridColor = isLight ? '#e2e8f0' : '#1e293b';
   const [displayInfo, setDisplayInfo] = useState({ name: 'Partenaire', agency: 'Vôtre Agence' });
   const [stats, setStats] = useState({ total_leads: 0, hot_leads: 0, ai_conversations: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -185,10 +190,17 @@ export default function Dashboard() {
                       <stop offset="95%" stopColor="#34D399" stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <XAxis dataKey="month" stroke="#334155" fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => MONTH_SHORT[['Jan','Fév','Mar','Avr','Mai','Jun'].indexOf(v)] || v} />
-                  <YAxis stroke="#334155" fontSize={11} tickLine={false} axisLine={false} />
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
-                  <Tooltip contentStyle={{ backgroundColor: 'rgba(15,23,42,0.95)', border: '1px solid rgba(110,231,183,0.3)', borderRadius: '8px', color: '#f1f5f9', fontSize: '11px', fontWeight: '500' }} />
+                  <XAxis dataKey="month" stroke={axisColor} fontSize={11} tickLine={false} axisLine={false} tickFormatter={(v) => MONTH_SHORT[['Jan','Fév','Mar','Avr','Mai','Jun'].indexOf(v)] || v} />
+                  <YAxis stroke={axisColor} fontSize={11} tickLine={false} axisLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={gridColor} />
+                  <Tooltip contentStyle={{
+                    backgroundColor: isLight ? 'rgba(255,255,255,0.97)' : 'rgba(15,23,42,0.95)',
+                    border: isLight ? '1px solid #e2e8f0' : '1px solid rgba(110,231,183,0.3)',
+                    borderRadius: '8px',
+                    color: isLight ? '#0f172a' : '#f1f5f9',
+                    fontSize: '11px',
+                    fontWeight: '500',
+                  }} />
                   <Area type="monotone" dataKey="requetes" stroke="#818CF8" strokeWidth={2} fillOpacity={1} fill="url(#cReq)" />
                   <Area type="monotone" dataKey="qualification" stroke="#34D399" strokeWidth={2} fillOpacity={1} fill="url(#cQual)" />
                 </AreaChart>
