@@ -11,8 +11,7 @@ type Tab = 'profile' | 'ai' | 'api';
 interface TabCardProps {
   id: Tab;
   label: string;
-  icon: React.ElementType;
-  className?: string;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 function TeamManagement({ agencyId }: { agencyId: string | null }) {
