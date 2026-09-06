@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, MessageCircle, Flame, Activity, Sparkles, Zap, ArrowUpRight } from 'lucide-react';
+import { Users, MessageCircle, Flame, Activity, Zap, ArrowUpRight, TrendingUp, MapPin, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getForecastData } from '../services/api';
 import EmptyStateComponent from '../components/EmptyStateComponent';
@@ -15,6 +15,8 @@ const chartData = [
   { month: 'Mai', requetes: 95, qualification: 68 },
   { month: 'Jun', requetes: 110, qualification: 90 },
 ];
+
+const MONTH_SHORT = ['Janv', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun'];
 
 export default function Dashboard() {
   const { profile } = useProfile();
@@ -60,7 +62,7 @@ export default function Dashboard() {
         setStats({
           total_leads: totalLeads || 0,
           hot_leads: Math.max(0, (totalLeads || 0) - (manualInteractions || 0)),
-          ai_conversations: aiMessageCount || 0
+          ai_conversations: aiMessageCount || 0,
         });
 
         const { data: filteredLeads } = await supabase
@@ -71,13 +73,12 @@ export default function Dashboard() {
           .limit(10);
 
         setLeads(filteredLeads || []);
-
         setDisplayInfo({
           name: profile?.full_name || 'Partenaire',
-          agency: profile?.agency_name || 'Vôtre Agence'
+          agency: profile?.agency_name || 'Vôtre Agence',
         });
       } catch (err) {
-        console.error("Dashboard multi-tenancy sync error", err);
+        console.error('Dashboard multi-tenancy sync error', err);
       } finally {
         setIsLoading(false);
       }
@@ -97,250 +98,352 @@ export default function Dashboard() {
   }, [profile?.agency_id, profile?.full_name, profile?.agency_name]);
 
   const kpis = [
-    { label: 'Total Clients / Leads', value: stats.total_leads, icon: Users, gradient: 'from-purple-500 to-violet-600', glow: 'kpi-glow-purple' },
-    { label: 'Active AI Chats', value: stats.hot_leads, icon: Flame, gradient: 'from-amber-500 to-orange-500', glow: 'kpi-glow-amber' },
-    { label: 'Total Bot Messages', value: stats.ai_conversations, icon: MessageCircle, gradient: 'from-cyan-500 to-blue-500', glow: 'kpi-glow-cyan' },
+    { label: 'Total Clients', sublabel: 'Tous leads inscrits', value: stats.total_leads, icon: Users, gradient: 'from-purple-600 to-purple-500', light: 'text-purple-300' },
+    { label: 'Conversations IA', sublabel: 'Sessions actives', value: stats.hot_leads, icon: Flame, gradient: 'from-amber-500 to-orange-500', light: 'text-amber-300' },
+    { label: 'Messages Bot', sublabel: 'Échanges automatisés', value: stats.ai_conversations, icon: MessageCircle, gradient: 'from-cyan-600 to-cyan-500', light: 'text-cyan-300' },
   ];
 
-  if (isLoading) return (
-    <div className="h-full flex flex-col items-center justify-center gap-6 bg-[#0B1120]">
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-cyan-600/20 blur-3xl rounded-full animate-pulse" />
-        <Sparkles className="w-16 h-16 text-purple-400 animate-spin relative z-10" />
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-[#0B1120] flex flex-col items-center justify-center">
+        <div className="relative mb-8">
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 to-cyan-600/20 blur-3xl rounded-full animate-pulse" />
+          <Activity className="w-14 h-14 text-purple-400 animate-spin relative z-10" />
+        </div>
+        <span className="font-black text-[10px] uppercase tracking-[0.4em] text-purple-400/60">
+          Chargement du Tableau de Bord
+        </span>
       </div>
-      <span className="font-black text-[10px] uppercase tracking-[0.5em] text-purple-400/70">Activation du Tableau de Bord Vivid</span>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="space-y-10 relative">
-      {/* Ambient background blobs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden -z-10">
-        <div className="absolute top-[-10%] left-[-5%] w-[50%] h-[50%] rounded-full bg-purple-600/10 blur-[120px] animate-blob" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-cyan-600/8 blur-[100px] animate-blob" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] rounded-full bg-amber-500/5 blur-[80px] animate-blob" style={{ animationDelay: '4s' }} />
-      </div>
+    <div className="min-h-screen bg-[#0B1120] text-slate-100 pb-12">
+      {/* Top accent bar */}
+      <div className="h-[3px] bg-gradient-to-r from-purple-600 via-cyan-500 to-amber-500" />
 
-      {/* Hero Greeting */}
-      <div className="relative z-10 px-1 md:px-4 pt-4">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-8">
+        {/* Header */}
         <motion.div
-          initial={{ opacity: 0, y: -10 }}
+          initial={{ opacity: 0, y: -8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex flex-col gap-2"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8"
         >
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34D399]" />
-            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500">Tableau de Bord · Vivement Actualisé</span>
-          </div>
-          <h1 className="text-3xl md:text-5xl font-black tracking-tighter text-white">
-            Bienvenue, <span className="text-vivid">{displayInfo.name.split(' ')[0]}</span> 👋
-          </h1>
-          <p className="text-sm md:text-base text-slate-400 font-medium tracking-wide max-w-xl">
-            Performance en direct de l&apos;agence <span className="text-vivid-cyan font-black">{displayInfo.agency}</span>.
-          </p>
-        </motion.div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-        {kpis.map((kpi, i) => (
-          <motion.div
-            key={kpi.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 + i * 0.1, type: "spring", stiffness: 120 }}
-            className="vivid-card p-6 md:p-8 rounded-2xl md:rounded-3xl group cursor-pointer relative overflow-hidden"
-          >
-            <div className={`vivid-glow bg-gradient-to-br ${kpi.gradient}`} />
-            <div className={`absolute -top-20 -right-20 w-48 h-48 bg-gradient-to-br ${kpi.gradient} opacity-0 group-hover:opacity-20 blur-[100px] transition-all duration-700`} />
-
-            <div className="flex items-start justify-between relative z-10">
-              <div>
-                <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.25em]">{kpi.label}</p>
-                <h2 className="text-4xl md:text-5xl font-black tracking-tighter mt-2 bg-clip-text text-transparent bg-gradient-to-br from-white via-slate-200 to-slate-400">
-                  {kpi.value}
-                </h2>
-              </div>
-              <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${kpi.gradient} text-white shadow-xl shadow-${kpi.gradient.split(' ')[1] || 'purple'}/20 flex items-center justify-center`}>
-                <kpi.icon className="w-5 h-5" />
-              </div>
-            </div>
-
-            <div className="mt-6 flex items-center justify-between relative z-10">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
               <div className="flex items-center gap-2">
-                <span className="text-[9px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse" />
-                  Temps Réel
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34D399]" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
+                  Connecté ·
+                  <span className="text-emerald-400 ml-1">Live</span>
                 </span>
               </div>
-              <ArrowUpRight className="w-4 h-4 text-emerald-400 animate-float" />
             </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Growth Chart */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="relative z-10 vivid-card p-8 md:p-10 rounded-2xl md:rounded-3xl"
-      >
-        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
-          <div>
-            <h3 className="text-xl md:text-2xl font-black tracking-tighter uppercase italic text-white">
-              Croissance &amp; Acquisition
-            </h3>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-              Requêtes vs Conversions · 6 derniers mois
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
+              Bonjour,{' '}
+              <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+                {displayInfo.name.split(' ')[0]}
+              </span>
+            </h1>
+            <p className="text-sm text-slate-500 mt-1 font-medium">
+              Vue d&apos;ensemble de{' '}
+              <span className="text-cyan-400 font-bold">{displayInfo.agency}</span>
             </p>
           </div>
-          <div className="flex items-center gap-3 text-[9px] font-black uppercase tracking-widest text-slate-500">
-            <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-blue-500" /> Requêtes</span>
-            <span className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-emerald-400" /> Qualification</span>
-          </div>
-        </div>
 
-        <div className="h-[260px] w-full mt-2">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="vividRequetes" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#3B82F6" stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="vividQualif" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#34D399" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#34D399" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis dataKey="month" stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
-              <YAxis stroke="#475569" fontSize={11} tickLine={false} axisLine={false} />
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.95)', borderRadius: '12px', border: '1px solid rgba(139,92,246,0.3)', color: '#fff', fontSize: '11px', fontWeight: 'bold' }}
-                itemStyle={{ color: '#c4b5fd' }}
+          <div className="flex items-center gap-3 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-slate-600" />
+              <span className="font-medium">
+                {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              </span>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-5 mb-8">
+          {kpis.map((kpi, i) => (
+            <motion.div
+              key={kpi.label}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.05 * (i + 1), duration: 0.4 }}
+              className="group relative bg-[#0d1624]/60 backdrop-blur-sm border border-slate-800/60 rounded-xl p-5 hover:border-slate-700/60 transition-all duration-300"
+            >
+              {/* Top accent line */}
+              <div className={`absolute top-0 left-5 right-5 h-[2px] rounded-full bg-gradient-to-r ${kpi.gradient} opacity-40 group-hover:opacity-70 transition-opacity`} />
+
+              {/* Glow on hover */}
+              <div
+                className={`absolute -inset-4 -z-0 rounded-2xl bg-gradient-to-br ${kpi.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 blur-xl`}
               />
-              <Area type="monotone" dataKey="requetes" stroke="#6366F1" strokeWidth={2.5} fillOpacity={1} fill="url(#vividRequetes)" />
-              <Area type="monotone" dataKey="qualification" stroke="#34D399" strokeWidth={2.5} fillOpacity={1} fill="url(#vividQualif)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </motion.div>
 
-      {/* Bottom Row: Market Insights + Neural Forecast */}
-      <div className="relative z-10 grid grid-cols-1 lg:grid-cols-5 gap-5">
-        {/* Market Insights */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="lg:col-span-3 vivid-card p-8 md:p-10 rounded-2xl md:rounded-3xl"
-        >
-          <div className="flex flex-col mb-8">
-            <h3 className="text-xl font-black tracking-tighter uppercase italic text-white">Market Insights</h3>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Densité Régionale</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6">
-            {[
-              { city: 'Casablanca', rate: 72, color: 'bg-gradient-to-r from-purple-500 to-violet-500' },
-              { city: 'Marrakech', rate: 48, color: 'bg-gradient-to-r from-cyan-500 to-blue-500' },
-              { city: 'Rabat', rate: 35, color: 'bg-gradient-to-r from-emerald-400 to-teal-500' },
-              { city: 'Tanger', rate: 22, color: 'bg-gradient-to-r from-amber-500 to-orange-500' },
-            ].map(item => (
-              <div key={item.city} className="space-y-3">
-                <div className="flex justify-between text-xs font-black uppercase tracking-wider">
-                  <span className="text-slate-400">{item.city}</span>
-                  <span className="text-white font-bold">{item.rate}%</span>
+              <div className="relative z-10 flex items-start justify-between">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
+                    {kpi.label}
+                  </p>
+                  <p className="text-xs text-slate-600 font-medium mt-0.5">{kpi.sublabel}</p>
+                  <p className="text-3xl font-bold text-white mt-2 tracking-tight">
+                    {kpi.value.toLocaleString()}
+                  </p>
                 </div>
-                <div className="h-3 w-full bg-slate-800/50 rounded-full overflow-hidden p-0.5 shadow-inner">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${item.rate}%` }}
-                    transition={{ duration: 1.8, ease: "easeOut" }}
-                    className={`h-full ${item.color} rounded-full relative`}
-                  >
-                    <div className="absolute inset-0 bg-white/20 animate-shimmer" />
-                  </motion.div>
+                <div className={`p-2.5 rounded-lg bg-gradient-to-br ${kpi.gradient} shadow-lg flex items-center justify-center`}>
+                  <kpi.icon className="w-4 h-4 text-white" />
                 </div>
               </div>
-            ))}
-          </div>
-        </motion.div>
 
-        {/* Neural Forecast */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="lg:col-span-2 vivid-card p-8 md:p-10 rounded-2xl md:rounded-3xl overflow-hidden flex flex-col justify-center items-center relative"
-        >
-          <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, rgba(255,255,255,0.3) 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-          <motion.div animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 3 }}>
-            <Zap className="w-12 h-12 text-purple-400/30 mb-4" />
-          </motion.div>
-          <h4 className="text-lg font-black uppercase tracking-tight mb-2 text-white">Prédiction Neurale</h4>
+              <div className="flex items-center gap-1.5 mt-3">
+                <ArrowUpRight className="w-3 h-3 text-emerald-400" />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400">
+                  +12.4%
+                </span>
+                <span className="text-[10px] text-slate-600 ml-1">vs mois dernier</span>
+              </div>
+            </motion.div>
+          ))}
+        </div>
 
-          {isForecastLoading ? (
-            <div className="space-y-2 flex flex-col items-center mt-2">
-              <div className="h-3 w-48 bg-slate-800 rounded-full animate-pulse" />
-              <div className="h-3 w-32 bg-slate-800 rounded-full animate-pulse" />
-            </div>
-          ) : (
-            <p className="text-slate-400 text-sm font-medium leading-relaxed max-w-[220px] text-center mt-1">
-              L&apos;analyse prédit une <span className="text-vivid font-black">hausse de {forecast.percentage}%</span> pour le secteur{' '}
-              <span className="text-vivid-purple uppercase font-black tracking-tighter">{forecast.sector}</span>.
-            </p>
-          )}
-
-          <button
-            onClick={() => setShowForecast(true)}
-            className="mt-8 btn-vivid text-xs tracking-widest flex items-center gap-2 active:scale-95 transition-all relative z-10"
+        {/* Chart + Side Panel */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-5 mb-8">
+          {/* Chart Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="lg:col-span-2 bg-[#0d1624]/60 backdrop-blur-sm border border-slate-800/60 rounded-xl p-5 md:p-6"
           >
-            Lancer la Prévision <Activity className="w-4 h-4" />
-          </button>
-        </motion.div>
-      </div>
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">Croissance &amp; Acquisition</h3>
+                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider mt-0.5">
+                  Requêtes vs Qualifications · 6 mois
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-[10px]">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="text-slate-400 font-medium">Requêtes</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-slate-400 font-medium">Qualifications</span>
+                </span>
+              </div>
+            </div>
 
-      {/* Recent Leads */}
-      <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.35 }}
-        className="relative z-10 vivid-card p-8 md:p-10 rounded-2xl md:rounded-3xl"
-      >
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h3 className="text-xl font-black tracking-tighter uppercase italic text-white">Clients &amp; Activité Récente</h3>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">Données CRM en direct</p>
-          </div>
-          <Users className="w-6 h-6 text-purple-400/40" />
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="chartReq" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="chartQual" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#34D399" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#34D399" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="month"
+                    stroke="#334155"
+                    fontSize={11}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(v) => MONTH_SHORT[['Jan','Fév','Mar','Avr','Mai','Jun'].indexOf(v)] || v}
+                  />
+                  <YAxis stroke="#334155" fontSize={11} tickLine={false} axisLine={false} />
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0f172a',
+                      border: '1px solid #334155',
+                      borderRadius: '8px',
+                      color: '#e2e8f0',
+                      fontSize: '11px',
+                      fontWeight: '500',
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="requetes"
+                    stroke="#6366F1"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#chartReq)"
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="qualification"
+                    stroke="#34D399"
+                    strokeWidth={2}
+                    fillOpacity={1}
+                    fill="url(#chartQual)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+          {/* Forecast Panel */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+            className="bg-[#0d1624]/60 backdrop-blur-sm border border-slate-800/60 rounded-xl p-5 md:p-6 flex flex-col"
+          >
+            <div className="flex items-center gap-2 mb-5">
+              <Zap className="w-4 h-4 text-amber-400" />
+              <h3 className="text-sm font-bold text-white tracking-tight">Prédiction Neurale</h3>
+            </div>
+
+            <div className="flex-1 flex flex-col justify-center">
+              {isForecastLoading ? (
+                <div className="space-y-3">
+                  <div className="h-3 bg-slate-800 rounded-full w-full animate-pulse" />
+                  <div className="h-3 bg-slate-800 rounded-full w-3/4 animate-pulse" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-400 leading-relaxed">
+                    L&apos;analyse prédit une{' '}
+                    <span className="text-purple-400 font-bold">hausse de {forecast.percentage}%</span>{' '}
+                    des demandes premium pour le secteur{' '}
+                    <span className="text-cyan-400 font-bold uppercase tracking-tight">
+                      {forecast.sector}
+                    </span>
+                    .
+                  </p>
+
+                  {/* Mini stat blocks */}
+                  <div className="mt-5 grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Prix', val: '+18.2%', color: 'text-purple-400' },
+                      { label: 'Vélocité', val: '4.2x', color: 'text-cyan-400' },
+                      { label: 'Chaleur', val: '92/100', color: 'text-amber-400' },
+                    ].map((s) => (
+                      <div key={s.label} className="text-center p-3 rounded-lg bg-slate-800/40 border border-slate-800/60">
+                        <p className={`text-lg font-bold ${s.color}`}>{s.val}</p>
+                        <p className="text-[9px] font-bold uppercase tracking-wider text-slate-500 mt-0.5">
+                          {s.label}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() => setShowForecast(true)}
+              className="mt-5 w-full py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:from-purple-500 hover:to-purple-400 transition-all shadow-lg shadow-purple-600/20 active:scale-[0.98]"
+            >
+              Lancer la Prévision
+            </button>
+          </motion.div>
         </div>
 
-        {(!leads || leads.length === 0) ? (
-          <EmptyStateComponent type="leads" />
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {leads.slice(0, 4).map((lead: any, i: number) => (
-              <div key={lead.id || i} className="vivid-card p-5 rounded-xl group overflow-hidden border border-white/5 hover:border-purple-500/30 transition-all">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center text-xs font-black text-purple-300">
-                    {lead.full_name?.charAt(0) || lead.name?.charAt(0) || 'P'}
+        {/* Bottom Row: Market Insights + Recent Leads */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
+          {/* Market Insights */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.4 }}
+            className="bg-[#0d1624]/60 backdrop-blur-sm border border-slate-800/60 rounded-xl p-5 md:p-6"
+          >
+            <div className="flex items-center gap-2 mb-5">
+              <MapPin className="w-4 h-4 text-cyan-400" />
+              <h3 className="text-sm font-bold text-white tracking-tight">Densité Régionale</h3>
+              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider ml-auto">Maroc</span>
+            </div>
+
+            <div className="space-y-4">
+              {[
+                { city: 'Casablanca', rate: 72, color: 'bg-gradient-to-r from-purple-600 to-purple-500' },
+                { city: 'Marrakech', rate: 48, color: 'bg-gradient-to-r from-cyan-500 to-cyan-400' },
+                { city: 'Rabat', rate: 35, color: 'bg-gradient-to-r from-emerald-400 to-emerald-500' },
+                { city: 'Tanger', rate: 22, color: 'bg-gradient-to-r from-amber-500 to-orange-500' },
+              ].map((item) => (
+                <div key={item.city}>
+                  <div className="flex justify-between text-xs mb-1.5">
+                    <span className="font-bold text-slate-300">{item.city}</span>
+                    <span className="font-bold text-white">{item.rate}%</span>
                   </div>
-                  <div className="flex flex-col overflow-hidden min-w-0">
-                    <span className="text-sm font-black truncate text-white">{lead.full_name || lead.name || 'Prospect'}</span>
-                    <span className="text-[10px] font-bold text-slate-500 truncate">{lead.phone_number || lead.phone || 'N/A'}</span>
+                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${item.rate}%` }}
+                      transition={{ duration: 1.4, ease: 'easeOut' }}
+                      className={`h-full ${item.color} rounded-full relative`}
+                    >
+                      <div className="absolute inset-0 bg-white/10 animate-shimmer" />
+                    </motion.div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t border-white/5">
-                  <span className="text-[9px] font-black uppercase text-cyan-400">{lead.City || 'Maroc'}</span>
-                  <div className={`w-2 h-2 rounded-full ${lead.status === 'NEW' ? 'bg-rose-500 animate-pulse shadow-[0_0_6px_#F43F5E]' : 'bg-emerald-400'}`} />
-                </div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Recent Leads */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.4 }}
+            className="bg-[#0d1624]/60 backdrop-blur-sm border border-slate-800/60 rounded-xl p-5 md:p-6"
+          >
+            <div className="flex items-center justify-between mb-5">
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4 text-purple-400" />
+                <h3 className="text-sm font-bold text-white tracking-tight">Activité Récente</h3>
               </div>
-            ))}
-          </div>
-        )}
-      </motion.div>
+              <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">CRM Live</span>
+            </div>
+
+            {leads.length === 0 ? (
+              <EmptyStateComponent type="leads" />
+            ) : (
+              <div className="divide-y divide-slate-800/60">
+                {leads.slice(0, 5).map((lead: any, i: number) => (
+                  <div
+                    key={lead.id || i}
+                    className="flex items-center gap-3 py-3.5 first:pt-0 last:pb-0"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center text-xs font-bold text-purple-300 shrink-0">
+                      {lead.full_name?.charAt(0) || lead.name?.charAt(0) || '?'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-white truncate">
+                        {lead.full_name || lead.name || 'Prospect'}
+                      </p>
+                      <p className="text-[10px] text-slate-500 truncate">
+                        {lead.phone_number || lead.phone || '—'}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                        {lead.City || 'Maroc'}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            lead.status === 'NEW' ? 'bg-rose-500 animate-pulse' : 'bg-emerald-400'
+                          }`}
+                        />
+                        <span className="text-[9px] font-bold uppercase text-slate-600">
+                          {lead.status || 'Actif'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </motion.div>
+        </div>
+      </div>
 
       {/* Forecast Modal */}
       <AnimatePresence>
@@ -349,71 +452,82 @@ export default function Dashboard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-[#0B1120]/95 backdrop-blur-2xl"
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B1120]/80 backdrop-blur-sm"
           >
             <motion.div
-              initial={{ scale: 0.9, y: 40 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.9, y: 40 }}
-              className="w-full max-w-4xl vivid-card p-10 md:p-14 rounded-3xl relative shadow-[0_0_80px_rgba(139,92,246,0.15)] border border-white/10"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              transition={{ duration: 0.25 }}
+              className="bg-[#0d1624] border border-slate-700/60 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl"
             >
-              {/* Gradient top line */}
-              <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-purple-500 via-cyan-400 to-amber-400 rounded-full" />
-
-              <div className="flex justify-between items-start mb-10">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34D399]" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.35em] text-emerald-400">Sync Neurale Active</span>
+              {/* Header bar */}
+              <div className="sticky top-0 bg-[#0d1624] border-b border-slate-800/60 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">
+                      Sync Active
+                    </span>
                   </div>
-                  <h2 className="text-3xl md:text-4xl font-black tracking-tighter uppercase italic text-white leading-none">
-                    Vecteur de Croissance {forecast.sector}
+                  <h2 className="text-xl font-bold text-white tracking-tight">
+                    Vecteur de Croissance — {forecast.sector}
                   </h2>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">Prévisions 2026</p>
                 </div>
                 <button
                   onClick={() => setShowForecast(false)}
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center text-slate-500 hover:text-rose-400 transition-colors"
+                  className="p-2 hover:bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors text-lg leading-none"
                 >
-                  ✕
+                  ×
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-                {[
-                  { label: 'Projection des Prix', val: '+18.2%', desc: 'Appréciation estimée du luxe', trend: 'up' },
-                  { label: 'Vélocité des Leads', val: '4.2x', desc: 'Fréquence d&apos;interactions', trend: 'up' },
-                  { label: 'Chaleur du Marché', val: '92/100', desc: 'Score de fiabilité', trend: 'steady' },
-                ].map(item => (
-                  <div key={item.label} className="vivid-card p-7 rounded-2xl border border-white/5 bg-white/[0.03] relative group overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-3 relative z-10">{item.label}</span>
-                    <div className="text-2xl font-black text-white mb-1 relative z-10">{item.val}</div>
-                    <p className="text-[10px] text-slate-500 font-bold leading-relaxed relative z-10">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-10 p-8 vivid-card rounded-2xl bg-gradient-to-r from-purple-500/5 via-cyan-500/5 to-transparent border border-white/5">
-                <div className="flex items-center gap-6">
-                  <div className="flex-1 space-y-2">
-                    <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: '88%' }}
-                        transition={{ duration: 2, delay: 0.5 }}
-                        className="h-full bg-gradient-to-r from-purple-500 via-cyan-400 to-amber-400 rounded-full"
-                      />
+              <div className="p-6 space-y-5">
+                {/* Three metric cards */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Projection des Prix', val: '+18.2%', desc: 'Unités de luxe', icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
+                    { label: 'Vélocité des Leads', val: '4.2x', desc: 'Fréquence interactions', icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
+                    { label: 'Chaleur du Marché', val: '92/100', desc: 'Score fiabilité', icon: Flame, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
+                  ].map((item) => (
+                    <div
+                      key={item.label}
+                      className={`p-4 rounded-xl border ${item.bg} bg-slate-800/30`}
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        <item.icon className={`w-3.5 h-3.5 ${item.color}`} />
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-slate-500">
+                          {item.label}
+                        </span>
+                      </div>
+                      <p className="text-xl font-bold text-white">{item.val}</p>
+                      <p className="text-[10px] text-slate-500 mt-0.5">{item.desc}</p>
                     </div>
-                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-500">
-                      <span>Traitement des Synapses</span>
-                      <span className="text-cyan-400">Confiance: 94.6%</span>
-                    </div>
-                  </div>
-                  <button className="btn-vivid-cyan active:scale-95 uppercase font-black text-[10px] tracking-widest relative z-10">
-                    DÉPLOYER
-                  </button>
+                  ))}
                 </div>
+
+                {/* Confidence bar */}
+                <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500/5 to-cyan-500/5 border border-slate-800/60">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Confiance du Modèle
+                    </span>
+                    <span className="text-xs font-bold text-cyan-400">94.6%</span>
+                  </div>
+                  <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: '94.6%' }}
+                      transition={{ duration: 1.5, delay: 0.3 }}
+                      className="h-full bg-gradient-to-r from-purple-600 via-cyan-500 to-amber-500 rounded-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Deploy button */}
+                <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:from-purple-500 hover:to-purple-400 transition-all shadow-lg shadow-purple-600/20 active:scale-[0.98]">
+                  Déployer le Capital
+                </button>
               </div>
             </motion.div>
           </motion.div>
