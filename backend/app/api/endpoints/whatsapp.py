@@ -2,12 +2,19 @@ import os
 import re
 import json
 import asyncio
+import unicodedata
 import logging
 from fastapi import APIRouter, Request, HTTPException, Query, BackgroundTasks
 from fastapi.responses import PlainTextResponse
 from app.services.llm_service import LLMService
 from app.services.whatsapp_service import WhatsAppService
-from app.api.endpoints.properties import search_properties
+from app.api.endpoints.properties import (
+    search_properties,
+    search_matching_properties,
+    TYPE_ALIASES,
+    CITY_ALIASES,
+    CITY_DISPLAY,
+)
 from app.core.supabase import supabase
 
 logger = logging.getLogger(__name__)
@@ -27,6 +34,225 @@ processed_messages = set()
 def _normalize_phone(raw: str) -> str:
     """Extract digits from Meta's `from`/`wa_id` field (always 2126XXXXXXXX)."""
     return re.sub(r"\D", "", raw or "")
+
+
+# ── SMART PROPERTY MATCHING & IMAGE DELIVERY ──────────────────────────────
+def _consonant_key(value: str) -> str:
+    """Consonant skeleton used to tolerate accent-mangled catalog text."""
+    nk = unicodedata.normalize("NFD", str(value or ""))
+    flat = "".join(c for c in nk if unicodedata.category(c) != "Mn")
+    flat = re.sub(r"[^a-z0-9]+", "", flat.lower())
+    return re.sub(r"[aeiouy0-9]+", "", flat)
+
+
+def _clean_number(value):
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return int(value)
+    digits = re.sub(r"\D", "", str(value))
+    return int(digits) if digits else None
+
+
+def _price_text(value) -> str:
+    price = _clean_number(value)
+    return f"{price:,} DH" if price is not None else None
+
+
+def _display_city(row_city) -> str:
+    """Restore real accents for mangled cities ('Mekn\ufffds' -> 'Mekn\u00e8s')."""
+    raw = str(row_city or "")
+    if "\ufffd" in raw:
+        needle = _consonant_key(raw)
+        for key, label in CITY_DISPLAY.items():
+            if _consonant_key(key) == needle:
+                return label
+    return raw or "?"
+
+
+def _display_sector(row_sector) -> str:
+    """Hide sectors whose accents were lost at import (unreadable '\ufffd')."""
+    raw = str(row_sector or "").strip()
+    if not raw or raw.lower() in ("n/a", "unknown", "autre", "other", "non sp\u00e9cifi\u00e9"):
+        return ""
+    if "\ufffd" in raw:
+        return ""
+    return raw
+
+
+def _build_property_caption(p: dict) -> str:
+    """WhatsApp caption for one matched property: type, location, price,
+    key surfaces + a light CTA (details ALONGSIDE the image)."""
+    ptype = str(p.get("Type") or "3aqar")
+    city = _display_city(p.get("City"))
+    sector = _display_sector(p.get("Nighberd"))
+    loc = f"{city} - {sector}" if sector else city
+    price = p.get("price_text") or _price_text(p.get("new_price"))
+
+    lines = [f"{ptype} • {loc}".strip()]
+    if price:
+        lines.append(f"\U0001f4b0 {price}")
+
+    extras = []
+    surf = p.get("surface")
+    if surf not in (None, "", 0, "0"):
+        extras.append(f"\U0001f4d0 {surf} m\u00b2")
+    rooms = p.get("chambres")
+    if rooms not in (None, "", 0, "0"):
+        extras.append(f"\U0001f6cf {rooms} ch")
+    baths = p.get("salles_de_bains")
+    if baths not in (None, "", 0, "0"):
+        extras.append(f"\U0001f6bf {baths} sdb")
+    if extras:
+        lines.append(" ".join(extras))
+
+    lines.append("Wach 3jbek had l-3aqar? Goli lia wach bghiti tchoufo wla n-3awenek b chi 7aja okhra! \U0001f60a")
+    return "\n".join(lines)
+
+
+async def _record_ai_message(phone_number: str, text: str, agency_id: str, image: bool = False):
+    """Mirror an AI message into the Hub (conversations) + LLM memory
+    (conversation_history) exactly like the main chat flow does."""
+    label = f"[Image envoy\u00e9e] {text}" if image else text
+    if agency_id:
+        try:
+            supabase.table("conversations").insert({
+                "agency_id": agency_id,
+                "phone": phone_number,
+                "message": label,
+                "sender": "ai",
+            }).execute()
+        except Exception as e:
+            logger.error(f"Error saving AI message to conversations: {e}")
+    try:
+        supabase.table("conversation_history").insert({
+            "phone_number": phone_number,
+            "role": "model",
+            "content": label,
+            "agency_id": agency_id,
+        }).execute()
+    except Exception as e:
+        logger.error(f"Error saving AI message to conversation_history: {e}")
+
+
+async def _deliver_property_results(client_phone: str, agency_id: str, props: list,
+                                    city: str = "", prop_type: str = "",
+                                    sector: str = "", budget=None):
+    """
+    Deterministic delivery of a smart-search result:
+      1. a short Darija summary listing the matches,
+      2. one WhatsApp image message PER match with a details caption
+         (image URL comes from the property's `desc` column),
+      3. records each message in the Hub + LLM memory so the bot can answer
+         follow-ups ("sifet lia liya") without re-searching.
+    No-result case: single polite text.
+    """
+    if not props:
+        budget_display = _price_text(budget) if (_clean_number(budget) or 0) > 0 else None
+        criteria_bits = [
+            prop_type or None, sector or None, city or None, budget_display,
+        ]
+        shown = " f ".join(x for x in criteria_bits if x)
+        msg = ("Sma7 lia, ma l9itch chi 3aqar b-had l-mowasafat daba. \U0001f3e0 "
+               + (f"({shown}) " if shown else "")
+               + "Jareb tbeddel l-medina, n-naw3 wla zid f l-budget w n-9elleb lik 3awd!")
+        await WhatsAppService.send_whatsapp_message(client_phone, msg)
+        await _record_ai_message(client_phone, msg, agency_id)
+        return
+
+    lines = []
+    for i, p in enumerate(props, 1):
+        sec = _display_sector(p.get("Nighberd"))
+        loc = f"{_display_city(p.get('City'))} - {sec}" if sec else _display_city(p.get("City"))
+        price = p.get("price_text") or _price_text(p.get("new_price")) or ""
+        lines.append(f"{i}. {p.get('Type')} f {loc} : {price}")
+
+    intro = ("L9it lik had l-3orod li tlabti! \U0001f3e1\U0001f917\n\n"
+             + "\n".join(lines)
+             + "\n\nGhadi nsift lik daba taswira m3a tafasil dyal kol wa7ed \U0001f447")
+    await WhatsAppService.send_whatsapp_message(client_phone, intro)
+    await _record_ai_message(client_phone, intro, agency_id)
+
+    memory_notes = []
+    for i, p in enumerate(props, 1):
+        img = str(p.get("image_url") or p.get("desc") or "").strip()
+        caption = _build_property_caption(p)
+        if img.startswith("http://") or img.startswith("https://"):
+            ok = await WhatsAppService.send_whatsapp_image(client_phone, img, caption)
+            if not ok:
+                logger.error(f"Image send failed for {img}")
+        else:
+            # No usable image: send the details as text so the match is not lost.
+            await WhatsAppService.send_whatsapp_message(client_phone, caption)
+        await _record_ai_message(client_phone, caption, agency_id, image=True)
+        memory_notes.append(
+            f"{i}. {p.get('Type')} | {p.get('price_text') or _price_text(p.get('new_price'))} | "
+            f"{p.get('City')} - {p.get('Nighberd')} | image_url: {img}"
+        )
+
+    # LLM memory note: lets a follow-up like "sifet li image dyal liwla" be
+    # answered from real data instead of a hallucinated URL.
+    try:
+        note = "SYSTEM: Search completed and photos were sent to the client. Matches:\n" + "\n".join(memory_notes)
+        supabase.table("conversation_history").insert({
+            "phone_number": client_phone,
+            "role": "model",
+            "content": note,
+            "agency_id": agency_id,
+        }).execute()
+    except Exception as e:
+        logger.error(f"Error saving search memory note: {e}")
+
+
+def _word_in(text_lower: str, word: str) -> bool:
+    """Word-boundary match for Latin keywords, plain substring for Arabic."""
+    if word.isascii() and word.replace("'", "").isalnum():
+        return re.search(rf"\b{re.escape(word)}\b", text_lower) is not None
+    return word in text_lower
+
+
+def _extract_search_criteria(text: str) -> dict:
+    """
+    Local (no-LLM) criteria detection used as a safety net: when Gemini
+    answers in plain text instead of emitting ready_to_search JSON, a message
+    that clearly carries type/city + a budget still triggers the smart search.
+    Returns {type, city, sector, budget} with None/0 for missing parts.
+    """
+    low = " " + str(text or "").lower() + " "
+    found_type = None
+    for alias, fam in TYPE_ALIASES.items():
+        if _word_in(low, alias):
+            found_type = fam  # last match wins; aliases are scanned longest-first enough
+    found_city = None
+    for alias, label in CITY_ALIASES.items():
+        if _word_in(low, alias):
+            found_city = label
+
+    budget = None
+    t = str(text or "").lower()
+    # Arabic '\u0645\u0644\u064a\u0648\u0646' = million
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(?:million|mly|m|\u0645\u0644\u064a\u0648\u0646)\b", t)
+    if m:
+        try:
+            budget = int(float(m.group(1).replace(",", ".")) * 1_000_000)
+        except ValueError:
+            budget = None
+    if budget is None:
+        k = re.search(r"(\d+(?:[.,]\d+)?)\s*(?:k|kdh|k dh)\b", t)
+        if k:
+            try:
+                budget = int(float(k.group(1).replace(",", ".")) * 1_000)
+            except ValueError:
+                budget = None
+    if budget is None:
+        flat = re.sub(r"[^0-9]", "", t)
+        if flat:
+            for cand in re.findall(r"\d{4,}", flat):
+                v = int(cand)
+                if v <= 1_000_000_000:
+                    budget = v
+                    break
+    return {"type": found_type, "city": found_city, "sector": None, "budget": budget}
 
 
 def _resolve_agency_id(receiving_phone_number_id: str = None) -> str:
@@ -363,46 +589,80 @@ async def _process_webhook_payload(payload: dict):
                                 except Exception as e:
                                     logger.error(f"Error saving AI message: {e}")
                             await WhatsAppService.send_whatsapp_message(client_phone, llm_response)
+
+                            # SAFETY NET: Gemini answered in plain text although this
+                            # message already carried full criteria (type or city +
+                            # a budget). Run the smart search ourselves so property
+                            # matching + image delivery still happen when the model
+                            # fails to emit the ready_to_search JSON action.
+                            hint = _extract_search_criteria(client_text)
+                            if hint["budget"] is not None and (hint["type"] or hint["city"]):
+                                print(f"SMART FALLBACK: criteria={hint}")
+                                props = await search_matching_properties(
+                                    city=hint["city"], property_type=hint["type"],
+                                    neighborhood=hint.get("sector"),
+                                    max_budget=hint["budget"], limit=3,
+                                )
+                                if not props:
+                                    search_query = " ".join(
+                                        x for x in (hint["city"], hint.get("sector") or "",
+                                                    hint["type"] or "", str(hint["budget"])) if x
+                                    )
+                                    try:
+                                        sf = await search_properties(query=search_query, limit=3)
+                                        props = sf.get("properties", []) if isinstance(sf, dict) else []
+                                    except Exception as e:
+                                        logger.error(f"Fuzzy fallback search failed: {e}")
+                                        props = []
+                                if props:
+                                    await _deliver_property_results(
+                                        client_phone, agency_id, props,
+                                        hint["city"], hint["type"],
+                                        hint.get("sector"), hint["budget"],
+                                    )
                         else:
                             status = parsed_json.get("status")
                             if status == "ready_to_search":
-                                # Execute search
-                                operation = parsed_json.get("operation", "")
-                                city = parsed_json.get("city", "")
-                                prop_type = parsed_json.get("property_type", "")
-                                budget = str(parsed_json.get("max_budget", ""))
-                                search_query = f"{operation} {city} {prop_type} {budget}".strip()
+                                # SMART MATCHING: take the criteria Gemini extracted
+                                # and query morocco_properties on its real columns
+                                # ("Type", "City", "Nighberd", "new_price"), then
+                                # auto-send each match as a WhatsApp image (URL from
+                                # the property's `desc` column) with a details
+                                # caption - deterministic, no fragile 2nd LLM call.
+                                operation = str(parsed_json.get("operation") or "").strip()
+                                city = str(parsed_json.get("city") or "").strip()
+                                prop_type = str(parsed_json.get("property_type") or parsed_json.get("type") or "").strip()
+                                sector = str(parsed_json.get("sector") or parsed_json.get("neighborhood")
+                                              or parsed_json.get("area") or parsed_json.get("Nighberd") or "").strip()
+                                budget_raw = parsed_json.get("max_budget", parsed_json.get("budget"))
 
-                                search_results = await search_properties(query=search_query, limit=3)
-                                props = search_results.get("properties", []) if isinstance(search_results, dict) else []
-
-                                # Format properties as system message to feed back to LLM
-                                context = "SYSTEM: Search completed. Present these properties concisely:\n"
-                                if props:
-                                    for p in props:
-                                        img = p.get("image_url", "N/A")
-                                        context += f"- Title: {p.get('title')} | Price: {p.get('new_price')} DH | City: {p.get('City')} | image_url: {img}\n"
-                                else:
-                                    context += "No properties found matching criteria."
-
-                                # Ask LLM for the presentation message
-                                presentation_msg = LLMService.chat_with_agent(
-                                    client_phone, context, agency_id, client_full_name=lead_full_name
+                                props = await search_matching_properties(
+                                    city=city, property_type=prop_type,
+                                    neighborhood=sector, max_budget=budget_raw,
+                                    operation=operation, limit=3,
                                 )
-                                if agency_id:
-                                    try:
-                                        supabase.table("conversations").insert({
-                                            "agency_id": agency_id,
-                                            "phone": client_phone,
-                                            "message": presentation_msg,
-                                            "sender": "ai"
-                                        }).execute()
-                                    except Exception as e:
-                                        logger.error(f"Error saving AI presentation message: {e}")
-                                await WhatsAppService.send_whatsapp_message(client_phone, presentation_msg)
+                                if not props:
+                                    # Broad fuzzy fallback so partial criteria
+                                    # (e.g. only a sector) still surface results.
+                                    search_query = " ".join(
+                                        x for x in (city, sector, prop_type, str(budget_raw or "")) if x
+                                    )
+                                    if search_query:
+                                        try:
+                                            search_results = await search_properties(query=search_query, limit=3)
+                                            props = search_results.get("properties", []) \
+                                                if isinstance(search_results, dict) else []
+                                        except Exception as e:
+                                            logger.error(f"Fuzzy fallback search failed: {e}")
+                                            props = []
+
+                                await _deliver_property_results(
+                                    client_phone, agency_id, props,
+                                    city, prop_type, sector, budget_raw,
+                                )
 
                             elif status == "send_image":
-                                img_url = parsed_json.get("image_url")
+                                img_url = str(parsed_json.get("image_url") or "").strip()
                                 caption = parsed_json.get("caption", "Here is the property!")
                                 if agency_id:
                                     try:
@@ -414,9 +674,10 @@ async def _process_webhook_payload(payload: dict):
                                         }).execute()
                                     except Exception:
                                         pass
-                                if img_url:
+                                if img_url.startswith("http://") or img_url.startswith("https://"):
                                     await WhatsAppService.send_whatsapp_image(client_phone, img_url, caption)
                                 else:
+                                    # No usable image URL: never send a broken link.
                                     await WhatsAppService.send_whatsapp_message(client_phone, caption)
 
                     except Exception as inner_e:
