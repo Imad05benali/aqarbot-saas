@@ -12,7 +12,6 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>(() => {
-    // Default to dark for the futuristic vibe
     const saved = localStorage.getItem('theme');
     return (saved as Theme) || 'dark';
   });
@@ -27,6 +26,14 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const toggleTheme = () => {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
+
+  return (
+    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+      <div className={theme === 'dark' ? '' : 'light'}>
+        {children}
+      </div>
+    </ThemeContext.Provider>
+  );
 
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme }}>

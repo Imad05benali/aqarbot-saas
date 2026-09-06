@@ -56,7 +56,7 @@ export default function Layout() {
     <div className="h-screen w-full flex font-sans overflow-hidden transition-colors duration-700 bg-transparent">
       {/* ── Desktop Sidebar ──────────────────────────────────────────── */}
       <aside 
-        className={`hidden md:flex ${isSidebarOpen ? 'w-[260px]' : 'w-[90px]'} bg-[#0d1624] m-5 rounded-[2.5rem] flex-col z-20 shadow-2xl border-slate-800 border transition-all duration-300 relative`}
+        className={`hidden md:flex ${isSidebarOpen ? 'w-[260px]' : 'w-[90px]'} sidebar-base flex-col z-20 relative`}
       >
         {/* Toggle Button */}
         <button 
@@ -103,17 +103,17 @@ export default function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-4 py-4 rounded-3xl transition-all duration-500 group relative overflow-hidden ${isSidebarOpen ? 'px-5' : 'justify-center px-0'} ${
+                className={`sidebar-nav-item ${isSidebarOpen ? 'px-5' : 'justify-center px-0'} ${
                   isActive
-                    ? 'bg-primary text-[#0B1120] shadow-[0_0_20px_rgba(110,231,183,0.3)]'
-                    : 'text-slate-500 hover:bg-slate-800/30'
+                    ? 'sidebar-active'
+                    : ''
                 }`}
                 title={!isSidebarOpen ? item.name : undefined}
               >
-                <Icon className={`w-5 h-5 shrink-0 transition-transform duration-500 group-hover:scale-110 ${isActive ? 'text-[#0B1120]' : 'text-slate-400 group-hover:text-primary'}`} />
+                <Icon className={`w-5 h-5 shrink-0 transition-transform duration-500 group-hover:scale-110 ${isActive ? 'sidebar-icon-active' : 'text-slate-500 group-hover:text-emerald-400'}`} />
                 
                 {isSidebarOpen && (
-                  <span className={`text-sm font-bold tracking-tight whitespace-nowrap transition-opacity duration-300 ${isActive ? 'opacity-100' : 'opacity-70 group-hover:opacity-100'}`}>
+                  <span className={`text-sm font-bold tracking-tight whitespace-nowrap transition-opacity duration-300 ${isActive ? 'sidebar-text-active opacity-100' : 'text-slate-500 opacity-70 group-hover:opacity-100'}`}>
                     {item.name}
                   </span>
                 )}
@@ -145,38 +145,37 @@ export default function Layout() {
       <main className="flex-1 flex flex-col min-w-0 relative transition-all duration-300 pb-24 md:pb-0">
         <header className="h-24 flex items-center justify-between px-4 md:px-12 z-10 sticky top-0">
           <div className="flex flex-col max-w-[200px] md:max-w-none">
-            <h2 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white tracking-tighter uppercase mb-1 truncate">
+            <h2 className="text-xl md:text-2xl font-black text-white dark:text-white tracking-tighter uppercase mb-1 truncate">
               {navItems.find((i) => i.path === location.pathname)?.name || "Console d'Administration"}
             </h2>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Opérationnel / Synchro Live</span>
+              <span className="status-live" />
+              <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Opérationnel · Synchro Live</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 md:gap-8">
-            <button
+          <div className="flex items-center gap-3 md:gap-8">              <button
               onClick={handleSimulateLead}
-              className="px-3 md:px-4 py-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-2xl text-[9px] md:text-[10px] uppercase font-black tracking-widest hover:bg-rose-500 hover:text-white transition-all shadow-lg active:scale-95 whitespace-nowrap"
+              className="px-3 md:px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-2xl text-[9px] md:text-[10px] uppercase font-black tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-lg active:scale-95 whitespace-nowrap"
               title="Simuler un Lead Test"
             >
               Simuler Test
             </button>
             <button
               onClick={toggleTheme}
-              className="p-2 md:p-3 rounded-2xl glacier-card text-slate-400 hover:text-primary transition-all active:scale-90 shrink-0"
+              className="p-2 md:p-3 rounded-2xl transition-all active:scale-90 shrink-0 hover:bg-slate-800/50 dark:hover:bg-slate-800/50"
               aria-label="Toggle Theme"
             >
-              {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+              {theme === 'dark' ? <Sun className="w-5 h-5 text-slate-400 group-hover:text-emerald-400" /> : <Moon className="w-5 h-5 text-slate-400 group-hover:text-emerald-400" />}
             </button>
 
             {/* Dynamic Auth Label */}
             <div className="hidden md:flex flex-col items-end">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Authentifié en tant que</span>
               {isLoadingProfile ? (
-                <div className="h-4 w-36 rounded-lg bg-white/5 animate-pulse" />
+                <div className="h-4 w-36 rounded-lg bg-slate-800/30 animate-pulse" />
               ) : (
-                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                <span className="text-xs font-bold text-slate-200">
                   {profile?.full_name
                     ? `${profile.full_name} | Founder Key`
                     : 'Admin Partner | Founder Key'}

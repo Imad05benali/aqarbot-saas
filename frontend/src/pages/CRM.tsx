@@ -59,24 +59,24 @@ export default function CRM() {
   };
 
   return (
-    <div className="space-y-12 pb-20">
+    <div className="space-y-8 pb-20">
       {/* CRM Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 px-4">
-        <div className="flex items-center gap-6">
-          <div className="w-16 h-16 glacier-card rounded-[2rem] flex items-center justify-center shadow-primary/20 border-primary/30 relative">
-            <div className="absolute inset-0 bg-primary/10 animate-pulse rounded-[2rem]" />
-            <Database className="w-8 h-8 text-primary relative z-10" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-4">
+        <div className="flex items-center gap-5">
+          <div className="w-14 h-14 card-modern rounded-2xl flex items-center justify-center">
+            <div className="absolute inset-0 bg-emerald-500/10 animate-pulse rounded-2xl" />
+            <Database className="w-7 h-7 text-emerald-400 relative z-10" />
           </div>
           <div>
-            <h1 className="text-4xl font-black tracking-tighter uppercase italic">CRM & Gestion d'Actifs</h1>
-            <p className="text-slate-500 font-bold text-[10px] uppercase tracking-[0.4em] flex items-center gap-2">
-                <Activity className="w-3 h-3 text-emerald-500" /> Synchronisation Cloud Live
+            <h1 className="text-3xl font-bold tracking-tight uppercase text-white">CRM &amp; Gestion d&apos;Actifs</h1>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] flex items-center gap-2 mt-1">
+                <Activity className="w-3 h-3 text-emerald-400" /> Synchronisation Cloud Live
             </p>
           </div>
         </div>
 
         {/* Tab Switcher */}
-        <div className="p-1.5 bg-slate-100 dark:bg-white/5 backdrop-blur-xl rounded-[2rem] border border-white/10 flex">
+        <div className="p-1 bg-slate-800/50 backdrop-blur-xl rounded-2xl border border-slate-700/50 flex">
             {[
                 { id: 'leads', label: 'Gestion Leads', icon: Users },
                 { id: 'inventory', label: 'Inventaire Actifs', icon: Home }
@@ -84,16 +84,18 @@ export default function CRM() {
                 <button
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as CRMTab)}
-                    className={`relative flex items-center gap-3 px-8 py-3.5 rounded-3xl text-[10px] font-black uppercase tracking-widest transition-all z-10 ${
-                        activeTab === tab.id ? 'text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-400'
+                    className={`relative flex items-center gap-3 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all z-10 ${
+                        activeTab === tab.id 
+                            ? 'text-white'
+                            : 'text-slate-500 hover:text-slate-300'
                     }`}
                 >
-                    <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-primary' : ''}`} />
+                    <tab.icon className={`w-4 h-4 ${activeTab === tab.id ? 'text-emerald-400' : 'text-slate-600'}`} />
                     {tab.label}
                     {activeTab === tab.id && (
                         <motion.div
                             layoutId="crmActiveTab"
-                            className="absolute inset-0 bg-white dark:bg-slate-900 rounded-3xl shadow-xl z-[-1] border border-white/20"
+                            className="absolute inset-0 bg-emerald-500/10 rounded-2xl shadow-xl z-[-1] border border-emerald-500/20"
                             transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                         />
                     )}
@@ -116,7 +118,7 @@ export default function CRM() {
                     isLoading && leads.length === 0 ? (
                         <div className="space-y-6 py-10">
                             {[1,2,3,4].map(i => (
-                                <div key={i} className="h-24 w-full glacier-card animate-pulse rounded-[2.5rem] border-white/5" />
+                                <div key={i} className="h-24 w-full card-modern animate-pulse rounded-2xl" />
                             ))}
                         </div>
                     ) : (
@@ -137,12 +139,13 @@ export default function CRM() {
       </div>
 
       {/* Synchronicity Footer */}
-      <div className="fixed bottom-10 right-10 z-50">
-          <div className="glacier-card px-8 py-4 rounded-2xl flex items-center gap-4 bg-primary text-slate-950 border-primary/20 shadow-2xl animate-float">
-              <Zap className="w-5 h-5 fill-current" />
+      <div className="fixed bottom-6 right-6 z-50">
+          <div className="card-modern px-5 py-3 rounded-xl flex items-center gap-3 shadow-xl animate-float">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34D399]" />
+              <Zap className="w-4 h-4 text-emerald-400" />
               <div className="flex flex-col">
-                  <span className="text-[10px] font-black uppercase tracking-widest">Serveur Supabase Connecté</span>
-                  <span className="text-[8px] font-bold opacity-60 uppercase">Flux Temps Réel Opérationnel</span>
+                  <span className="text-[9px] font-bold uppercase tracking-widest text-emerald-400">Serveur Connecté</span>
+                  <span className="text-[8px] font-bold text-slate-500 opacity-60 uppercase">Flux Live Opérationnel</span>
               </div>
           </div>
       </div>

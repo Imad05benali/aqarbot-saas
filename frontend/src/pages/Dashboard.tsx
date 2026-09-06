@@ -98,9 +98,9 @@ export default function Dashboard() {
   }, [profile?.agency_id, profile?.full_name, profile?.agency_name]);
 
   const kpis = [
-    { label: 'Total Clients', sublabel: 'Tous leads inscrits', value: stats.total_leads, icon: Users, gradient: 'from-purple-600 to-purple-500', light: 'text-purple-300' },
-    { label: 'Conversations IA', sublabel: 'Sessions actives', value: stats.hot_leads, icon: Flame, gradient: 'from-amber-500 to-orange-500', light: 'text-amber-300' },
-    { label: 'Messages Bot', sublabel: 'Échanges automatisés', value: stats.ai_conversations, icon: MessageCircle, gradient: 'from-cyan-600 to-cyan-500', light: 'text-cyan-300' },
+    { label: 'Total Clients', sublabel: 'Tous leads inscrits', value: stats.total_leads, icon: Users, gradient: 'from-emerald-500 to-emerald-400' },
+    { label: 'Conversations IA', sublabel: 'Sessions actives', value: stats.hot_leads, icon: Flame, gradient: 'from-amber-500 to-orange-500' },
+    { label: 'Messages Bot', sublabel: 'Échanges automatisés', value: stats.ai_conversations, icon: MessageCircle, gradient: 'from-teal-500 to-cyan-500' },
   ];
 
   if (isLoading) {
@@ -117,10 +117,9 @@ export default function Dashboard() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-[#0B1120] text-slate-100 pb-12">
+  return (      <div className="min-h-screen bg-[#0B1120] text-slate-100 pb-12">
       {/* Top accent bar */}
-      <div className="h-[3px] bg-gradient-to-r from-purple-600 via-cyan-500 to-amber-500" />
+      <div className="h-[3px] bg-gradient-to-r from-emerald-500 via-teal-500 to-amber-500" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 pt-8">
         {/* Header */}
@@ -132,7 +131,7 @@ export default function Dashboard() {
           <div>
             <div className="flex items-center gap-3 mb-1">
               <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34D399]" />
+                <div className="status-live" />
                 <span className="text-[10px] font-bold uppercase tracking-[0.25em] text-slate-500">
                   Connecté ·
                   <span className="text-emerald-400 ml-1">Live</span>
@@ -141,13 +140,13 @@ export default function Dashboard() {
             </div>
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-white">
               Bonjour,{' '}
-              <span className="bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              <span className="text-brand">
                 {displayInfo.name.split(' ')[0]}
               </span>
             </h1>
             <p className="text-sm text-slate-500 mt-1 font-medium">
               Vue d&apos;ensemble de{' '}
-              <span className="text-cyan-400 font-bold">{displayInfo.agency}</span>
+              <span className="text-emerald-400 font-bold">{displayInfo.agency}</span>
             </p>
           </div>
 
@@ -169,22 +168,17 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.05 * (i + 1), duration: 0.4 }}
-              className="group relative bg-[#0d1624]/60 backdrop-blur-sm border border-slate-800/60 rounded-xl p-5 hover:border-slate-700/60 transition-all duration-300"
+              className="card-modern group rounded-xl p-5"
             >
               {/* Top accent line */}
-              <div className={`absolute top-0 left-5 right-5 h-[2px] rounded-full bg-gradient-to-r ${kpi.gradient} opacity-40 group-hover:opacity-70 transition-opacity`} />
-
-              {/* Glow on hover */}
-              <div
-                className={`absolute -inset-4 -z-0 rounded-2xl bg-gradient-to-br ${kpi.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500 blur-xl`}
-              />
+              <div className={`absolute top-0 left-5 right-5 h-[2px] rounded-full bg-gradient-to-r ${kpi.gradient} opacity-60 group-hover:opacity-100 transition-opacity`} />
 
               <div className="relative z-10 flex items-start justify-between">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-slate-500">
                     {kpi.label}
                   </p>
-                  <p className="text-xs text-slate-600 font-medium mt-0.5">{kpi.sublabel}</p>
+                  <p className="text-xs text-slate-500 font-medium mt-0.5">{kpi.sublabel}</p>
                   <p className="text-3xl font-bold text-white mt-2 tracking-tight">
                     {kpi.value.toLocaleString()}
                   </p>
@@ -223,7 +217,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-4 text-[10px]">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-blue-500" />
+                  <span className="w-2 h-2 rounded-full bg-indigo-400" />
                   <span className="text-slate-400 font-medium">Requêtes</span>
                 </span>
                 <span className="flex items-center gap-1.5">
@@ -238,8 +232,8 @@ export default function Dashboard() {
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -15, bottom: 0 }}>
                   <defs>
                     <linearGradient id="chartReq" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#6366F1" stopOpacity={0} />
+                      <stop offset="5%" stopColor="#818CF8" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#818CF8" stopOpacity={0} />
                     </linearGradient>
                     <linearGradient id="chartQual" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#34D399" stopOpacity={0.3} />
@@ -258,10 +252,10 @@ export default function Dashboard() {
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#1e293b" />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#0f172a',
-                      border: '1px solid #334155',
+                      backgroundColor: 'rgba(15,23,42,0.95)',
+                      border: '1px solid rgba(110,231,183,0.3)',
                       borderRadius: '8px',
-                      color: '#e2e8f0',
+                      color: '#f1f5f9',
                       fontSize: '11px',
                       fontWeight: '500',
                     }}
@@ -269,7 +263,7 @@ export default function Dashboard() {
                   <Area
                     type="monotone"
                     dataKey="requetes"
-                    stroke="#6366F1"
+                    stroke="#818CF8"
                     strokeWidth={2}
                     fillOpacity={1}
                     fill="url(#chartReq)"
@@ -293,8 +287,7 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25, duration: 0.4 }}
             className="bg-[#0d1624]/60 backdrop-blur-sm border border-slate-800/60 rounded-xl p-5 md:p-6 flex flex-col"
-          >
-            <div className="flex items-center gap-2 mb-5">
+          >              <div className="flex items-center gap-2 mb-5">
               <Zap className="w-4 h-4 text-amber-400" />
               <h3 className="text-sm font-bold text-white tracking-tight">Prédiction Neurale</h3>
             </div>
@@ -309,9 +302,9 @@ export default function Dashboard() {
                 <>
                   <p className="text-sm text-slate-400 leading-relaxed">
                     L&apos;analyse prédit une{' '}
-                    <span className="text-purple-400 font-bold">hausse de {forecast.percentage}%</span>{' '}
+                    <span className="text-emerald-400 font-bold">hausse de {forecast.percentage}%</span>{' '}
                     des demandes premium pour le secteur{' '}
-                    <span className="text-cyan-400 font-bold uppercase tracking-tight">
+                    <span className="text-teal-400 font-bold uppercase tracking-tight">
                       {forecast.sector}
                     </span>
                     .
@@ -320,8 +313,8 @@ export default function Dashboard() {
                   {/* Mini stat blocks */}
                   <div className="mt-5 grid grid-cols-3 gap-3">
                     {[
-                      { label: 'Prix', val: '+18.2%', color: 'text-purple-400' },
-                      { label: 'Vélocité', val: '4.2x', color: 'text-cyan-400' },
+                      { label: 'Prix', val: '+18.2%', color: 'text-emerald-400' },
+                      { label: 'Vélocité', val: '4.2x', color: 'text-teal-400' },
                       { label: 'Chaleur', val: '92/100', color: 'text-amber-400' },
                     ].map((s) => (
                       <div key={s.label} className="text-center p-3 rounded-lg bg-slate-800/40 border border-slate-800/60">
@@ -338,7 +331,7 @@ export default function Dashboard() {
 
             <button
               onClick={() => setShowForecast(true)}
-              className="mt-5 w-full py-2.5 bg-gradient-to-r from-purple-600 to-purple-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:from-purple-500 hover:to-purple-400 transition-all shadow-lg shadow-purple-600/20 active:scale-[0.98]"
+              className="btn-brand mt-5 w-full text-xs"
             >
               Lancer la Prévision
             </button>
@@ -353,19 +346,18 @@ export default function Dashboard() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.4 }}
             className="bg-[#0d1624]/60 backdrop-blur-sm border border-slate-800/60 rounded-xl p-5 md:p-6"
-          >
-            <div className="flex items-center gap-2 mb-5">
-              <MapPin className="w-4 h-4 text-cyan-400" />
+          >              <div className="flex items-center gap-2 mb-5">
+              <MapPin className="w-4 h-4 text-teal-400" />
               <h3 className="text-sm font-bold text-white tracking-tight">Densité Régionale</h3>
               <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider ml-auto">Maroc</span>
             </div>
 
             <div className="space-y-4">
               {[
-                { city: 'Casablanca', rate: 72, color: 'bg-gradient-to-r from-purple-600 to-purple-500' },
-                { city: 'Marrakech', rate: 48, color: 'bg-gradient-to-r from-cyan-500 to-cyan-400' },
+                { city: 'Casablanca', rate: 72, color: 'bg-gradient-to-r from-emerald-500 to-emerald-400' },
+                { city: 'Marrakech', rate: 48, color: 'bg-gradient-to-r from-teal-500 to-teal-400' },
                 { city: 'Rabat', rate: 35, color: 'bg-gradient-to-r from-emerald-400 to-emerald-500' },
-                { city: 'Tanger', rate: 22, color: 'bg-gradient-to-r from-amber-500 to-orange-500' },
+                { city: 'Tanger', rate: 22, color: 'bg-gradient-to-r from-amber-500 to-amber-400' },
               ].map((item) => (
                 <div key={item.city}>
                   <div className="flex justify-between text-xs mb-1.5">
@@ -396,7 +388,7 @@ export default function Dashboard() {
           >
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2">
-                <Users className="w-4 h-4 text-purple-400" />
+                <Users className="w-4 h-4 text-emerald-400" />
                 <h3 className="text-sm font-bold text-white tracking-tight">Activité Récente</h3>
               </div>
               <span className="text-[9px] font-bold text-slate-600 uppercase tracking-wider">CRM Live</span>
@@ -411,7 +403,7 @@ export default function Dashboard() {
                     key={lead.id || i}
                     className="flex items-center gap-3 py-3.5 first:pt-0 last:pb-0"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-500/20 to-cyan-500/20 flex items-center justify-center text-xs font-bold text-purple-300 shrink-0">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 shrink-0">
                       {lead.full_name?.charAt(0) || lead.name?.charAt(0) || '?'}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -465,7 +457,7 @@ export default function Dashboard() {
               <div className="sticky top-0 bg-[#0d1624] border-b border-slate-800/60 px-6 py-4 flex items-center justify-between rounded-t-2xl">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <div className="status-live" />
                     <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400">
                       Sync Active
                     </span>
@@ -486,8 +478,8 @@ export default function Dashboard() {
                 {/* Three metric cards */}
                 <div className="grid grid-cols-3 gap-3">
                   {[
-                    { label: 'Projection des Prix', val: '+18.2%', desc: 'Unités de luxe', icon: TrendingUp, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-                    { label: 'Vélocité des Leads', val: '4.2x', desc: 'Fréquence interactions', icon: Activity, color: 'text-cyan-400', bg: 'bg-cyan-500/10 border-cyan-500/20' },
+                    { label: 'Projection des Prix', val: '+18.2%', desc: 'Unités de luxe', icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/20' },
+                    { label: 'Vélocité des Leads', val: '4.2x', desc: 'Fréquence interactions', icon: Activity, color: 'text-teal-400', bg: 'bg-teal-500/10 border-teal-500/20' },
                     { label: 'Chaleur du Marché', val: '92/100', desc: 'Score fiabilité', icon: Flame, color: 'text-amber-400', bg: 'bg-amber-500/10 border-amber-500/20' },
                   ].map((item) => (
                     <div
@@ -507,25 +499,25 @@ export default function Dashboard() {
                 </div>
 
                 {/* Confidence bar */}
-                <div className="p-4 rounded-xl bg-gradient-to-r from-purple-500/5 to-cyan-500/5 border border-slate-800/60">
+                <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-500/5 to-teal-500/5 border border-slate-800/60">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Confiance du Modèle
                     </span>
-                    <span className="text-xs font-bold text-cyan-400">94.6%</span>
+                    <span className="text-xs font-bold text-teal-400">94.6%</span>
                   </div>
                   <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: '94.6%' }}
                       transition={{ duration: 1.5, delay: 0.3 }}
-                      className="h-full bg-gradient-to-r from-purple-600 via-cyan-500 to-amber-500 rounded-full"
+                      className="h-full bg-gradient-to-r from-emerald-500 via-teal-400 to-amber-400 rounded-full"
                     />
                   </div>
                 </div>
 
                 {/* Deploy button */}
-                <button className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-500 text-white text-xs font-bold uppercase tracking-wider rounded-lg hover:from-purple-500 hover:to-purple-400 transition-all shadow-lg shadow-purple-600/20 active:scale-[0.98]">
+                <button className="btn-brand w-full py-3 text-xs">
                   Déployer le Capital
                 </button>
               </div>
