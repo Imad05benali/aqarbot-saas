@@ -101,35 +101,138 @@
     @apply bg-white border-slate-200 shadow-xl;
   }
 
+  /* ── Modern Sidebar ── */
   .sidebar-nav-item {
-    @apply flex items-center gap-4 py-4 rounded-3xl transition-all duration-500 relative overflow-hidden;
-  }
-  .sidebar-nav-item.group {
-    /* group class for parent selector usage in components */
+    @apply flex items-center gap-3 py-3 rounded-xl transition-all duration-300 relative overflow-hidden px-3;
   }
   html.light .sidebar-nav-item {
-    @apply text-slate-600 hover:bg-slate-100;
+    @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900;
   }
 
   .sidebar-active {
-    @apply bg-emerald-500/10 border-emerald-500/30 text-emerald-700 shadow-[0_0_20px_rgba(110,231,183,0.15)];
+    @apply bg-emerald-500/10 text-emerald-400 shadow-[0_0_15px_rgba(110,231,183,0.12)];
   }
   html.light .sidebar-active {
-    @apply bg-emerald-50 border-emerald-400/40 text-emerald-800 shadow-[0_0_20px_rgba(110,231,183,0.1)];
+    @apply bg-emerald-50 text-emerald-700 shadow-[0_0_15px_rgba(110,231,183,0.08)];
   }
 
   .sidebar-icon-active {
-    @apply text-[#0B1120];
+    @apply text-emerald-400;
   }
   html.light .sidebar-icon-active {
     @apply text-emerald-700;
   }
 
   .sidebar-text-active {
-    @apply text-emerald-700 dark:text-emerald-900;
+    @apply text-emerald-400;
   }
   html.light .sidebar-text-active {
-    @apply text-emerald-800;
+    @apply text-emerald-700;
+  }
+
+  .sidebar-inactive-icon {
+    @apply text-slate-500 group-hover:text-emerald-400;
+  }
+  html.light .sidebar-inactive-icon {
+    @apply text-slate-500 group-hover:text-emerald-600;
+  }
+
+  .sidebar-inactive-text {
+    @apply text-slate-500 group-hover:opacity-100;
+  }
+  html.light .sidebar-inactive-text {
+    @apply text-slate-500 group-hover:text-slate-900;
+  }
+
+  /* ── Active indicator glow ── */
+  .sidebar-active-indicator {
+    @apply absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-transparent -translate-x-full animate-shimmer;
+  }
+
+  /* ── Card variants ── */
+  .card-glass {
+    @apply relative overflow-hidden bg-[#0d1624]/70 backdrop-blur-xl border border-slate-800/50 shadow-2xl transition-all duration-300;
+  }
+  html.light .card-glass {
+    @apply bg-white/80 backdrop-blur-xl border-slate-200 shadow-lg;
+  }
+
+  .card-slab {
+    @apply relative overflow-hidden bg-[#0d1624] border border-slate-800/60 shadow-xl transition-all duration-300;
+  }
+  html.light .card-slab {
+    @apply bg-white border-slate-200 shadow-md;
+  }
+
+  .input-modern {
+    @apply w-full px-4 py-3 bg-slate-800/40 border border-slate-700/50 rounded-xl text-sm font-bold text-white outline-none transition-all placeholder:text-slate-600 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20;
+  }
+  html.light .input-modern {
+    @apply bg-slate-50 border-slate-300 text-slate-900 placeholder:text-slate-400 focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20;
+  }
+
+  .label-modern {
+    @apply text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-2 block;
+  }
+  html.light .label-modern {
+    @apply text-slate-500;
+  }
+
+  /* ── Soft chip/tag ── */
+  .chip-emerald {
+    @apply px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-black text-[9px] uppercase tracking-widest border border-emerald-500/20;
+  }
+  html.light .chip-emerald {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-400/40;
+  }
+
+  /* ── Status dot ── */
+  .dot-live {
+    @apply w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_#34D399];
+  }
+  .dot-paused {
+    @apply w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_#F43F5E];
+  }
+
+  /* ── Icon button ── */
+  .icon-btn {
+    @apply p-2.5 rounded-xl transition-all active:scale-90;
+  }
+  html.dark .icon-btn {
+    @apply text-slate-400 hover:bg-slate-800 hover:text-emerald-400;
+  }
+  html.light .icon-btn {
+    @apply text-slate-500 hover:bg-slate-100 hover:text-emerald-600;
+  }
+
+  /* ── Divider ── */
+  .divider-light {
+    @apply border-slate-800/50;
+  }
+  html.light .divider-light {
+    @apply border-slate-200;
+  }
+
+  /* ── Avatar initial ── */
+  .avatar-initial {
+    @apply w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-xs font-bold text-emerald-400 shrink-0;
+  }
+  html.light .avatar-initial {
+    @apply bg-emerald-50 border-emerald-400/40 text-emerald-700;
+  }
+
+  /* ── Section header ── */
+  .section-header {
+    @apply flex items-center gap-2 mb-4;
+  }
+  .section-header h3 {
+    @apply text-sm font-bold text-white tracking-tight;
+  }
+  html.light .section-header h3 {
+    @apply text-slate-900;
+  }
+  .section-header .chip {
+    @apply chip-emerald ml-auto;
   }
 
   /* ── Modern Card (dark) ── */
