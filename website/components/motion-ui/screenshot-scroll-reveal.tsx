@@ -81,18 +81,20 @@ export function ScreenshotScrollReveal({
       const range = Math.max(1, rect.height - vh);
       const p = Math.min(1, Math.max(0, -rect.top / range));
 
-      // Headline lifts away + fades + blurs.
-      const hy = -BASE_LIFT * headlineSpeed * p;
-      const hop = Math.max(0, 1 - p * 2);
-      headlineEl.style.transform = `translate3d(0, ${hy}px, 0)`;
-      headlineEl.style.opacity = String(hop);
-      headlineEl.style.filter = `blur(${10 * p}px)`;
-
-      // Screenshot tilts upright + scales to centre.
+      // Screenshot rises from below the viewport, tilts upright and scales
+      // into centre — overlapping the headline as it recedes (demo choreography).
       const rot = BASE_TILT_DEG * tiltSpeed * (1 - p);
       const sc = BASE_SCALE * scaleSpeed + (1 - BASE_SCALE * scaleSpeed) * p;
-      const sy = BASE_TRAVEL * scaleSpeed * (1 - p);
-      shotEl.style.transform = `perspective(1400px) rotateX(${rot}deg) scale(${sc}) translate3d(0, ${sy}px, 0)`;
+      const sy = 0.45 * vh * (1 - p);
+      shotEl.style.transform = `translate3d(0, ${sy}px, 0) perspective(1400px) rotateX(${rot}deg) scale(${sc})`;
+
+      // Headline recedes in place: slight lift, heavy blur, slow fade behind
+      // the rising screenshot.
+      const hy = -BASE_LIFT * 0.3 * headlineSpeed * p;
+      const hop = Math.max(0, 1 - p * 1.15);
+      headlineEl.style.transform = `translate3d(0, ${hy}px, 0)`;
+      headlineEl.style.opacity = String(hop);
+      headlineEl.style.filter = `blur(${12 * p}px)`;
     };
 
     raf = requestAnimationFrame(tick);
@@ -121,18 +123,18 @@ export function ScreenshotScrollReveal({
       className={`relative h-[220vh] ${className}`}
     >
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
-        {/* ── Screenshot layer (sits behind the headline, rises on scroll) ── */}
+        {/* ── Screenshot layer (starts below the fold, rises over the headline) ── */}
         <div
           ref={shotRef}
-          className="absolute inset-0 z-10 flex items-center justify-center px-6 py-16 md:px-16"
+          className="absolute inset-0 z-30 flex items-center justify-center px-6 py-16 md:px-16"
           style={{
-            transform: `perspective(1400px) rotateX(${BASE_TILT_DEG * tiltSpeed}deg) scale(${BASE_SCALE * scaleSpeed}) translate3d(0, ${BASE_TRAVEL * scaleSpeed}px, 0)`,
+            transform: `translate3d(0, 45vh, 0) perspective(1400px) rotateX(${BASE_TILT_DEG * tiltSpeed}deg) scale(${BASE_SCALE * scaleSpeed})`,
           }}
         >
           <div className="w-full max-w-5xl">{screenshot}</div>
         </div>
 
-        {/* ── Headline layer (lifts away as the screenshot takes over) ── */}
+        {/* ── Headline layer (recedes behind the rising screenshot) ── */}
         <div
           ref={headlineRef}
           className="absolute inset-0 z-20 flex items-center justify-center overflow-y-auto px-6 py-16"
