@@ -14,6 +14,7 @@
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-serif: var(--font-instrument-serif), Georgia, serif;
 }
 
 html, body {
@@ -165,6 +166,18 @@ h1, h2, h3 {
   line-height: 0.92;
   text-transform: uppercase;
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Serif display headline (scroll-reveal hero) ──────────────
+   Unlayered on purpose: the global `h1, h2, h3` rule is unlayered too,
+   so it beats layered Tailwind utilities — this class restores the serif
+   display style for the takeover hero heading. */
+.display-serif {
+  font-family: var(--font-serif), Georgia, serif;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: -0.02em;
+  line-height: 1.08;
 }
 
 /* Custom Utilities for Neon Effects */

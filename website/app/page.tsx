@@ -40,155 +40,23 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
 }
 
 export default function Home() {
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <main className="bg-[#0B1120] text-slate-100 min-h-screen selection:bg-[#6EE7B7]/30">
       <StructuredData />
 
-      {/* ─── 1. HERO SECTION (standalone) ─────────────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col justify-center pt-28 pb-16 px-6 md:px-12 lg:px-20 overflow-hidden">
-        
-        {/* Subtle Background Grid Element */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-
-        {/* Ambient Glows */}
-        <div 
-          className="absolute top-0 right-1/4 translate-x-1/4 pointer-events-none transition-transform duration-75 ease-out hidden md:block"
-          style={{ transform: `translateX(25%) translateY(${scrollY * 0.4}px)`, opacity: Math.max(0, 1 - scrollY / 700) }}
-        >
-          <div className="w-[800px] h-[800px] bg-gradient-to-br from-[#6EE7B7]/10 to-transparent blur-[120px] rounded-full opacity-60" />
-        </div>
-
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          
-          {/* ================ LEFT COLUMN ================ */}
-          <div className="flex flex-col text-left">
-            <Reveal delay={300}>
-              <h1 className="text-[clamp(2.2rem,6vw,3.8rem)] font-medium leading-[1.05] tracking-tight mb-5 text-white">
-                La Première<br />
-                Plateforme SaaS<br />
-                Immobilière<br />
-                <span className="text-[#6EE7B7] relative inline-block">
-                  Pilotée par l'IA
-                  <span className="absolute -bottom-2 left-0 w-full h-[2px] bg-yellow-500/70" />
-                </span> au Maroc
-              </h1>
-            </Reveal>
-
-            <Reveal delay={500}>
-              <p className="text-sm md:text-base text-slate-400 max-w-lg font-normal leading-relaxed mb-8">
-                AqarBot transforme chaque message en opportunité. Qualifiez, assignez et faites avancer vos prospects — avant même que votre café ne refroidisse.
-              </p>
-            </Reveal>
-
-            {/* Filter Bar */}
-            <Reveal delay={700}>
-              <div className="w-full bg-[#0d1624] border border-slate-800 rounded p-4 md:p-5 shadow-2xl flex flex-col">
-                <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-800 mb-4">
-                  <div className="flex-1 px-3 py-2 sm:py-0">
-                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Type de bien</label>
-                    <div className="relative">
-                      <select className="w-full bg-transparent text-slate-200 text-sm font-medium appearance-none focus:outline-none cursor-pointer">
-                        <option>Appartement</option>
-                        <option>Villa</option>
-                        <option>Plateau Bureau</option>
-                        <option>Terrain</option>
-                      </select>
-                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                    </div>
-                  </div>
-                  <div className="flex-1 px-3 py-2 sm:py-0">
-                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Ville</label>
-                    <div className="relative">
-                      <select className="w-full bg-transparent text-slate-200 text-sm font-medium appearance-none focus:outline-none cursor-pointer">
-                        <option>Meknès</option>
-                        <option>Casablanca</option>
-                        <option>Tanger</option>
-                        <option>Marrakech</option>
-                      </select>
-                      <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                    </div>
-                  </div>
-                  <div className="flex-1 px-3 py-2 sm:py-0">
-                    <label className="text-[9px] uppercase font-bold tracking-[0.15em] text-slate-500 mb-2 block">Budget Max - MAD</label>
-                    <input type="text" defaultValue="1 500 000" className="w-full bg-transparent text-slate-200 text-sm font-medium focus:outline-none" />
-                  </div>
-                </div>
-                <button className="w-full bg-[#6EE7B7] text-[#0B1121] text-[11px] font-black tracking-[0.15em] uppercase py-4 flex items-center justify-center gap-2 hover:bg-[#4ade80] transition-colors rounded-sm shadow-[0_0_20px_rgba(110,231,183,0.2)]">
-                  TESTER LA QUALIFICATION IA <ArrowUpRight className="w-4 h-4" />
-                </button>
-              </div>
-            </Reveal>
-          </div>
-
-          {/* ================ RIGHT COLUMN : RADAR UI (desktop only) ================ */}
-          <div className="hidden lg:flex items-center justify-center relative min-h-[500px] xl:min-h-[600px] scale-90 xl:scale-100">
-            <Reveal delay={900} className="relative w-full h-full flex items-center justify-center">
-              
-              {/* Radar Rings */}
-              <div className="absolute w-[800px] h-[800px] border border-slate-800/40 rounded-full" />
-              <div className="absolute w-[600px] h-[600px] border border-slate-700/50 rounded-full" />
-              <div className="absolute w-[400px] h-[400px] border border-slate-600/50 rounded-full" />
-              <div className="absolute w-[250px] h-[250px] border border-emerald-900/40 rounded-full" />
-              
-              {/* Radar dots */}
-              <div className="absolute w-2 h-2 rounded-full bg-[#6EE7B7] shadow-[0_0_10px_#6EE7B7] top-[30%] right-[15%]" />
-              <div className="absolute w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_10px_#EAB308] bottom-[15%] left-[25%]" />
-
-              {/* Center Brain Core */}
-              <div className="absolute w-44 h-44 bg-gradient-to-b from-[#0d1c25] to-[#070b13] border border-[#6EE7B7]/20 rounded-full flex flex-col items-center justify-center z-20 shadow-[0_0_40px_rgba(110,231,183,0.1)]">
-                <span className="relative flex h-14 w-14 mb-4">
-                  <span className="animate-[ping_2s_ease-out_infinite] absolute inline-flex h-full w-full rounded-full bg-[#6EE7B7] opacity-20"></span>
-                  <Image src="/logo-icon.png" alt="Aqarbot Core" width={56} height={56} className="relative inline-flex h-full w-full object-contain drop-shadow-[0_0_15px_rgba(110,231,183,0.5)]" />
-                </span>
-                <p className="text-white text-xs font-bold mb-1">Aqar Intelligence</p>
-                <p className="text-[#6EE7B7]/70 text-[8px] uppercase tracking-widest font-black">En écoute · 24/7</p>
-              </div>
-
-              {/* Floating Widget 1: Signal Entrant */}
-              <div className="absolute top-[20%] left-[5%] z-30 bg-[#0d1624] border border-slate-700/50 p-4 rounded-sm shadow-xl backdrop-blur-md animate-[float_6s_ease-in-out_infinite]">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] animate-pulse" />
-                  <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">Signal Entrant</span>
-                </div>
-                <p className="text-slate-100 text-sm font-medium">WhatsApp · Casablanca</p>
-              </div>
-
-              {/* Floating Widget 2: Score IA */}
-              <div className="absolute bottom-[20%] right-[-5%] z-30 bg-[#0d1624] border border-yellow-500/30 p-4 rounded-sm shadow-xl backdrop-blur-md animate-[float_7s_ease-in-out_infinite]" style={{ animationDelay: '2s' }}>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                  <span className="text-[9px] text-yellow-500 font-bold tracking-widest uppercase">Score IA</span>
-                </div>
-                <p className="text-slate-100 text-3xl font-medium tracking-tight">94<span className="text-sm text-slate-500">/100</span></p>
-              </div>
-
-            </Reveal>
-          </div>
-
-        </div>
-      </section>
-
-      {/* ─── 2. SCROLL REVEAL — THE DASHBOARD ─────────────────────────────────── */}
+      {/* ─── 1. HERO — SCROLL REVEAL TAKEOVER ──────────────────────────────────── */}
       <ScreenshotScrollReveal
         scaleSpeed={1.15}
-        ariaLabelledBy="showcase-heading"
-        className="bg-[#0B1120] border-t border-slate-900/50"
+        ariaLabelledBy="hero-heading"
+        className="bg-gradient-to-br from-[#FAF6EF] via-[#F7EBDC] to-[#F0D8BA]"
         headline={
           <div className="px-6 text-center">
-            <p className="mb-4 text-[10px] font-black uppercase tracking-[0.25em] text-yellow-500">La Salle Des Machines</p>
-            <h2 id="showcase-heading" className="text-[clamp(2.2rem,5vw,3.5rem)] font-medium leading-[1.05] tracking-tight mb-5 text-white">
-              Tout votre marché, <span className="text-[#6EE7B7]">en direct.</span>
-            </h2>
-            <p className="text-sm md:text-base text-slate-400 max-w-xl mx-auto font-normal leading-relaxed">
-              Chaque message devient une donnée. Chaque conversation devient une opportunité scorée — visible en temps réel, dans un seul tableau de bord.
+            <h1 id="hero-heading" className="display-serif text-[clamp(2.6rem,6vw,4.5rem)] text-[#2D2418] mb-6">
+              Chaque prospect, enfin<br />
+              <span className="italic">mis au point.</span>
+            </h1>
+            <p className="text-sm md:text-base text-[#6B5F4F] max-w-xl mx-auto font-normal leading-relaxed">
+              Suivez chaque conversation, du premier message au moment où elle devient une signature.
             </p>
           </div>
         }
