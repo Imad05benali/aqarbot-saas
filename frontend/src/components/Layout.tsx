@@ -114,9 +114,9 @@ export default function Layout() {
                     transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   />
                 )}
-                <Icon className={`w-5 h-5 shrink-0 transition-all duration-300 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-emerald-400'}`} />
+                <Icon className={`w-5 h-5 shrink-0 transition-all duration-300 ${isActive ? 'text-emerald-400' : 'text-slate-500'}`} />
                 {isSidebarOpen && (
-                  <span className={`text-sm font-bold tracking-tight whitespace-nowrap transition-all duration-300 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-300'}`}>
+                  <span className={`text-sm font-bold tracking-tight whitespace-nowrap transition-all duration-300 ${isActive ? 'text-emerald-400' : 'text-slate-500'}`}>
                     {item.name}
                   </span>
                 )}
@@ -126,19 +126,18 @@ export default function Layout() {
         </nav>
 
         {/* Footer */}
-        <div className="p-3 border-t border-slate-800/50">
-          <button
-            onClick={handleLogout}
-            title={!isSidebarOpen ? "Déconnexion" : undefined}
-            className={`sidebar-nav-item group flex items-center justify-center gap-3 ${isSidebarOpen ? 'px-3 py-3' : 'px-0 py-3'} rounded-xl`}
-          >
-            <LogOut className={`w-4 h-4 shrink-0 transition-all duration-300 ${isSidebarOpen ? 'text-slate-500 group-hover:text-rose-400' : 'text-slate-500 group-hover:text-rose-400'}`} />
-            {isSidebarOpen && (
-              <span className="text-sm font-bold tracking-tight text-slate-500 group-hover:text-rose-400 whitespace-nowrap transition-all duration-300">
-                Déconnexion
-              </span>
-            )}
-          </button>
+        <div className="p-3 border-t border-slate-800/50">              <button
+                onClick={handleLogout}
+                title={!isSidebarOpen ? "Déconnexion" : undefined}
+                className={`flex items-center justify-center gap-3 ${isSidebarOpen ? 'px-3 py-3' : 'px-0 py-3'} rounded-xl`}
+              >
+                <LogOut className={`w-4 h-4 shrink-0 transition-all duration-300 ${isSidebarOpen ? 'text-slate-500 hover:text-rose-400' : 'text-slate-500 hover:text-rose-400'}`} />
+                {isSidebarOpen && (
+                  <span className="text-sm font-bold tracking-tight text-slate-500 hover:text-rose-400 whitespace-nowrap transition-all duration-300">
+                    Déconnexion
+                  </span>
+                )}
+              </button>
         </div>
       </aside>
 
