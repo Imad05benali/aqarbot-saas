@@ -5,6 +5,8 @@ import { MessageSquare, ArrowUpRight, CheckCircle2, ChevronDown, Check, Server, 
 import Image from 'next/image';
 import StructuredData from '@/components/StructuredData';
 import Features from '@/components/Features';
+import { ScreenshotScrollReveal } from '@/components/motion-ui/screenshot-scroll-reveal';
+import DashboardMock from '@/components/DashboardMock';
 
 function useOnScreen(ref: React.RefObject<Element | null>, rootMargin = '0px') {
   const [isIntersecting, setIntersecting] = useState(false);
@@ -38,36 +40,17 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
 }
 
 export default function Home() {
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   return (
     <main className="bg-[#0B1120] text-slate-100 min-h-screen selection:bg-[#6EE7B7]/30">
       <StructuredData />
 
-      {/* ─── 1. HERO SECTION ───────────────────────────────────────────────────── */}
-      <section className="relative min-h-screen flex flex-col justify-center pt-28 pb-16 px-6 md:px-12 lg:px-20 overflow-hidden">
-        
-        {/* Subtle Background Grid Element (matching exactly) */}
-        <div className="absolute inset-0 pointer-events-none opacity-[0.03]" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
-
-        {/* Ambient Glows */}
-        <div 
-          className="absolute top-0 right-1/4 translate-x-1/4 pointer-events-none transition-transform duration-75 ease-out hidden md:block"
-          style={{ transform: `translateX(25%) translateY(${scrollY * 0.4}px)`, opacity: Math.max(0, 1 - scrollY / 700) }}
-        >
-          <div className="w-[800px] h-[800px] bg-gradient-to-br from-[#6EE7B7]/10 to-transparent blur-[120px] rounded-full opacity-60" />
-        </div>
-
-        <div className="relative z-10 w-full max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
-          
-          {/* ================ LEFT COLUMN ================ */}
-          <div className="flex flex-col text-left">
+      {/* ─── 1. HERO SECTION — SCROLL REVEAL TAKEOVER ─────────────────────────── */}
+      <ScreenshotScrollReveal
+        scaleSpeed={1.15}
+        ariaLabelledBy="hero-heading"
+        className="bg-[#0B1120]"
+        headline={
+          <div className="flex flex-col items-center text-center">
             <Reveal delay={300}>
               <h1 className="text-[clamp(2.2rem,6vw,3.8rem)] font-medium leading-[1.05] tracking-tight mb-5 text-white">
                 La Première<br />
@@ -125,54 +108,11 @@ export default function Home() {
               </div>
             </Reveal>
           </div>
-
-          {/* ================ RIGHT COLUMN : RADAR UI (desktop only) ================ */}
-          <div className="hidden lg:flex items-center justify-center relative min-h-[500px] xl:min-h-[600px] scale-90 xl:scale-100">
-            <Reveal delay={900} className="relative w-full h-full flex items-center justify-center">
-              
-              {/* Radar Rings */}
-              <div className="absolute w-[800px] h-[800px] border border-slate-800/40 rounded-full" />
-              <div className="absolute w-[600px] h-[600px] border border-slate-700/50 rounded-full" />
-              <div className="absolute w-[400px] h-[400px] border border-slate-600/50 rounded-full" />
-              <div className="absolute w-[250px] h-[250px] border border-emerald-900/40 rounded-full" />
-              
-              {/* Radar dots */}
-              <div className="absolute w-2 h-2 rounded-full bg-[#6EE7B7] shadow-[0_0_10px_#6EE7B7] top-[30%] right-[15%]" />
-              <div className="absolute w-1.5 h-1.5 rounded-full bg-yellow-500 shadow-[0_0_10px_#EAB308] bottom-[15%] left-[25%]" />
-
-              {/* Center Brain Core */}
-              <div className="absolute w-44 h-44 bg-gradient-to-b from-[#0d1c25] to-[#070b13] border border-[#6EE7B7]/20 rounded-full flex flex-col items-center justify-center z-20 shadow-[0_0_40px_rgba(110,231,183,0.1)]">
-                <span className="relative flex h-14 w-14 mb-4">
-                  <span className="animate-[ping_2s_ease-out_infinite] absolute inline-flex h-full w-full rounded-full bg-[#6EE7B7] opacity-20"></span>
-                  <Image src="/logo-icon.png" alt="Aqarbot Core" width={56} height={56} className="relative inline-flex h-full w-full object-contain drop-shadow-[0_0_15px_rgba(110,231,183,0.5)]" />
-                </span>
-                <p className="text-white text-xs font-bold mb-1">Aqar Intelligence</p>
-                <p className="text-[#6EE7B7]/70 text-[8px] uppercase tracking-widest font-black">En écoute · 24/7</p>
-              </div>
-
-              {/* Floating Widget 1: Signal Entrant */}
-              <div className="absolute top-[20%] left-[5%] z-30 bg-[#0d1624] border border-slate-700/50 p-4 rounded-sm shadow-xl backdrop-blur-md animate-[float_6s_ease-in-out_infinite]">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] animate-pulse" />
-                  <span className="text-[9px] text-slate-400 font-bold tracking-widest uppercase">Signal Entrant</span>
-                </div>
-                <p className="text-slate-100 text-sm font-medium">WhatsApp · Casablanca</p>
-              </div>
-
-              {/* Floating Widget 2: Score IA */}
-              <div className="absolute bottom-[20%] right-[-5%] z-30 bg-[#0d1624] border border-yellow-500/30 p-4 rounded-sm shadow-xl backdrop-blur-md animate-[float_7s_ease-in-out_infinite]" style={{ animationDelay: '2s' }}>
-                <div className="flex items-center gap-2 mb-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                  <span className="text-[9px] text-yellow-500 font-bold tracking-widest uppercase">Score IA</span>
-                </div>
-                <p className="text-slate-100 text-3xl font-medium tracking-tight">94<span className="text-sm text-slate-500">/100</span></p>
-              </div>
-
-            </Reveal>
-          </div>
-
-        </div>
-      </section>
+        }
+        screenshot={
+          <DashboardMock />
+        }
+      />
 
       <section className="py-14 md:py-24 px-6 md:px-12 lg:px-20 bg-[#0B1120] relative border-t border-slate-900/50">
         <div className="max-w-[1400px] mx-auto">
