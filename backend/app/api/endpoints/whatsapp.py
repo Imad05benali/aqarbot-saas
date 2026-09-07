@@ -648,11 +648,30 @@ async def _process_webhook_payload(payload: dict):
                                         logger.error(f"Fuzzy fallback search failed: {e}")
                                         props = []
                                 if props:
-                                    await _deliver_property_results(
-                                        client_phone, agency_id, props,
-                                        hint["city"], hint["type"],
-                                        hint.get("sector"), hint["budget"],
-                                    )
+                                # Persist criteria captured via the plain-text safety net too.
+                                if agency_id and client_phone:
+                                    try:
+                                        lead_updates: dict[str, object] = {}
+                                        if hint["type"]:
+                                            lead_updates["Type"] = hint["type"]
+                                        if hint["city"]:
+                                            lead_updates["City"] = hint["city"]
+                                        if hint.get("sector"):
+                                            lead_updates["Nighberd"] = hint["sector"]
+                                        if hint["budget"] is not None:
+                                            lead_updates["budget"] = str(hint["budget"])
+                                        if lead_updates:
+                                            supabase.table("leads").update(lead_updates) \
+                                                .eq("phone_number", client_phone).execute()
+                                            print(f"LEAD CRITERIA (safety net): {lead_updates} for {client_phone}")
+                                    except Exception as e:
+                                        logger.error(f"Error persisting lead criteria (safety net): {e}")
+
+                                await _deliver_property_results(
+                                    client_phone, agency_id, props,
+                                    hint["city"], hint["type"],
+                                    hint.get("sector"), hint["budget"],
+                                )
                         else:
                             status = parsed_json.get("status")
                             if status == "ready_to_search":
@@ -688,6 +707,26 @@ async def _process_webhook_payload(payload: dict):
                                         except Exception as e:
                                             logger.error(f"Fuzzy fallback search failed: {e}")
                                             props = []
+
+                                # Persist the collected criteria on the lead so the CRM
+                                # (Critères & Budget / Localisation Cible) shows real values.
+                                if agency_id and client_phone:
+                                    try:
+                                        lead_updates: dict[str, object] = {}
+                                        if prop_type:
+                                            lead_updates["Type"] = prop_type
+                                        if city:
+                                            lead_updates["City"] = city
+                                        if sector:
+                                            lead_updates["Nighberd"] = sector
+                                        if budget_raw is not None:
+                                            lead_updates["budget"] = str(budget_raw)
+                                        if lead_updates:
+                                            supabase.table("leads").update(lead_updates) \
+                                                .eq("phone_number", client_phone).execute()
+                                            print(f"LEAD CRITERIA: {lead_updates} for {client_phone}")
+                                    except Exception as e:
+                                        logger.error(f"Error persisting lead criteria: {e}")
 
                                 await _deliver_property_results(
                                     client_phone, agency_id, props,

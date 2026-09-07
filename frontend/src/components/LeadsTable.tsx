@@ -126,22 +126,34 @@ export default function LeadsTable({ data, onToggleBot }: LeadsTableProps) {
                       <td className="px-8 py-6">
                         <div className="flex flex-col">
                           <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase tracking-tighter flex items-center gap-1.5">
-                            <MapPin className="w-3 h-3 text-rose-500" /> {row.City || 'Maroc'}
+                            <MapPin className="w-3 h-3 text-rose-500" /> {row.City || row.Nighberd || 'Maroc'}
                           </span>
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
-                            {row.sector || row.Nighberd || 'Secteur Non Défini'}
-                          </span>
+                          {row.sector && (
+                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+                              {row.sector}
+                            </span>
+                          )}
                         </div>
                       </td>
 
                       <td className="px-8 py-6">
                         <div className="flex flex-col gap-1.5">
-                          <span className="px-3 py-1 rounded-lg bg-primary/10 text-primary font-black text-[9px] uppercase tracking-widest border border-primary/20 w-fit">
-                            {row.Type || 'Type Inconnu'}
-                          </span>
-                          {row.budget && (
+                          {row.Type ? (
+                            <span className="px-3 py-1 rounded-lg bg-primary/10 text-primary font-black text-[9px] uppercase tracking-widest border border-primary/20 w-fit">
+                              {row.Type}
+                            </span>
+                          ) : (
+                            <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-white/5 text-slate-400 dark:text-slate-500 font-black text-[9px] uppercase tracking-widest border border-slate-200 dark:border-white/10 w-fit">
+                              N/A
+                            </span>
+                          )}
+                          {row.budget ? (
                             <span className="text-[11px] font-mono font-black text-emerald-600 dark:text-emerald-400">
-                                {row.budget} MAD
+                              {row.budget} MAD
+                            </span>
+                          ) : (
+                            <span className="text-[11px] font-mono font-bold text-slate-400 dark:text-slate-600">
+                              Budget non défini
                             </span>
                           )}
                         </div>
