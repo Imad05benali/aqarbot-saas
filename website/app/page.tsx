@@ -44,20 +44,92 @@ export default function Home() {
     <main className="bg-[#0B1120] text-slate-100 min-h-screen selection:bg-[#6EE7B7]/30">
       <StructuredData />
 
-      {/* ─── 1. HERO — SCROLL REVEAL TAKEOVER ──────────────────────────────────── */}
+      {/* ─── 1. HERO — ORIGINAL AQARBOT DESIGN + SCROLL REVEAL ────────────────── */}
       <ScreenshotScrollReveal
         scaleSpeed={1.15}
         ariaLabelledBy="hero-heading"
-        className="bg-gradient-to-br from-[#FAF6EF] via-[#F7EBDC] to-[#F0D8BA]"
+        className="bg-grid-dark"
         headline={
-          <div className="px-6 text-center">
-            <h1 id="hero-heading" className="display-serif text-[clamp(2.6rem,6vw,4.5rem)] text-[#2D2418] mb-6">
-              Chaque prospect, enfin<br />
-              <span className="italic">mis au point.</span>
-            </h1>
-            <p className="text-sm md:text-base text-[#6B5F4F] max-w-xl mx-auto font-normal leading-relaxed">
-              Suivez chaque conversation, du premier message au moment où elle devient une signature.
-            </p>
+          <div className="relative px-6 md:px-12 lg:px-20 w-full max-w-[1400px] mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8 items-center">
+              {/* Left: headline + description + filter bar */}
+              <div className="flex flex-col z-10">
+                <h1 id="hero-heading" className="text-[clamp(1.7rem,4.6vw,3.8rem)] font-black leading-[0.95] tracking-tight text-white mb-3">
+                  LA PREMIÈRE<br />
+                  PLATEFORME SAAS<br />
+                  IMMOBILIÈRE<br />
+                  <span className="text-[#6EE7B7] relative inline-block">
+                    PILOTÉE PAR L'IA AU
+                    <span className="absolute bottom-0 left-0 w-full h-[3px] bg-[#FBBF24] opacity-80"></span>
+                  </span><br />
+                  MAROC
+                </h1>
+                <p className="text-slate-400 text-[13px] md:text-sm max-w-md leading-relaxed mb-4">
+                  AqarBot transforme chaque message en opportunité. Qualifiez, assignez et faites avancer vos prospects — avant même que votre café ne refroidisse.
+                </p>
+                {/* Filter bar */}
+                <div className="bg-[#0d1624] border border-slate-800 rounded-lg p-3.5 flex flex-col sm:flex-row flex-wrap sm:items-end gap-3">
+                  <div className="flex-1">
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-1">TYPE DE BIEN</p>
+                    <div className="flex items-center justify-between border-b border-slate-700 pb-1">
+                      <span className="text-white text-[13px]">Appartement</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-1">VILLE</p>
+                    <div className="flex items-center justify-between border-b border-slate-700 pb-1">
+                      <span className="text-white text-[13px]">Meknès</span>
+                      <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
+                    </div>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-[8px] font-bold uppercase tracking-widest text-slate-500 mb-1 whitespace-nowrap">BUDGET MAX · MAD</p>
+                    <div className="border-b border-slate-700 pb-1">
+                      <span className="text-white text-[13px] whitespace-nowrap">1 500 000</span>
+                    </div>
+                  </div>
+                  <a href="/auth/register" className="shrink-0 bg-[#6EE7B7] text-[#0B1120] text-[9px] font-black uppercase tracking-[0.12em] px-5 py-2.5 rounded-lg hover:bg-[#4ade80] transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shadow-[0_0_20px_rgba(110,231,183,0.2)]">
+                    TESTER LA QUALIFICATION IA <ArrowUpRight className="w-3 h-3" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Right: radar/pulse animation + signal labels */}
+              <div className="relative flex items-center justify-center h-[240px] lg:h-[360px]">
+                {/* Concentric circles */}
+                <div className="absolute w-[210px] h-[210px] lg:w-[340px] lg:h-[340px] rounded-full border border-slate-700/30" />
+                <div className="absolute w-[160px] h-[160px] lg:w-[255px] lg:h-[255px] rounded-full border border-slate-700/40" />
+                <div className="absolute w-[115px] h-[115px] lg:w-[170px] lg:h-[170px] rounded-full border border-[#6EE7B7]/20" />
+                {/* Animated pulse ring */}
+                <div className="absolute w-[115px] h-[115px] lg:w-[170px] lg:h-[170px] rounded-full border-2 border-[#6EE7B7]/30 animate-ping" style={{ animationDuration: '3s' }} />
+                {/* Center logo circle */}
+                <div className="relative z-10 w-16 h-16 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-[#0d1624] to-[#0B1120] border-2 border-[#6EE7B7]/40 flex items-center justify-center shadow-[0_0_40px_rgba(110,231,183,0.15)]">
+                  <Image src="/logo-icon.png" alt="AqarBot" width={32} height={32} className="w-8 h-8 lg:w-12 lg:h-12" />
+                </div>
+                {/* Aqar Intelligence label below center */}
+                <div className="absolute bottom-[10%] lg:bottom-[12%] text-center z-10">
+                  <p className="text-white text-[10px] lg:text-xs font-bold">Aqar Intelligence</p>
+                  <p className="text-[#6EE7B7] text-[8px] font-bold uppercase tracking-widest">EN ÉCOUTE · 24/7</p>
+                </div>
+                {/* Signal entrant label */}
+                <div className="absolute left-[2%] lg:left-[5%] top-[40%] bg-[#0d1624] border border-slate-700 rounded-lg px-2.5 py-1.5 z-10">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#6EE7B7] animate-pulse" />
+                    <span className="text-[7px] font-bold uppercase tracking-widest text-slate-500">SIGNAL ENTRANT</span>
+                  </div>
+                  <p className="text-white text-[10px] lg:text-xs font-bold">WhatsApp · Casablanca</p>
+                </div>
+                {/* Score IA badge */}
+                <div className="absolute right-[2%] lg:right-[5%] top-[25%] bg-[#0d1624] border border-[#FBBF24]/30 rounded-lg px-2.5 py-1.5 z-10">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FBBF24]" />
+                    <span className="text-[7px] font-bold uppercase tracking-widest text-[#FBBF24]">SCORE IA</span>
+                  </div>
+                  <p className="text-white text-lg lg:text-xl font-black">94<span className="text-slate-500 text-[10px] font-medium">/100</span></p>
+                </div>
+              </div>
+            </div>
           </div>
         }
         screenshot={

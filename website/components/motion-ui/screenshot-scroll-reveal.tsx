@@ -35,9 +35,10 @@ export interface ScreenshotScrollRevealProps {
 }
 
 const BASE_TILT_DEG = 20;
-const BASE_SCALE = 0.72;
+const BASE_SCALE = 0.65;
 const BASE_LIFT = 160;
 const BASE_TRAVEL = 64;
+const BASE_Y_OFFSET = 0.85; // fraction of vh — dashboard starts fully below the fold
 
 function usePrefersReducedMotion(): boolean {
   const [reduce, setReduce] = useState(false);
@@ -85,7 +86,7 @@ export function ScreenshotScrollReveal({
       // into centre — overlapping the headline as it recedes (demo choreography).
       const rot = BASE_TILT_DEG * tiltSpeed * (1 - p);
       const sc = BASE_SCALE * scaleSpeed + (1 - BASE_SCALE * scaleSpeed) * p;
-      const sy = 0.45 * vh * (1 - p);
+      const sy = BASE_Y_OFFSET * vh * (1 - p);
       shotEl.style.transform = `translate3d(0, ${sy}px, 0) perspective(1400px) rotateX(${rot}deg) scale(${sc})`;
 
       // Headline recedes in place: slight lift, heavy blur, slow fade behind
@@ -122,16 +123,16 @@ export function ScreenshotScrollReveal({
       aria-labelledby={ariaLabelledBy}
       className={`relative h-[220vh] ${className}`}
     >
-      <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
+      <div className="sticky top-0 flex h-screen items-center justify-center">
         {/* ── Screenshot layer (starts below the fold, rises over the headline) ── */}
         <div
           ref={shotRef}
           className="absolute inset-0 z-30 flex items-center justify-center px-6 py-16 md:px-16"
           style={{
-            transform: `translate3d(0, 45vh, 0) perspective(1400px) rotateX(${BASE_TILT_DEG * tiltSpeed}deg) scale(${BASE_SCALE * scaleSpeed})`,
+            transform: `translate3d(0, 85vh, 0) perspective(1400px) rotateX(${BASE_TILT_DEG * tiltSpeed}deg) scale(${BASE_SCALE * scaleSpeed})`,
           }}
         >
-          <div className="w-full max-w-5xl">{screenshot}</div>
+          <div className="w-full max-w-6xl">{screenshot}</div>
         </div>
 
         {/* ── Headline layer (recedes behind the rising screenshot) ── */}
@@ -139,7 +140,7 @@ export function ScreenshotScrollReveal({
           ref={headlineRef}
           className="absolute inset-0 z-20 flex items-center justify-center overflow-y-auto px-6 py-16"
         >
-          <div className="w-full max-w-3xl">{headline}</div>
+          <div className="w-full">{headline}</div>
         </div>
       </div>
     </section>
