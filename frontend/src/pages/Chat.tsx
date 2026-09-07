@@ -16,6 +16,7 @@ export default function Chat() {
   const [loading, setLoading] = useState(true);
   const [msgText, setMsgText] = useState('');
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [messages, setMessages] = useState<any[]>([]);
 
   useEffect(() => {
@@ -38,7 +39,10 @@ export default function Chat() {
     if (e) e.preventDefault();
     if (!msgText.trim() || !activeSession || sending) return;
     setSending(true);
+    setSendError(null);
     const msg = msgText;
+    // Clear the input immediately so a sent message never lingers.
+    setMsgText('');
     try {
       if (!agencyId) return;
       try {
@@ -47,8 +51,10 @@ export default function Chat() {
         console.error('Backend sync error, fallback insert', syncErr);
         await supabase.from('conversations').insert([{ agency_id: agencyId, phone: activeSession.phone, message: msg, sender: 'agency', created_at: new Date().toISOString() }]);
       }
-      try { await sendManualChat(activeSession.phone, msg); } catch (err) {
-        setMsgText(m => m + '\n\n[Erreur d\'envoi: ' + (err instanceof Error ? err.message : 'backend unreachable') + ']');
+      try {
+        await sendManualChat(activeSession.phone, msg);
+      } catch (err) {
+        setSendError(err instanceof Error ? err.message : 'Backend injoignable');
       }
       setMessages(prev => [...prev, { id: Math.random(), phone: activeSession.phone, message: msg, sender: 'agency', created_at: new Date().toISOString() }]);
     } catch (e) { console.error(e); } finally { setSending(false); }
@@ -102,7 +108,7 @@ export default function Chat() {
                 <div className="avatar-initial">{(s.name || '?')[0]}</div>
                 <div className="min-w-0">
                   <p className={`text-sm font-bold truncate leading-none ${selectedPhone === s.phone ? 'text-white' : 'text-slate-400'}`}>{s.name}</p>
-                  <span className={`text-sm font-bold uppercase tracking-wider ${selectedPhone === s.phone ? 'text-emerald-400' : 'text-slate-600'}`}>{s.phone}</span>
+                  <span className={`text-sm font-bold leading-none ${selectedPhone === s.phone ? 'text-emerald-400' : 'text-slate-500'}`}>{s.phone}</span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
@@ -173,10 +179,10 @@ export default function Chat() {
             {/* Input */}
             <div className="p-3 border-t border-slate-800/50">
               <form onSubmit={send} className={`flex items-center gap-2 p-2 rounded-2xl transition-all border ${activeSession.is_ai_paused ? 'bg-white border-rose-500/30 shadow-rose-500/10' : 'bg-slate-800/30 border-slate-700/30 opacity-40 grayscale pointer-events-none'}`}>
-                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
-                  <Terminal className="w-4 h-4 text-slate-400" />
+                <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${activeSession?.is_ai_paused ? 'bg-slate-100 text-slate-600' : 'bg-slate-700 text-slate-400'}`}>
+                  <Terminal className="w-4 h-4" />
                 </div>
-                <input value={msgText} onChange={e => setMsgText(e.target.value)} disabled={!activeSession?.is_ai_paused || sending} className="flex-1 px-3 py-2 bg-transparent border-none outline-none text-sm font-bold text-white placeholder:text-slate-600" placeholder={activeSession?.is_ai_paused ? 'Répondre au client...' : "L'IA en contrôle · Reprendre la main"} />
+                <input value={msgText} onChange={e => setMsgText(e.target.value)} disabled={!activeSession?.is_ai_paused || sending} className={`flex-1 px-3 py-2 bg-transparent border-none outline-none text-sm font-bold transition-colors ${activeSession?.is_ai_paused ? 'text-slate-900 placeholder:text-slate-400' : 'text-white placeholder:text-slate-600'}`} placeholder={activeSession?.is_ai_paused ? 'Répondre au client...' : "L'IA en contrôle · Reprendre la main"} />
                 <button type="submit" disabled={!activeSession?.is_ai_paused || sending || !msgText.trim()} className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 transition-all ${activeSession?.is_ai_paused && msgText.trim() && !sending ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 active:scale-90 hover:bg-emerald-400' : 'bg-slate-600 text-slate-500'}`}>
                   <Send className="w-4 h-4" />
                 </button>
@@ -187,6 +193,11 @@ export default function Chat() {
                   <span className="text-[9px] font-black text-rose-400 uppercase tracking-[0.3em] animate-pulse">CONTRÔLE MANUEL — L'IA EN PAUSE</span>
                   <div className="h-px flex-1 bg-rose-500/20" />
                 </div>
+              )}
+              {sendError && (
+                <p className="mt-2 text-center text-[9px] font-black uppercase tracking-widest text-rose-400">
+                  ⚠ Envoi WhatsApp échoué : {sendError}
+                </p>
               )}
             </div>
           </>
