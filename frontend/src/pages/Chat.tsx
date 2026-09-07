@@ -101,13 +101,13 @@ export default function Chat() {
               <div className="flex items-center gap-2.5 flex-1 min-w-0">
                 <div className="avatar-initial">{(s.name || '?')[0]}</div>
                 <div className="min-w-0">
-                  <p className={`text-sm font-bold truncate ${selectedPhone === s.phone ? 'text-white' : 'text-slate-400'}`}>{s.name}</p>
-                  <span className={`text-[9px] font-bold uppercase tracking-wider ${selectedPhone === s.phone ? 'text-emerald-400' : 'text-slate-600'}`}>{s.phone}</span>
+                  <p className={`text-sm font-bold truncate leading-none ${selectedPhone === s.phone ? 'text-white' : 'text-slate-400'}`}>{s.name}</p>
+                  <span className={`text-sm font-bold uppercase tracking-wider ${selectedPhone === s.phone ? 'text-emerald-400' : 'text-slate-600'}`}>{s.phone}</span>
                 </div>
               </div>
               <div className="flex items-center gap-1.5 shrink-0">
                 <div className={s.is_ai_paused ? 'dot-paused' : 'dot-live'} />
-                <span className="text-[8px] font-black uppercase text-slate-600">LIVE</span>
+                <span className="text-[9px] font-black uppercase text-slate-600">LIVE</span>
               </div>
             </motion.button>
           ))}
