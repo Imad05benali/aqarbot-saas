@@ -5,20 +5,33 @@ import CRMDataTable from '../components/CRMDataTable';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toggleAIPause, deleteProperty, ingestCSV } from '../services/api';
 import { supabase } from '../lib/supabase';
+import { useProfile } from '../context/ProfileContext';
 
 type Tab = 'leads' | 'inventory';
 
 export default function CRM() {
+  const { profile } = useProfile();
+  const agencyId = profile?.agency_id ?? null;
   const [tab, setTab] = useState<Tab>('leads');
   const [leads, setLeads] = useState<any[]>([]);
   const [properties, setProperties] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
+    // Multi-tenant guard: never query leads without a tenant scope. Without
+    // this, PostgREST returns EVERY agency's leads (the cross-agency leak).
+    if (!agencyId) {
+      setLeads([]);
+      setProperties([]);
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const [l, p] = await Promise.all([
-        supabase.from('leads').select('*').order('created_at', { ascending: false }),
+        supabase.from('leads').select('*').eq('agency_id', agencyId).order('created_at', { ascending: false }),
+        // morocco_properties is the SHARED listing catalogue (it has no
+        // agency_id column) — it is intentionally not tenant-filtered.
         supabase.from('morocco_properties').select('*').limit(100),
       ]);
       setLeads(l.data || []);
@@ -30,10 +43,11 @@ export default function CRM() {
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  // Re-runs once the profile (and therefore agency_id) has resolved.
+  useEffect(() => { fetchData(); }, [agencyId]);
 
   const toggleBot = async (phone: string, status: boolean) => {
-    try { await toggleAIPause(phone, status); await fetchData(); } catch (e) { console.error('Toggle failed', e); }
+    try { await toggleAIPause(phone, status, agencyId); await fetchData(); } catch (e) { console.error('Toggle failed', e); }
   };
 
   const bulkUpload = async (file: File) => {

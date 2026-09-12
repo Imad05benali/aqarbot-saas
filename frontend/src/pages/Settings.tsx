@@ -23,16 +23,28 @@ function TeamManagement({ agencyId }: { agencyId: string | null }) {
   const [members, setMembers] = useState<any[]>([]);
 
   useEffect(() => {
-    if (!user?.id) return;
-    supabase.from('users').select('id, full_name, role').neq('id', user.id).then(({ data, error }) => {
-      if (error) console.error('Team fetch error:', error);
-      if (data) setMembers(data);
-    });
-  }, [user?.id]);
+    // Multi-tenant scope: only the members of THIS agency. Without the
+    // agency_id filter the list shows every user of every agency.
+    if (!user?.id || !agencyId) {
+      setMembers([]);
+      return;
+    }
+    supabase.from('users').select('id, full_name, role')
+      .eq('agency_id', agencyId)
+      .neq('id', user.id)
+      .then(({ data, error }) => {
+        if (error) console.error('Team fetch error:', error);
+        if (data) setMembers(data);
+      });
+  }, [user?.id, agencyId]);
 
   const invite = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inviteName) return;
+    if (!agencyId) {
+      setInviteMsg({ text: "Aucune agence associée à votre compte.", type: 'error' });
+      return;
+    }
     setInviting(true); setInviteMsg(null);
     try {
       const id = crypto.randomUUID();

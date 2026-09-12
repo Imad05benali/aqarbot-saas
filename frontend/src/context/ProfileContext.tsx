@@ -50,33 +50,63 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      // 2. Profile does not exist yet — create it lazily from Auth metadata
+      // 2. Profile does not exist yet — provision it, AGENCY FIRST.
+      //
+      // Multi-tenant contract (mirrors /api/auth/register):
+      //   1) insert the agency record,
+      //   2) read back its generated id,
+      //   3) create the owner row bound to THAT id.
+      // A user row is NEVER written without an agency_id: the DB fallback
+      // trigger would silently attach the account to the default agency,
+      // which is exactly how tenants ended up sharing each other's data.
       if (!userRow) {
         const meta = user.user_metadata || {};
         const email = user.email || `${user.id}@auth.local`;
-        const fallback: UserProfile = {
-          id: user.id,
-          full_name: meta.full_name || user.email || 'Utilisateur AqarBot',
-          email,
-          agency_name: null,
-          agency_logo: null,
-          agency_id: null,
-          role: meta.role || 'Owner',
-        };
+        const fullName = meta.full_name || user.email || 'Utilisateur AqarBot';
+        const role = (meta.role as string) || 'Owner';
+        // The agency name captured at signup, or the user's name as a fallback.
+        const agencyName = (meta.agency_name as string) || fullName;
 
+        // 2a. Create the AGENCY first and retrieve its generated id.
+        const { data: agency, error: agencyError } = await supabase
+          .from('agencies')
+          .insert({ agency_name: agencyName, email })
+          .select('id')
+          .single();
+
+        if (agencyError || !agency?.id) {
+          // Do NOT fall through to a user row with a NULL agency_id.
+          console.error('Supabase Agency Provisioning Error:', agencyError);
+          setProfile(null);
+          setIsLoadingProfile(false);
+          return;
+        }
+        const newAgencyId = agency.id as string;
+
+        // 2b. Create the owner row tied exclusively to that agency.
         const { error: upsertError } = await supabase
           .from('users')
           .upsert({
             id: user.id,
-            full_name: fallback.full_name,
+            agency_id: newAgencyId,
+            full_name: fullName,
             email,
-            role: fallback.role,
+            role,
           }, { onConflict: 'id' });
 
         if (upsertError) {
           console.error('Supabase Profile Sync Error (insert):', upsertError);
         }
-        setProfile(fallback);
+
+        setProfile({
+          id: user.id,
+          full_name: fullName,
+          email,
+          agency_name: agencyName,
+          agency_logo: null,
+          agency_id: newAgencyId,
+          role,
+        });
         return;
       }
 

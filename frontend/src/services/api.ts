@@ -51,7 +51,28 @@ export const ingestCSV = async (file: File) => {
 };
 
 // AI Session Management
-export const toggleAIPause = async (phone: string, paused: boolean) => {
+/**
+ * Resolve the signed-in user's agency_id (tenant scope).
+ * Used by the local Supabase fallbacks below so a write can never target
+ * another agency's rows when the backend is unreachable.
+ */
+export const resolveCurrentAgencyId = async (): Promise<string | null> => {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.id) return null;
+    const { data: me } = await supabase
+      .from('users')
+      .select('agency_id')
+      .eq('id', user.id)
+      .maybeSingle();
+    return (me?.agency_id as string | null) ?? null;
+  } catch (err) {
+    console.error('Unable to resolve current agency_id', err);
+    return null;
+  }
+};
+
+export const toggleAIPause = async (phone: string, paused: boolean, agencyId?: string | null) => {
   try {
     const response = await api.post('/api/session/takeover', { phone, paused });
     return response.data;
@@ -59,10 +80,17 @@ export const toggleAIPause = async (phone: string, paused: boolean) => {
     // Backend may be unreachable (e.g. VITE_API_URL unset in this build) —
     // update the lead directly through Supabase so takeover still works.
     console.warn('Backend takeover unreachable — updating lead via Supabase directly', err);
+    const scope = agencyId ?? (await resolveCurrentAgencyId());
+    if (!scope) {
+      throw new Error(
+        "Agence introuvable : mise à jour du lead refusée pour éviter de toucher les données d'un autre tenant."
+      );
+    }
     const { error } = await supabase
       .from('leads')
       .update({ is_ai_paused: paused })
-      .eq('phone_number', phone);
+      .eq('phone_number', phone)
+      .eq('agency_id', scope);
     if (error) throw error;
     return { status: 'success', phone, ai_paused: paused, source: 'direct' };
   }
