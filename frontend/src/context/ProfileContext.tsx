@@ -67,21 +67,24 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
         // The agency name captured at signup, or the user's name as a fallback.
         const agencyName = (meta.agency_name as string) || fullName;
 
-        // 2a. Create the AGENCY first and retrieve its generated id.
-        const { data: agency, error: agencyError } = await supabase
+        // 2a. Create the AGENCY first. The id is generated CLIENT-SIDE on
+        // purpose: the agencies SELECT policy is `id = get_my_agency_id()`,
+        // and that helper is NULL until the users row below exists. An
+        // INSERT ... RETURNING (what .select() sends) is therefore rejected
+        // with "new row violates row-level security policy", which used to
+        // make tenant provisioning impossible.
+        const newAgencyId = crypto.randomUUID();
+        const { error: agencyError } = await supabase
           .from('agencies')
-          .insert({ agency_name: agencyName, email })
-          .select('id')
-          .single();
+          .insert({ id: newAgencyId, agency_name: agencyName, email });
 
-        if (agencyError || !agency?.id) {
+        if (agencyError) {
           // Do NOT fall through to a user row with a NULL agency_id.
           console.error('Supabase Agency Provisioning Error:', agencyError);
           setProfile(null);
           setIsLoadingProfile(false);
           return;
         }
-        const newAgencyId = agency.id as string;
 
         // 2b. Create the owner row tied exclusively to that agency.
         const { error: upsertError } = await supabase

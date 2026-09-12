@@ -162,9 +162,15 @@ export default function Settings() {
         const aid = profile?.agency_id ?? null;
         if (aid) { const { error: ae } = await supabase.from('agencies').update({ agency_name: config.org_title }).eq('id', aid); if (ae) throw ae; }
         else if (config.org_title.trim()) {
-          const { data: created, error: ce } = await supabase.from('agencies').insert({ agency_name: config.org_title.trim(), email: user.email || null }).select('id').single();
+          // Bootstrap path for an account with no agency yet. The id is
+          // generated client-side because the agencies SELECT policy
+          // (`id = get_my_agency_id()`) cannot see the row until this user is
+          // linked, so `.select('id')` after the insert would be rejected.
+          const newAgencyId = crypto.randomUUID();
+          const { error: ce } = await supabase.from('agencies').insert({ id: newAgencyId, agency_name: config.org_title.trim(), email: user.email || null });
           if (ce) throw ce;
-          if (created?.id) { const { error: le } = await supabase.from('users').update({ agency_id: created.id }).eq('id', user.id); if (le) throw le; }
+          const { error: le } = await supabase.from('users').update({ agency_id: newAgencyId }).eq('id', user.id);
+          if (le) throw le;
         }
         await refreshProfile();
       }
