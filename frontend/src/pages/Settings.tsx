@@ -145,17 +145,19 @@ export default function Settings() {
   useEffect(() => {
     (async () => {
       try {
-        const d = await getAIConfig();
+        const d = await getAIConfig(profile?.agency_id ?? null);
         setConfig(c => ({ ...c, persona_prompt: d.persona_prompt || '', whatsapp_phone_id: d.whatsapp_phone_id || '', whatsapp_verify_token: d.whatsapp_verify_token || '', backend_url: d.backend_url || import.meta.env.VITE_API_URL || 'http://localhost:8000' }));
       } catch (e) { console.error('Failed to load config', e); }
       finally { setLoading(false); }
     })();
-  }, []);
+    // Re-runs once the profile resolves, so the config is loaded for the
+    // correct tenant (and not for a null agency).
+  }, [profile?.agency_id]);
 
   const save = async () => {
     setSaving(true); setMsg({ text: '', type: '' });
     try {
-      await updateAIConfig(config);
+      await updateAIConfig(config, profile?.agency_id ?? null);
       if (user?.id) {
         const { error: ue } = await supabase.from('users').update({ full_name: config.full_name }).eq('id', user.id);
         if (ue) throw ue;
@@ -342,6 +344,9 @@ export default function Settings() {
                   <div>
                     <label className="label-modern">Identifiant Téléphone ID (Meta)</label>
                     <input type="text" className="input-modern" value={config.whatsapp_phone_id} onChange={e => setConfig({ ...config, whatsapp_phone_id: e.target.value })} placeholder="ID de téléphone Meta Cloud" />
+                    <p className="text-[9px] text-slate-500 font-bold italic mt-2 px-1">
+                      Numéro WhatsApp qui reçoit les messages de CETTE agence. C&apos;est lui qui détermine à quelle agence un nouveau lead est rattaché : sans numéro enregistré ici, les conversations du bot sont attribuées à l&apos;agence par défaut.
+                    </p>
                   </div>
                   <div>
                     <label className="label-modern">Jeton de Vérification (Verify Token)</label>

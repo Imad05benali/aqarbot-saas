@@ -194,23 +194,104 @@ async def manual_chat_send(request: Request):
         print(f"❌ [Chat Send Error]: {str(e)}")
         return {"status": "error", "message": str(e)}
 
+def _calling_agency_id(request: Request) -> str | None:
+    """
+    Tenant scope for agency-scoped endpoints.
+
+    The dashboard sends the signed-in agency's id in the X-Agency-Id header.
+    Without it we cannot know which agency a write belongs to, so the caller
+    gets an explicit error instead of a silent write to the wrong tenant.
+    """
+    return request.headers.get("x-agency-id")
+
+
 @app.get("/api/agency/config")
-async def get_agency_config():
-    # In production, fetch from 'agency_config' table
-    return {
+async def get_agency_config(request: Request):
+    """
+    Returns the calling agency's API configuration.
+
+    This used to return a HARDCODED payload, so whatever an agency saved in
+    Settings was silently discarded and every tenant shared one fake phone id.
+
+    The value that actually matters is agencies.whatsapp_phone_number_id: the
+    WhatsApp webhook matches the number that RECEIVED an inbound message
+    against it to decide which tenant the conversation belongs to. While it is
+    NULL for an agency, none of that agency's messages can ever be routed to
+    it - they fall through to the default agency instead.
+    """
+    config = {
         "ai_tone": "Sérieux",
         "persona_prompt": "You are AqarBot, the lead AI assistant for Moroccan Real Estate. You speak Darija and French...",
-        "whatsapp_phone_id": "1093229547216157",
-        "whatsapp_verify_token": "aqarbot_secure_token"
+        "whatsapp_phone_id": "",
+        "whatsapp_verify_token": os.getenv("META_VERIFY_TOKEN", ""),
+        "org_title": "",
     }
+
+    agency_id = _calling_agency_id(request)
+    if not agency_id:
+        return config
+    try:
+        res = supabase.table("agencies") \
+            .select("agency_name, whatsapp_phone_number_id") \
+            .eq("id", agency_id).limit(1).execute()
+        if res.data:
+            row = res.data[0]
+            config["org_title"] = row.get("agency_name") or ""
+            config["whatsapp_phone_id"] = row.get("whatsapp_phone_number_id") or ""
+    except Exception as e:
+        logger.error(f"[Config] Could not load agency config for {agency_id}: {e}")
+    return config
+
 
 @app.post("/api/agency/config")
 async def update_agency_config(request: Request):
+    """
+    Persists the agency's WhatsApp phone-number id.
+
+    This is what makes an inbound message resolve to THIS tenant rather than
+    to the default agency (see _resolve_agency_id in the webhook). The value
+    is kept unique on purpose: if two agencies claimed the same number, the
+    webhook lookup could not tell them apart and conversations would land in
+    an arbitrary tenant.
+    """
     try:
         data = await request.json()
-        print(f"⚙️ [Config Update]: {data}")
-        return {"status": "success", "data": data}
     except Exception as e:
+        return {"status": "error", "message": f"Payload invalide: {e}"}
+
+    agency_id = _calling_agency_id(request)
+    if not agency_id:
+        return {"status": "error", "message": "En-tête X-Agency-Id manquant."}
+
+    phone_id = str(data.get("whatsapp_phone_id") or "").strip()
+
+    try:
+        if phone_id:
+            clash = supabase.table("agencies") \
+                .select("id, agency_name") \
+                .eq("whatsapp_phone_number_id", phone_id) \
+                .neq("id", agency_id).limit(1).execute()
+            if clash.data:
+                other = clash.data[0].get("agency_name") or "une autre agence"
+                return {
+                    "status": "error",
+                    "message": f"Ce numéro WhatsApp est déjà rattaché à « {other} ». "
+                               f"Un numéro ne peut alimenter qu'une seule agence.",
+                }
+
+        supabase.table("agencies") \
+            .update({"whatsapp_phone_number_id": phone_id or None}) \
+            .eq("id", agency_id).execute()
+
+        print(f"⚙️ [Config Update] agency={agency_id} whatsapp_phone_number_id='{phone_id}'")
+        return {
+            "status": "success",
+            "agency_id": agency_id,
+            "whatsapp_phone_id": phone_id,
+            "data": data,
+        }
+    except Exception as e:
+        logger.error(f"[Config Update] failed for {agency_id}: {e}")
         return {"status": "error", "message": str(e)}
 
 # --- AGENCY DASHBOARD ENDPOINTS ---

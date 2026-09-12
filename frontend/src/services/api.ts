@@ -110,13 +110,20 @@ export const sendManualChat = async (phone: string, message: string) => {
 };
 
 // Configuration API
-export const getAIConfig = async () => {
-  const response = await api.get('/api/agency/config');
+//
+// Both calls carry X-Agency-Id: the backend needs the tenant scope to load and
+// persist the agency's own WhatsApp phone-number id (the value the webhook
+// uses to route inbound conversations to the right agency).
+const agencyHeaders = (agencyId?: string | null) =>
+  agencyId ? { headers: { 'X-Agency-Id': agencyId } } : {};
+
+export const getAIConfig = async (agencyId?: string | null) => {
+  const response = await api.get('/api/agency/config', agencyHeaders(agencyId));
   return response.data;
 };
 
-export const updateAIConfig = async (data: any) => {
-  const response = await api.post('/api/agency/config', data);
+export const updateAIConfig = async (data: any, agencyId?: string | null) => {
+  const response = await api.post('/api/agency/config', data, agencyHeaders(agencyId));
   return response.data;
 };
 
